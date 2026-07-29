@@ -1,0 +1,169 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Position {
+  TANK
+  DAMAGE
+  HEALER
+}
+
+model User {
+  id           BigInt   @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String?
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model Season {
+  id        BigInt    @id @default(autoincrement())
+  name      String
+  logoUrl   String?   @map("logo_url")
+  startDate DateTime? @map("start_date") @db.Date
+  endDate   DateTime? @map("end_date") @db.Date
+
+  seasonTeams SeasonTeam[]
+  matches     Match[]
+
+  @@map("seasons")
+}
+
+model Team {
+  id        BigInt  @id @default(autoincrement())
+  name      String
+  emblemUrl String? @map("emblem_url")
+
+  seasonTeams SeasonTeam[]
+  heroBans    HeroBan[]
+
+  @@map("teams")
+}
+
+model Streamer {
+  id                BigInt  @id @default(autoincrement())
+  name              String
+  nickname          String?
+  profileImageUrl   String? @map("profile_image_url")
+  chzzkChannelUrl   String? @map("chzzk_channel_url")
+  youtubeChannelUrl String? @map("youtube_channel_url")
+
+  teamMembers    SeasonTeamMember[]
+  playerSetStats PlayerSetStat[]
+
+  @@map("streamers")
+}
+
+model SeasonTeam {
+  id       BigInt @id @default(autoincrement())
+  seasonId BigInt @map("season_id")
+  teamId   BigInt @map("team_id")
+
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  members SeasonTeamMember[]
+
+  @@map("season_teams")
+}
+
+model SeasonTeamMember {
+  id           BigInt   @id @default(autoincrement())
+  seasonTeamId BigInt   @map("season_team_id")
+  streamerId   BigInt   @map("streamer_id")
+  position     Position
+
+  seasonTeam SeasonTeam @relation(fields: [seasonTeamId], references: [id], onDelete: Cascade)
+  streamer   Streamer   @relation(fields: [streamerId], references: [id], onDelete: Cascade)
+
+  @@map("season_team_members")
+}
+
+model Match {
+  id              BigInt    @id @default(autoincrement())
+  seasonId        BigInt    @map("season_id")
+  tournamentStage String    @map("tournament_stage")
+  matchDate       DateTime? @map("match_date")
+  teamAId         BigInt    @map("team_a_id")
+  teamBId         BigInt    @map("team_b_id")
+  winnerTeamId    BigInt?   @map("winner_team_id")
+
+  season Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  sets   MatchSet[]
+
+  @@map("matches")
+}
+
+model MapItem {
+  id       BigInt  @id @default(autoincrement())
+  name     String
+  mapType  String  @map("map_type")
+  imageUrl String? @map("image_url")
+
+  matchSets MatchSet[]
+
+  @@map("maps")
+}
+
+model MatchSet {
+  id                  BigInt  @id @default(autoincrement())
+  matchId             BigInt  @map("match_id")
+  setNumber           Int     @map("set_number")
+  mapId               BigInt  @map("map_id")
+  winnerTeamId        BigInt  @map("winner_team_id")
+  gameDurationSeconds Int?    @map("game_duration_seconds")
+  vodUrl              String? @map("vod_url")
+
+  match Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  map   MapItem @relation(fields: [mapId], references: [id], onDelete: Cascade)
+
+  playerStats PlayerSetStat[]
+  heroBans    HeroBan[]
+
+  @@map("match_sets")
+}
+
+model PlayerSetStat {
+  id              BigInt  @id @default(autoincrement())
+  matchSetId      BigInt  @map("match_set_id")
+  streamerId      BigInt  @map("streamer_id")
+  kills           Int     @default(0)
+  deaths          Int     @default(0)
+  assists         Int     @default(0)
+  damage          Int     @default(0)
+  healing         Int     @default(0)
+  mitigatedDamage Int     @default(0) @map("mitigated_damage")
+  mainHeroIds     String? @map("main_hero_ids")
+  isMvp           Boolean @default(false) @map("is_mvp")
+
+  matchSet MatchSet @relation(fields: [matchSetId], references: [id], onDelete: Cascade)
+  streamer Streamer @relation(fields: [streamerId], references: [id], onDelete: Cascade)
+
+  @@map("player_set_stats")
+}
+
+model HeroBan {
+  id         BigInt @id @default(autoincrement())
+  matchSetId BigInt @map("match_set_id")
+  teamId     BigInt @map("team_id")
+  heroId     BigInt @map("hero_id")
+
+  matchSet MatchSet @relation(fields: [matchSetId], references: [id], onDelete: Cascade)
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("hero_bans")
+}

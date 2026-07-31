@@ -1,4 +1,4 @@
-// Supabase Client replaced by Prisma Client for Naver Cloud Platform (NCP) Database
+// Supabase Database & Prisma Client Configuration
 import { prisma } from '../prisma';
 
 export { prisma };

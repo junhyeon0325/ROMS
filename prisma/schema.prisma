@@ -25,7 +25,11 @@ model User {
   passwordHash String   @map("password_hash")
   name         String?
   role         Role     @default(USER)
+
+  createdBy    String?  @map("created_by")
   createdAt    DateTime @default(now()) @map("created_at")
+  updatedBy    String?  @map("updated_by")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("users")
 }
@@ -37,6 +41,11 @@ model Season {
   startDate DateTime? @map("start_date") @db.Date
   endDate   DateTime? @map("end_date") @db.Date
 
+  createdBy String?   @map("created_by")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedBy String?   @map("updated_by")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
   seasonTeams SeasonTeam[]
   matches     Match[]
 
@@ -47,6 +56,11 @@ model Team {
   id        BigInt  @id @default(autoincrement())
   name      String
   emblemUrl String? @map("emblem_url")
+
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   seasonTeams SeasonTeam[]
   heroBans    HeroBan[]
@@ -62,6 +76,11 @@ model Streamer {
   chzzkChannelUrl   String? @map("chzzk_channel_url")
   youtubeChannelUrl String? @map("youtube_channel_url")
 
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   teamMembers    SeasonTeamMember[]
   playerSetStats PlayerSetStat[]
 
@@ -72,6 +91,11 @@ model SeasonTeam {
   id       BigInt @id @default(autoincrement())
   seasonId BigInt @map("season_id")
   teamId   BigInt @map("team_id")
+
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -86,6 +110,11 @@ model SeasonTeamMember {
   seasonTeamId BigInt   @map("season_team_id")
   streamerId   BigInt   @map("streamer_id")
   position     Position
+
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   seasonTeam SeasonTeam @relation(fields: [seasonTeamId], references: [id], onDelete: Cascade)
   streamer   Streamer   @relation(fields: [streamerId], references: [id], onDelete: Cascade)
@@ -102,6 +131,11 @@ model Match {
   teamBId         BigInt    @map("team_b_id")
   winnerTeamId    BigInt?   @map("winner_team_id")
 
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   season Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   sets   MatchSet[]
 
@@ -113,6 +147,11 @@ model MapItem {
   name     String
   mapType  String  @map("map_type")
   imageUrl String? @map("image_url")
+
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   matchSets MatchSet[]
 
@@ -127,6 +166,11 @@ model MatchSet {
   winnerTeamId        BigInt  @map("winner_team_id")
   gameDurationSeconds Int?    @map("game_duration_seconds")
   vodUrl              String? @map("vod_url")
+
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   match Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
   map   MapItem @relation(fields: [mapId], references: [id], onDelete: Cascade)
@@ -150,6 +194,11 @@ model PlayerSetStat {
   mainHeroIds     String? @map("main_hero_ids")
   isMvp           Boolean @default(false) @map("is_mvp")
 
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   matchSet MatchSet @relation(fields: [matchSetId], references: [id], onDelete: Cascade)
   streamer Streamer @relation(fields: [streamerId], references: [id], onDelete: Cascade)
 
@@ -161,6 +210,11 @@ model HeroBan {
   matchSetId BigInt @map("match_set_id")
   teamId     BigInt @map("team_id")
   heroId     BigInt @map("hero_id")
+
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   matchSet MatchSet @relation(fields: [matchSetId], references: [id], onDelete: Cascade)
   team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)

@@ -1,7 +1,7 @@
 # ROMS (Runner's Overwatch Match System) 프로젝트 계획서
 
-> **문서 버전**: v1.2 (네이버 클라우드 플랫폼 NCP DB & Prisma ORM 적용)  
-> **작성일**: 2026-07-28  
+> **문서 버전**: v1.3 (Supabase Cloud DB & Prisma ORM 적용)  
+> **작성일**: 2026-07-29  
 > **기준 산출물**: ROMS 프로젝트 요구사항정의서  
 
 ---
@@ -14,7 +14,7 @@
 ### 1.2 개발 목적
 1. **시청자/팬 경험 향상**: 선수별 통합 전적, 시즌별 대진표, 세트별 VOD 하이라이트 및 선수 상세 스탯(KDA, 피해량, 치유량, 경감량 등)을 직관적인 대시보드로 제공.
 2. **운영 효율화**: 관리자(ADMIN) 전용 페이지를 통해 대회 생성, 팀 및 선수 배정, 경기 세트 점수 및 선수별 상세 스탯 입력을 신속하고 정확하게 처리.
-3. **국내 클라우드(NCP) 인프라 연동**: **네이버 클라우드 플랫폼(NCP)** 데이터베이스 및 Object Storage 인프라를 활용하여 높은 한국어 호환성과 안정적인 국내 네트워크 속도 확보.
+3. **클라우드 인프라(Supabase) 연동**: **Supabase** 데이터베이스(PostgreSQL) 및 Storage 인프라를 활용하여 높은 확장성과 안정적인 글로벌/국내 네트워크 속도 확보.
 
 ---
 
@@ -43,7 +43,7 @@
 * **권한별 로그인 (`CM-002`)**:
   * **NextAuth.js (Auth.js)** + bcrypt 비밀번호 암호화 기반 사용자(USER) 및 운영자(ADMIN) 세션 관리 및 페이지 접근 제어
 * **대회 정보 등록 (`AD-001`)**:
-  * 시즌(대회명, 기간, 로고) 등록 및 참가 팀 생성, 팀 엠블럼 업로드 (**네이버 클라우드 Object Storage** S3 API 연동)
+  * 시즌(대회명, 기간, 로고) 등록 및 참가 팀 생성, 팀 엠블럼 업로드 (**Supabase Storage** 연동)
 * **선수 배정 관리 (`AD-002`)**:
   * 등록된 스트리머를 특정 시즌 팀에 배정 및 포지션(탱/딜/힐) 설정
 * **경기 결과 관리 (`AD-003`)**:
@@ -58,16 +58,16 @@ graph TD
     Client[Client Browser - User & Admin] --> Frontend[Next.js 14+ App Router - TypeScript / Tailwind CSS]
     Frontend --> Auth[NextAuth.js - Session & Role-based Auth]
     Frontend --> ORM[Prisma ORM - Query Engine]
-    ORM --> NCP_DB[(NCP Cloud DB for PostgreSQL / MySQL)]
-    Frontend --> NCP_Storage[NCP Object Storage - S3 Compatible API]
+    ORM --> Supabase_DB[(Supabase Cloud DB for PostgreSQL)]
+    Frontend --> Supabase_Storage[Supabase Storage]
 ```
 
 * **Frontend**: Next.js 14+ (App Router), TypeScript, Tailwind CSS, Lucide Icons, Recharts (통계 차트)
 * **Backend**: Next.js Server Actions & API Routes
-* **Database & ORM**: **NCP (Naver Cloud Platform) Database** + **Prisma ORM**
+* **Database & ORM**: **Supabase Cloud DB** (PostgreSQL) + **Prisma ORM**
 * **Authentication**: **NextAuth.js** (Credentials Provider / bcrypt 암호화 / Role: `USER`, `ADMIN`)
-* **Storage**: **NCP Object Storage** (S3 호환 API - `@aws-sdk/client-s3`)
-* **Deployment**: Vercel 또는 NCP Compute Server
+* **Storage**: **Supabase Storage**
+* **Deployment**: Vercel 배포
 
 ---
 
@@ -76,15 +76,15 @@ graph TD
 ```mermaid
 gantt
     dateFormat  YYYY-MM-DD
-    title ROMS 프로젝트 추진 일정 (NCP DB 기반)
+    title ROMS 프로젝트 추진 일정 (Supabase DB 기반)
     section 1. 요구사항 & 설계
     요구사항 분석 및 구체화 :done, req, 2026-08-01, 3d
-    NCP DB & Prisma Schema ERD 작성 :done, db_design, 2026-08-04, 4d
+    Supabase DB & Prisma Schema ERD 작성 :done, db_design, 2026-08-04, 4d
     화면 설계서 (와이어프레임) 작성 :done, ui_design, 2026-08-05, 4d
 
     section 2. 기반 구조 구축
-    NCP 데이터베이스 생성 및 Prisma Migration :active, env, 2026-08-09, 3d
-    NextAuth.js 관리자 인증 및 NCP Object Storage 연동 :auth_storage, 2026-08-11, 3d
+    Supabase 데이터베이스 연동 및 Prisma Migration :active, env, 2026-08-09, 3d
+    NextAuth.js 관리자 인증 및 Supabase Storage 연동 :auth_storage, 2026-08-11, 3d
     Prisma Client 데이터베이스 헬퍼 구현 :next_prisma, 2026-08-13, 3d
 
     section 3. 기능 개발
@@ -95,14 +95,15 @@ gantt
 
     section 4. 테스트 & 배포
     통합 테스트 및 관리자 접근 권한 검증 :test, 2026-09-03, 5d
-    NCP 서버 배포 및 초기 데이터 마이그레이션 :deploy, 2026-09-08, 3d
+    Vercel 배포 및 초기 데이터 마이그레이션 :deploy, 2026-09-08, 3d
 ```
 
 ---
 
-## 5. 네이버 클라우드 플랫폼 (NCP) DB 구축 방식 옵션
+## 5. Supabase 백엔드 인프라 구성
 
-| 구축 방식 | 스펙 및 비용 구조 | 장단점 및 추천도 |
+| 구성 요소 | 기술 스택 | 설명 및 활용 |
 | :--- | :--- | :--- |
-| **Option A. NCP Cloud DB for PostgreSQL (완전 관리형)** | NCP에서 제공하는 관리형 DB 서비스 (자동 백업, 모니터링 지원) | • **장점**: 안정성이 뛰어나고 자동 백업 및 고가용성 지원<br>• **단점**: 월 이용료 발생 |
-| **Option B. NCP Micro Server + Docker DB (1년 무료)** | NCP 1년 무료 제공 **Micro Server (Linux 1vCPU, 1GB RAM, 50GB SSD)** 내 PostgreSQL/MySQL 직접 설치 | • **장점**: **1년간 100% 무료 서버/DB 이용 가능**<br>• **추천**: 소규모 e스포츠 프로젝트 및 초기 무료 개발/운영에 최적 |
+| **Database** | Supabase Cloud (PostgreSQL) | Prisma ORM과 연동되어 e스포츠 경기, 선수, 팀 통계 데이터 저장 |
+| **Connection** | Connection Pooler (Prisma) | Transaction/Session Pooler를 통한 안정적인 서버리스 DB 연결 |
+| **Storage** | Supabase Storage | 팀 엠블럼, 선수 프로필 이미지 등 미디어 파일 저장 |

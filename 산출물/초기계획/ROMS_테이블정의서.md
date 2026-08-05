@@ -84,16 +84,16 @@
 
 ### 2.4 `streamers` (스트리머 / 선수 프로필 테이블)
 
-- **설명**: 대회에 참가하는 스트리머(선수)의 기본 프로필 및 외부 방송 채널 링크를 관리합니다.
+- **설명**: 대회에 참가하는 스트리머(선수)의 기본 프로필 및 외부 방송 채널 링크를 관리합니다. (`AD-004`)
 
 | 순번 | 컬럼명 (Physical) | 논리명 (Logical) | 데이터 타입 | PK | FK | Null | 기본값 | 제약조건 / 설명 |
 | :---: | :--- | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
 | 1 | `id` | 스트리머 아이디 | `BIGINT` | **PK** | - | N | `autoincrement()` | 선수 고유 식별자 |
-| 2 | `name` | 선수 본명/활동명 | `TEXT` | - | - | N | - | 선수 대표 이름 (`US-001`) |
-| 3 | `nickname` | 방송 닉네임 | `TEXT` | - | - | Y | `NULL` | 개인 방송 닉네임 |
-| 4 | `profile_image_url`| 프로필 이미지 URL | `TEXT` | - | - | Y | `NULL` | Supabase Storage 프로필 이미지 URL |
-| 5 | `chzzk_channel_url`| 치지직 채널 URL | `TEXT` | - | - | Y | `NULL` | 네이버 치지직 방송 채널 링크 |
-| 6 | `youtube_channel_url`| 유튜브 채널 URL | `TEXT` | - | - | Y | `NULL` | 유튜브 채널 링크 |
+| 2 | `name` | 선수 본명/활동명 | `TEXT` | - | - | N | - | 선수 대표 이름 (`US-001`, `AD-004`) |
+| 3 | `nickname` | 방송 닉네임 | `TEXT` | - | - | Y | `NULL` | 개인 방송 닉네임 (`AD-004`) |
+| 4 | `profile_image_url`| 프로필 이미지 URL | `TEXT` | - | - | Y | `NULL` | Supabase Storage 프로필 이미지 URL (`AD-004`) |
+| 5 | `chzzk_channel_url`| 치지직 채널 URL | `TEXT` | - | - | Y | `NULL` | 네이버 치지직 방송 채널 링크 (`AD-004`) |
+| 6 | `youtube_channel_url`| 유튜브 채널 URL | `TEXT` | - | - | Y | `NULL` | 유튜브 채널 링크 (`AD-004`) |
 | 7 | `created_by` | 생성자 | `TEXT` | - | - | Y | `NULL` | 생성자 식별자 |
 | 8 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
 | 9 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
@@ -156,14 +156,14 @@
 
 ### 2.8 `maps` (경기 맵 마스터 테이블)
 
-- **설명**: 오버워치 경기 맵 마스터 정보 및 맵 전형 종류를 정의합니다.
+- **설명**: 오버워치 경기 맵 마스터 정보 및 맵 전형 종류를 정의합니다. (`AD-004`)
 
 | 순번 | 컬럼명 (Physical) | 논리명 (Logical) | 데이터 타입 | PK | FK | Null | 기본값 | 제약조건 / 설명 |
 | :---: | :--- | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
 | 1 | `id` | 맵 아이디 | `BIGINT` | **PK** | - | N | `autoincrement()` | 맵 고유 식별자 |
-| 2 | `name` | 맵 이름 | `TEXT` | - | - | N | - | 예: 왕의 길, 아누비스 신전 |
-| 3 | `map_type` | 맵 전형 종류 | `TEXT` | - | - | N | - | 예: 점령, 화물, 혼합, 밀기 |
-| 4 | `image_url` | 맵 이미지 URL | `TEXT` | - | - | Y | `NULL` | 맵 전경 이미지 주소 |
+| 2 | `name` | 맵 이름 | `TEXT` | - | - | N | - | 예: 왕의 길, 아누비스 신전 (`AD-004`) |
+| 3 | `map_type` | 맵 전형 종류 | `TEXT` | - | - | N | - | 예: 점령, 화물, 혼합, 밀기 (`AD-004`) |
+| 4 | `image_url` | 맵 이미지 URL | `TEXT` | - | - | Y | `NULL` | 맵 전경 이미지 주소 (`AD-004`) |
 | 5 | `created_by` | 생성자 | `TEXT` | - | - | Y | `NULL` | 생성자 식별자 |
 | 6 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
 | 7 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |

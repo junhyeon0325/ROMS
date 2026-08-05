@@ -45,6 +45,7 @@
 | 7 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 계정 생성 일시 |
 | 8 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 최종 수정자 식별자 |
 | 9 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 최종 수정 일시 (`@updatedAt`) |
+| 10 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
 
 ---
 
@@ -63,6 +64,7 @@
 | 7 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 데이터 생성 일시 |
 | 8 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 최종 수정자 식별자 |
 | 9 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 데이터 수정 일시 (`@updatedAt`) |
+| 10 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
 
 ---
 
@@ -79,6 +81,7 @@
 | 5 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
 | 6 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
 | 7 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 8 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
 
 ---
 
@@ -98,6 +101,7 @@
 | 8 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
 | 9 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
 | 10 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 11 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
 
 ---
 
@@ -114,6 +118,7 @@
 | 5 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
 | 6 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
 | 7 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 8 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
 
 ---
 
@@ -131,6 +136,7 @@
 | 6 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
 | 7 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
 | 8 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 9 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
 
 ---
 
@@ -151,6 +157,7 @@
 | 9 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
 | 10 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
 | 11 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 12 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
 
 ---
 
@@ -168,6 +175,7 @@
 | 6 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
 | 7 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
 | 8 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 9 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
 
 ---
 
@@ -188,6 +196,7 @@
 | 9 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
 | 10 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
 | 11 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 12 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
 
 ---
 
@@ -212,6 +221,7 @@
 | 13 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
 | 14 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
 | 15 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 16 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
 
 ---
 
@@ -229,3 +239,4 @@
 | 6 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
 | 7 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
 | 8 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 9 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |

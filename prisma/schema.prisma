@@ -30,6 +30,7 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedBy    String?  @map("updated_by")
   updatedAt    DateTime @updatedAt @map("updated_at")
+  remarks      String?  @map("remarks")
 
   @@map("users")
 }
@@ -45,6 +46,7 @@ model Season {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedBy String?   @map("updated_by")
   updatedAt DateTime  @updatedAt @map("updated_at")
+  remarks   String?   @map("remarks")
 
   seasonTeams SeasonTeam[]
   matches     Match[]
@@ -61,6 +63,7 @@ model Team {
   createdAt DateTime @default(now()) @map("created_at")
   updatedBy String?  @map("updated_by")
   updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
 
   seasonTeams SeasonTeam[]
   heroBans    HeroBan[]
@@ -80,6 +83,7 @@ model Streamer {
   createdAt DateTime @default(now()) @map("created_at")
   updatedBy String?  @map("updated_by")
   updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
 
   teamMembers    SeasonTeamMember[]
   playerSetStats PlayerSetStat[]
@@ -96,6 +100,7 @@ model SeasonTeam {
   createdAt DateTime @default(now()) @map("created_at")
   updatedBy String?  @map("updated_by")
   updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
 
   season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -115,6 +120,7 @@ model SeasonTeamMember {
   createdAt DateTime @default(now()) @map("created_at")
   updatedBy String?  @map("updated_by")
   updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
 
   seasonTeam SeasonTeam @relation(fields: [seasonTeamId], references: [id], onDelete: Cascade)
   streamer   Streamer   @relation(fields: [streamerId], references: [id], onDelete: Cascade)
@@ -135,6 +141,7 @@ model Match {
   createdAt DateTime @default(now()) @map("created_at")
   updatedBy String?  @map("updated_by")
   updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
 
   season Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   sets   MatchSet[]
@@ -152,6 +159,7 @@ model MapItem {
   createdAt DateTime @default(now()) @map("created_at")
   updatedBy String?  @map("updated_by")
   updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
 
   matchSets MatchSet[]
 
@@ -171,6 +179,7 @@ model MatchSet {
   createdAt DateTime @default(now()) @map("created_at")
   updatedBy String?  @map("updated_by")
   updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
 
   match Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
   map   MapItem @relation(fields: [mapId], references: [id], onDelete: Cascade)
@@ -198,6 +207,7 @@ model PlayerSetStat {
   createdAt DateTime @default(now()) @map("created_at")
   updatedBy String?  @map("updated_by")
   updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
 
   matchSet MatchSet @relation(fields: [matchSetId], references: [id], onDelete: Cascade)
   streamer Streamer @relation(fields: [streamerId], references: [id], onDelete: Cascade)
@@ -215,6 +225,7 @@ model HeroBan {
   createdAt DateTime @default(now()) @map("created_at")
   updatedBy String?  @map("updated_by")
   updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
 
   matchSet MatchSet @relation(fields: [matchSetId], references: [id], onDelete: Cascade)
   team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)

@@ -1,6 +1,6 @@
 # ROMS (Runner's Overwatch Match System) 요구사항정의서
 
-> **문서 버전**: v1.6 (관리자 공통관리 메뉴 신설 및 스트리머/영웅/맵 등록 요구사항 반영)  
+> **문서 버전**: v1.7 (관리자 메뉴 구조 변경: 스트리머(선수) 등록을 공통관리에서 대회/시즌/팀/선수 관리 메뉴로 이동)  
 > **작성일**: 2026-07-30  
 > **프로젝트명**: ROMS (오버워치 e스포츠 아카이브 및 대시보드 시스템)  
 > **기준 환경**: Next.js 14+ (App Router), Supabase (PostgreSQL & Storage), Prisma ORM, NextAuth.js
@@ -27,7 +27,7 @@
 | :-------- | :---------------------- | :---------------------------------------------------------------------- |
 | **CM**    | 공통 (Common)           | 시스템 공통 기능 (메인 대시보드 배치, 회원 인증 및 권한 제어)           |
 | **US**    | 사용자 (User Portal)    | 시청자/팬을 위한 전적 조회, 시즌 아카이브, 랭킹 및 선수 비교            |
-| **AD**    | 관리자 (Admin Portal)   | 운영자를 위한 공통 마스터(스트리머/영웅/맵) 등록, 시즌/팀 등록, 선수 배정, 경기 세트 점수 및 상세 스탯 입력 |
+| **AD**    | 관리자 (Admin Portal)   | 운영자를 위한 대회/시즌/팀/선수 관리, 공통 마스터(영웅/맵) 관리, 선수 배정, 경기 세트 점수 및 상세 스탯 입력 |
 | **NFR**   | 비기능 (Non-Functional) | 성능, 보안, DB 형상관리(Prisma Migration), 데이터 감사(Audit) 등        |
 
 ### 2.2 우선순위 구분 (Priority)
@@ -76,10 +76,10 @@
 
 | 요구사항 ID | 요구사항명                  | 상세 설명                                                                                                                       | 우선순위 | 관련 엔터티 및 컬럼                                                                                                                                              | 비고   |
 | :---------- | :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------ | :------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----- |
-| `AD-001`    | 시즌 및 팀 등록             | • 시즌(대회명, 기간, 로고) 생성<br>• 팀 생성 및 엠블럼 이미지 업로드 (**Supabase Storage** 연동)                                |  **상**  | • `Season`<br>&nbsp;&nbsp;(`name`, `logo_url`, `start_date`, `end_date`)<br>• `Team`<br>&nbsp;&nbsp;(`name`, `emblem_url`)                                       | 관리자 |
-| `AD-002`    | 선수 배정 및 포지션 관리    | • 스트리머를 특정 시즌 팀에 배정 및 포지션(`TANK`, `DAMAGE`, `HEALER`) 설정                                                     |  **상**  | • `SeasonTeamMember`<br>&nbsp;&nbsp;(`season_team_id`, `streamer_id`, `position`)                                                                                | 관리자 |
-| `AD-003`    | 경기 결과 및 세부 스탯 입력 | • 세트별 스코어, 맵 선택, 승리팀, 사용 영웅, MVP 지정<br>• 선수별 K/D/A, 피해량, 치유량, 경감량 입력 및 대시보드 자동 합산 반영 |  **상**  | • `Match`, `MatchSet`, `PlayerSetStat`, `HeroBan`<br>&nbsp;&nbsp;(`set_number`, `kills`, `deaths`, `assists`, `damage`, `healing`, `mitigated_damage`, `is_mvp`) | 관리자 |
-| `AD-004`    | **공통 마스터 관리 (스트리머, 영웅, 맵)** | • **스트리머(선수) 등록 및 관리**: 선수명, 방송 닉네임, Supabase Storage 프로필 이미지 URL, 치지직/유튜브 채널 URL 등록/수정<br>• **영웅 마스터 관리**: 오버워치 영웅(영웅명, 역할군, 아이콘) 등록/수정<br>• **맵 마스터 관리**: 오버워치 맵(맵 이름, 맵 전형, 맵 이미지) 등록/수정 | **상** | • `Streamer`<br>&nbsp;&nbsp;(`name`, `nickname`, `profile_image_url`, `chzzk_channel_url`, `youtube_channel_url`)<br>• `MapItem`<br>&nbsp;&nbsp;(`name`, `map_type`, `image_url`)<br>• `HeroBan`<br>&nbsp;&nbsp;(`hero_id`) | 관리자 공통관리 |
+| `AD-001`    | 대회/시즌, 선수 및 팀 관리  | • 시즌(대회명, 기간, 로고) 생성<br>• **스트리머(선수) 등록 및 관리**: 선수명, 방송 닉네임, Supabase Storage 프로필 이미지 URL, 채널 URL 등록/수정<br>• 팀 생성 및 엠블럼 이미지 업로드 (**Supabase Storage** 연동) |  **상**  | • `Season`<br>&nbsp;&nbsp;(`name`, `logo_url`, `start_date`, `end_date`)<br>• `Streamer`<br>&nbsp;&nbsp;(`name`, `nickname`, `profile_image_url`)<br>• `Team`<br>&nbsp;&nbsp;(`name`, `emblem_url`) | 관리자 (`/admin/season`) |
+| `AD-002`    | 선수 배정 및 포지션 관리    | • 스트리머를 특정 시즌 팀에 배정 및 포지션(`TANK`, `DAMAGE`, `HEALER`) 설정                                                     |  **상**  | • `SeasonTeamMember`<br>&nbsp;&nbsp;(`season_team_id`, `streamer_id`, `position`)                                                                                | 관리자 (`/admin/roster`) |
+| `AD-003`    | 경기 결과 및 세부 스탯 입력 | • 세트별 스코어, 맵 선택, 승리팀, 사용 영웅, MVP 지정<br>• 선수별 K/D/A, 피해량, 치유량, 경감량 입력 및 대시보드 자동 합산 반영 |  **상**  | • `Match`, `MatchSet`, `PlayerSetStat`, `HeroBan`<br>&nbsp;&nbsp;(`set_number`, `kills`, `deaths`, `assists`, `damage`, `healing`, `mitigated_damage`, `is_mvp`) | 관리자 (`/admin/match`) |
+| `AD-004`    | **공통 마스터 관리 (영웅, 맵)** | • **영웅 마스터 관리**: 오버워치 영웅(영웅명, 역할군, 아이콘) 등록/수정<br>• **맵 마스터 관리**: 오버워치 맵(맵 이름, 맵 전형, 맵 이미지) 등록/수정 | **상** | • `MapItem`<br>&nbsp;&nbsp;(`name`, `map_type`, `image_url`)<br>• `HeroBan`<br>&nbsp;&nbsp;(`hero_id`) | 관리자 공통관리 (`/admin/common`) |
 
 ---
 
@@ -104,7 +104,7 @@
 | `US-001` ~ `US-006`           | 스트리머 상세 (`/streamer/[id]`)       | `Streamer`, `SeasonTeamMember`, `PlayerSetStat`, `HeroBan` | `Streamer.name/profile_image_url`, `PlayerSetStat.kills/deaths/assists/damage/healing`, `HeroBan.hero_id`     |
 | `US-002`, `US-008` ~ `US-013` | 시즌 상세 (`/season/[id]`)             | `Season`, `Match`, `MatchSet`, `MapItem`, `PlayerSetStat`  | `Season.name/logo_url`, `MatchSet.set_number/vod_url`, `MapItem.name`, `PlayerSetStat.is_mvp`                 |
 | `US-007`                      | 통합 랭킹 (`/ranking`)                 | `PlayerSetStat`, `Streamer`, `Season`                      | `PlayerSetStat.kills/damage/healing/mitigated_damage`, `Streamer.name`                                        |
-| `AD-001`                      | 관리자 시즌/팀 등록 (`/admin/season`)  | `Season`, `Team`                                           | `Season.name/logo_url`, `Team.name/emblem_url`                                                                |
+| `AD-001`, `AD-004`            | 관리자 시즌/선수/팀 관리 (`/admin/season`) | `Season`, `Streamer`, `Team`                               | `Season.name/logo_url`, `Streamer.name/profile_image_url`, `Team.name/emblem_url`                             |
 | `AD-002`                      | 관리자 선수 배정 (`/admin/roster`)     | `SeasonTeam`, `SeasonTeamMember`, `Streamer`               | `SeasonTeamMember.season_team_id`, `SeasonTeamMember.position`                                                |
 | `AD-003`                      | 관리자 경기 결과 입력 (`/admin/match`) | `Match`, `MatchSet`, `PlayerSetStat`, `HeroBan`            | `MatchSet.game_duration_seconds`, `PlayerSetStat.kills/deaths/assists/damage/healing/mitigated_damage/is_mvp` |
-| `AD-004`                      | 관리자 공통관리 (`/admin/common`)      | `Streamer`, `MapItem`, `HeroBan`                           | `Streamer.name/profile_image_url/chzzk_channel_url`, `MapItem.name/map_type/image_url`                        |
+| `AD-004`                      | 관리자 공통 마스터 관리 (`/admin/common`) | `MapItem`, `HeroBan`                                       | `MapItem.name/map_type/image_url`                                                                             |

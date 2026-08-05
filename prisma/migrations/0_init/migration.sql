@@ -15,6 +15,7 @@ CREATE TABLE "users" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_by" TEXT,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "remarks" TEXT,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -30,6 +31,7 @@ CREATE TABLE "seasons" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_by" TEXT,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "remarks" TEXT,
 
     CONSTRAINT "seasons_pkey" PRIMARY KEY ("id")
 );
@@ -43,6 +45,7 @@ CREATE TABLE "teams" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_by" TEXT,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "remarks" TEXT,
 
     CONSTRAINT "teams_pkey" PRIMARY KEY ("id")
 );
@@ -59,6 +62,7 @@ CREATE TABLE "streamers" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_by" TEXT,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "remarks" TEXT,
 
     CONSTRAINT "streamers_pkey" PRIMARY KEY ("id")
 );
@@ -72,6 +76,7 @@ CREATE TABLE "season_teams" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_by" TEXT,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "remarks" TEXT,
 
     CONSTRAINT "season_teams_pkey" PRIMARY KEY ("id")
 );
@@ -86,6 +91,7 @@ CREATE TABLE "season_team_members" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_by" TEXT,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "remarks" TEXT,
 
     CONSTRAINT "season_team_members_pkey" PRIMARY KEY ("id")
 );
@@ -103,6 +109,7 @@ CREATE TABLE "matches" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_by" TEXT,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "remarks" TEXT,
 
     CONSTRAINT "matches_pkey" PRIMARY KEY ("id")
 );
@@ -117,6 +124,7 @@ CREATE TABLE "maps" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_by" TEXT,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "remarks" TEXT,
 
     CONSTRAINT "maps_pkey" PRIMARY KEY ("id")
 );
@@ -134,6 +142,7 @@ CREATE TABLE "match_sets" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_by" TEXT,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "remarks" TEXT,
 
     CONSTRAINT "match_sets_pkey" PRIMARY KEY ("id")
 );
@@ -155,6 +164,7 @@ CREATE TABLE "player_set_stats" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_by" TEXT,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "remarks" TEXT,
 
     CONSTRAINT "player_set_stats_pkey" PRIMARY KEY ("id")
 );
@@ -169,6 +179,7 @@ CREATE TABLE "hero_bans" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_by" TEXT,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "remarks" TEXT,
 
     CONSTRAINT "hero_bans_pkey" PRIMARY KEY ("id")
 );

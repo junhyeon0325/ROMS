@@ -39,6 +39,7 @@ erDiagram
         DateTime 생성일시
         String 수정자
         DateTime 수정일시
+        String 비고
     }
 
     "시즌 (Season)" {
@@ -51,6 +52,7 @@ erDiagram
         DateTime 생성일시
         String 수정자
         DateTime 수정일시
+        String 비고
     }
 
     "팀 (Team)" {
@@ -61,6 +63,7 @@ erDiagram
         DateTime 생성일시
         String 수정자
         DateTime 수정일시
+        String 비고
     }
 
     "스트리머 (Streamer)" {
@@ -74,6 +77,7 @@ erDiagram
         DateTime 생성일시
         String 수정자
         DateTime 수정일시
+        String 비고
     }
 
     "시즌 참가 팀 (SeasonTeam)" {
@@ -84,6 +88,7 @@ erDiagram
         DateTime 생성일시
         String 수정자
         DateTime 수정일시
+        String 비고
     }
 
     "시즌 선수 소속 (SeasonTeamMember)" {
@@ -95,6 +100,7 @@ erDiagram
         DateTime 생성일시
         String 수정자
         DateTime 수정일시
+        String 비고
     }
 
     "경기 매치 (Match)" {
@@ -109,6 +115,7 @@ erDiagram
         DateTime 생성일시
         String 수정자
         DateTime 수정일시
+        String 비고
     }
 
     "경기 맵 (MapItem)" {
@@ -120,6 +127,7 @@ erDiagram
         DateTime 생성일시
         String 수정자
         DateTime 수정일시
+        String 비고
     }
 
     "세트 기록 (MatchSet)" {
@@ -134,6 +142,7 @@ erDiagram
         DateTime 생성일시
         String 수정자
         DateTime 수정일시
+        String 비고
     }
 
     "선수 세트 스탯 (PlayerSetStat)" {
@@ -152,6 +161,7 @@ erDiagram
         DateTime 생성일시
         String 수정자
         DateTime 수정일시
+        String 비고
     }
 
     "영웅 밴 (HeroBan)" {
@@ -163,6 +173,7 @@ erDiagram
         DateTime 생성일시
         String 수정자
         DateTime 수정일시
+        String 비고
     }
 ```
 
@@ -200,6 +211,7 @@ erDiagram
         timestamp created_at
         text updated_by
         timestamp updated_at
+        text remarks
     }
 
     seasons {
@@ -212,6 +224,7 @@ erDiagram
         timestamp created_at
         text updated_by
         timestamp updated_at
+        text remarks
     }
 
     teams {
@@ -222,6 +235,7 @@ erDiagram
         timestamp created_at
         text updated_by
         timestamp updated_at
+        text remarks
     }
 
     streamers {
@@ -235,6 +249,7 @@ erDiagram
         timestamp created_at
         text updated_by
         timestamp updated_at
+        text remarks
     }
 
     season_teams {
@@ -245,6 +260,7 @@ erDiagram
         timestamp created_at
         text updated_by
         timestamp updated_at
+        text remarks
     }
 
     season_team_members {
@@ -256,6 +272,7 @@ erDiagram
         timestamp created_at
         text updated_by
         timestamp updated_at
+        text remarks
     }
 
     matches {
@@ -270,6 +287,7 @@ erDiagram
         timestamp created_at
         text updated_by
         timestamp updated_at
+        text remarks
     }
 
     maps {
@@ -281,6 +299,7 @@ erDiagram
         timestamp created_at
         text updated_by
         timestamp updated_at
+        text remarks
     }
 
     match_sets {
@@ -295,6 +314,7 @@ erDiagram
         timestamp created_at
         text updated_by
         timestamp updated_at
+        text remarks
     }
 
     player_set_stats {
@@ -313,6 +333,7 @@ erDiagram
         timestamp created_at
         text updated_by
         timestamp updated_at
+        text remarks
     }
 
     hero_bans {
@@ -324,6 +345,7 @@ erDiagram
         timestamp created_at
         text updated_by
         timestamp updated_at
+        text remarks
     }
 ```
 

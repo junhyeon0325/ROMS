@@ -1,37 +1,54 @@
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.js
+.venv/
+venv/
+ENV/
+env/
 
-# testing
-/coverage
-
-# next.js
+# Next.js & Build Output
 /.next/
 /out/
-
-# production
 /build
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files & secrets
-.env
-.env*.local
-*.env
-supabaseConnectionString.txt
-scratch/
-
-# vercel
-.vercel
-
-# typescript
+/dist
 *.tsbuildinfo
 next-env.d.ts
 
-# OS files
+# Local Environment & Secrets
+.env
+.env.local
+.env*.local
+*.env
+supabaseConnectionString.txt
+*.pem
+*.key
+
+# Python / Temp Scripts
+__pycache__/
+*.py[cod]
+*$py.class
+scratch/
+build_pptx.py
+
+# Testing & Logs
+/coverage
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vercel & Cloud
+.vercel
+
+# IDE & OS Files
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp

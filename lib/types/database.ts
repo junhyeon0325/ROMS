@@ -7,12 +7,14 @@ export interface Season {
   logo_url?: string;
   start_date?: string;
   end_date?: string;
+  remarks?: string;
 }
 
 export interface Team {
   id: number;
   name: string;
   emblem_url?: string;
+  remarks?: string;
 }
 
 export interface Streamer {
@@ -22,6 +24,7 @@ export interface Streamer {
   profile_image_url?: string;
   chzzk_channel_url?: string;
   youtube_channel_url?: string;
+  remarks?: string;
 }
 
 export interface Match {
@@ -32,6 +35,7 @@ export interface Match {
   team_a_id: number;
   team_b_id: number;
   winner_team_id?: number;
+  remarks?: string;
 }
 
 export interface MatchSet {
@@ -42,6 +46,7 @@ export interface MatchSet {
   winner_team_id: number;
   game_duration_seconds?: number;
   vod_url?: string;
+  remarks?: string;
 }
 
 export interface PlayerSetStat {
@@ -56,4 +61,5 @@ export interface PlayerSetStat {
   mitigated_damage: number;
   main_hero_ids?: string[];
   is_mvp: boolean;
+  remarks?: string;
 }

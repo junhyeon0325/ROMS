@@ -52,3 +52,7 @@ Thumbs.db
 *.njsproj
 *.sln
 *.swp
+
+# Documentation / Logs
+산출물/개발일지/
+

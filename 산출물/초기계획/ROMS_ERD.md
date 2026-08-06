@@ -1,7 +1,7 @@
 # ROMS (Runner's Overwatch Match System) 논리 / 물리 ERD 설계서
 
-> **문서 버전**: v1.4 (Supabase PostgreSQL & RLS / 공통 감사 컬럼 반영)  
-> **작성일**: 2026-07-30  
+> **문서 버전**: v1.6 (공통 코드 그룹 및 공통 코드 상세 엔터티 추가 반영)  
+> **작성일**: 2026-08-06  
 > **프로젝트명**: ROMS (오버워치 e스포츠 아카이브 및 대시보드 시스템)  
 > **기준 환경**: Supabase Cloud DB (PostgreSQL 15+), Prisma ORM v5.22, Row Level Security (RLS)  
 
@@ -28,6 +28,8 @@ erDiagram
     
     "세트 기록 (MatchSet)" ||--o{ "영웅 밴 (HeroBan)" : "적용됨"
     "팀 (Team)" ||--o{ "영웅 밴 (HeroBan)" : "지정함"
+    
+    "공통 코드 그룹 (CommonCodeGroup)" ||--o{ "공통 코드 (CommonCode)" : "포함함"
 
     "사용자 (User)" {
         BigInt 사용자_아이디 PK
@@ -70,6 +72,7 @@ erDiagram
         BigInt 스트리머_아이디 PK
         String 선수명
         String 방송_닉네임
+        Enum 대표포지션 "TANK | DAMAGE | HEALER"
         String 프로필_이미지_URL "Supabase Storage URL"
         String 치지직_채널_URL
         String 유튜브_채널_URL
@@ -175,6 +178,32 @@ erDiagram
         DateTime 수정일시
         String 비고
     }
+
+    "공통 코드 그룹 (CommonCodeGroup)" {
+        BigInt 코드_그룹_아이디 PK
+        String 그룹_코드 UK "예: POSITION"
+        String 그룹명 "예: 포지션 구분"
+        String 설명
+        String 생성자
+        DateTime 생성일시
+        String 수정자
+        DateTime 수정일시
+        String 비고
+    }
+
+    "공통 코드 (CommonCode)" {
+        BigInt 공통_코드_아이디 PK
+        String 그룹_코드 FK "예: POSITION"
+        String 코드값 "예: TANK"
+        String 코드명 "예: 돌격"
+        Int 정렬순서
+        Boolean 사용여부
+        String 생성자
+        DateTime 생성일시
+        String 수정자
+        DateTime 수정일시
+        String 비고
+    }
 ```
 
 ---
@@ -200,6 +229,8 @@ erDiagram
     
     match_sets ||--o{ hero_bans : "match_set_id"
     teams ||--o{ hero_bans : "team_id"
+
+    common_code_groups ||--o{ common_codes : "group_code"
 
     users {
         bigint id PK
@@ -242,6 +273,7 @@ erDiagram
         bigint id PK
         text name
         text nickname
+        enum position "TANK | DAMAGE | HEALER"
         text profile_image_url
         text chzzk_channel_url
         text youtube_channel_url
@@ -251,6 +283,7 @@ erDiagram
         timestamp updated_at
         text remarks
     }
+
 
     season_teams {
         bigint id PK
@@ -347,6 +380,32 @@ erDiagram
         timestamp updated_at
         text remarks
     }
+
+    common_code_groups {
+        bigint id PK
+        varchar group_code UK
+        text group_name
+        text description
+        text created_by
+        timestamp created_at
+        text updated_by
+        timestamp updated_at
+        text remarks
+    }
+
+    common_codes {
+        bigint id PK
+        varchar group_code FK
+        varchar code
+        text code_name
+        integer sort_order
+        boolean is_use
+        text created_by
+        timestamp created_at
+        text updated_by
+        timestamp updated_at
+        text remarks
+    }
 ```
 
 ---
@@ -366,3 +425,4 @@ erDiagram
 | `streamers` | `player_set_stats` | `1 : N` | `player_set_stats.streamer_id` | `CASCADE` |
 | `match_sets` | `hero_bans` | `1 : N` | `hero_bans.match_set_id` | `CASCADE` |
 | `teams` | `hero_bans` | `1 : N` | `hero_bans.team_id` | `CASCADE` |
+| `common_code_groups` | `common_codes` | `1 : N` | `common_codes.group_code` | `CASCADE` |

@@ -72,12 +72,13 @@ model Team {
 }
 
 model Streamer {
-  id                BigInt  @id @default(autoincrement())
+  id                BigInt   @id @default(autoincrement())
   name              String
   nickname          String?
-  profileImageUrl   String? @map("profile_image_url")
-  chzzkChannelUrl   String? @map("chzzk_channel_url")
-  youtubeChannelUrl String? @map("youtube_channel_url")
+  position          Position @default(DAMAGE)
+  profileImageUrl   String?  @map("profile_image_url")
+  chzzkChannelUrl   String?  @map("chzzk_channel_url")
+  youtubeChannelUrl String?  @map("youtube_channel_url")
 
   createdBy String?  @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
@@ -231,4 +232,41 @@ model HeroBan {
   team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@map("hero_bans")
+}
+
+model CommonCodeGroup {
+  id          BigInt   @id @default(autoincrement())
+  groupCode   String   @unique @map("group_code")
+  groupName   String   @map("group_name")
+  description String?
+
+  createdBy   String?  @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedBy   String?  @map("updated_by")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  remarks     String?  @map("remarks")
+
+  codes CommonCode[]
+
+  @@map("common_code_groups")
+}
+
+model CommonCode {
+  id        BigInt  @id @default(autoincrement())
+  groupCode String  @map("group_code")
+  code      String
+  codeName  String  @map("code_name")
+  sortOrder Int     @default(0) @map("sort_order")
+  isUse     Boolean @default(true) @map("is_use")
+
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
+
+  group CommonCodeGroup @relation(fields: [groupCode], references: [groupCode], onDelete: Cascade)
+
+  @@unique([groupCode, code])
+  @@map("common_codes")
 }

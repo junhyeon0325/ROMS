@@ -1,7 +1,7 @@
 # ROMS (Runner's Overwatch Match System) 테이블 정의서 (Table Definition Document)
 
-> **문서 버전**: v1.4 (Supabase PostgreSQL & RLS / 공통 감사 컬럼 반영)  
-> **작성일**: 2026-07-30  
+> **문서 버전**: v1.6 (공통 코드 그룹 및 공통 코드 상세 테이블 추가 반영)  
+> **작성일**: 2026-08-06  
 > **프로젝트명**: ROMS (오버워치 e스포츠 아카이브 및 대시보드 시스템)  
 > **DBMS**: Supabase Cloud Database (PostgreSQL 15+)  
 > **ORM Engine**: Prisma ORM v5.22.0  
@@ -15,7 +15,7 @@
 | 1 | 사용자 & 관리자 | `users` | 로그인 계정, 비밀번호(bcrypt), 권한(`USER`/`ADMIN`) 관리 | **적용 (Enabled)** |
 | 2 | 대회 및 시즌 | `seasons` | 시즌명(예: 러너리그 시즌4), 로고 URL, 대회 기간 관리 | **적용 (Enabled)** |
 | 3 | 팀 정보 | `teams` | 팀명, 팀 엠블럼 이미지 URL(Supabase Storage) 관리 | **적용 (Enabled)** |
-| 4 | 스트리머 / 선수 프로필 | `streamers` | 선수명, 방송 닉네임, 프로필 이미지, 치지직/유튜브 채널 링크 | **적용 (Enabled)** |
+| 4 | 스트리머 / 선수 프로필 | `streamers` | 선수명, 방송 닉네임, 프로필 이미지, 대표 포지션, 방송 채널 링크 | **적용 (Enabled)** |
 | 5 | 시즌 참가 팀 | `season_teams` | 특정 시즌에 참가하는 팀 목록 매핑 | **적용 (Enabled)** |
 | 6 | 시즌 선수 소속 및 포지션 | `season_team_members` | 시즌 참가 팀에 소속된 선수 및 포지션(`TANK`/`DAMAGE`/`HEALER`) | **적용 (Enabled)** |
 | 7 | 경기 매치 | `matches` | 시즌별 토너먼트 단계(8강/준결승/결승), 경기 일시, 승리팀 | **적용 (Enabled)** |
@@ -23,6 +23,8 @@
 | 9 | 세트별 경기 기록 | `match_sets` | 세트 번호, 사용 맵, 세트 승리팀, 경기 시간, VOD 링크 | **적용 (Enabled)** |
 | 10 | 선수 세트별 세부 스탯 | `player_set_stats` | 선수별 세트 K/D/A, 피해/치유/경감량, 사용 영웅, MVP 지정 | **적용 (Enabled)** |
 | 11 | 영웅 밴 이력 | `hero_bans` | 세트별 팀이 지정한 영웅 밴 이력 | **적용 (Enabled)** |
+| 12 | 공통 코드 그룹 | `common_code_groups` | 포지션, 맵 전형, 토너먼트 단계 등 시스템 공통 코드 그룹 관리 | **적용 (Enabled)** |
+| 13 | 공통 코드 상세 | `common_codes` | 각 그룹에 속하는 세부 공통 코드 및 코드명, 정렬순서, 사용 여부 관리 | **적용 (Enabled)** |
 
 ---
 
@@ -87,21 +89,23 @@
 
 ### 2.4 `streamers` (스트리머 / 선수 프로필 테이블)
 
-- **설명**: 대회에 참가하는 스트리머(선수)의 기본 프로필 및 외부 방송 채널 링크를 관리합니다. (`AD-004`)
+- **설명**: 대회에 참가하는 스트리머(선수)의 기본 프로필, 대표 포지션 및 외부 방송 채널 링크를 관리합니다. (`AD-004`)
 
 | 순번 | 컬럼명 (Physical) | 논리명 (Logical) | 데이터 타입 | PK | FK | Null | 기본값 | 제약조건 / 설명 |
 | :---: | :--- | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
 | 1 | `id` | 스트리머 아이디 | `BIGINT` | **PK** | - | N | `autoincrement()` | 선수 고유 식별자 |
 | 2 | `name` | 선수 본명/활동명 | `TEXT` | - | - | N | - | 선수 대표 이름 (`US-001`, `AD-004`) |
 | 3 | `nickname` | 방송 닉네임 | `TEXT` | - | - | Y | `NULL` | 개인 방송 닉네임 (`AD-004`) |
-| 4 | `profile_image_url`| 프로필 이미지 URL | `TEXT` | - | - | Y | `NULL` | Supabase Storage 프로필 이미지 URL (`AD-004`) |
-| 5 | `chzzk_channel_url`| 치지직 채널 URL | `TEXT` | - | - | Y | `NULL` | 네이버 치지직 방송 채널 링크 (`AD-004`) |
-| 6 | `youtube_channel_url`| 유튜브 채널 URL | `TEXT` | - | - | Y | `NULL` | 유튜브 채널 링크 (`AD-004`) |
-| 7 | `created_by` | 생성자 | `TEXT` | - | - | Y | `NULL` | 생성자 식별자 |
-| 8 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
-| 9 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
-| 10 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
-| 11 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
+| 4 | `position` | 대표 포지션 | `ENUM('Position')`| - | - | N | `'DAMAGE'` | `'TANK'`, `'DAMAGE'`, `'HEALER'` (`AD-004`) |
+| 5 | `profile_image_url`| 프로필 이미지 URL | `TEXT` | - | - | Y | `NULL` | Supabase Storage 프로필 이미지 URL (`AD-004`) |
+| 6 | `chzzk_channel_url`| 치지직 채널 URL | `TEXT` | - | - | Y | `NULL` | 네이버 치지직 방송 채널 링크 (`AD-004`) |
+| 7 | `youtube_channel_url`| 유튜브 채널 URL | `TEXT` | - | - | Y | `NULL` | 유튜브 채널 링크 (`AD-004`) |
+| 8 | `created_by` | 생성자 | `TEXT` | - | - | Y | `NULL` | 생성자 식별자 |
+| 9 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
+| 10 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
+| 11 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 12 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
+
 
 ---
 
@@ -240,3 +244,41 @@
 | 7 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
 | 8 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
 | 9 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
+
+---
+
+### 2.12 `common_code_groups` (공통 코드 그룹 테이블)
+
+- **설명**: 시스템 전반에서 사용하는 공통 코드 그룹(예: POSITION, MAP_TYPE, TOURNAMENT_STAGE 등)을 관리하는 테이블입니다.
+
+| 순번 | 컬럼명 (Physical) | 논리명 (Logical) | 데이터 타입 | PK | FK | Null | 기본값 | 제약조건 / 설명 |
+| :---: | :--- | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
+| 1 | `id` | 코드 그룹 아이디 | `BIGINT` | **PK** | - | N | `autoincrement()` | 공통 코드 그룹 고유 식별자 |
+| 2 | `group_code` | 그룹 코드 | `VARCHAR(50)` | - | - | N | - | `UNIQUE` 그룹 코드 키 (예: `POSITION`) |
+| 3 | `group_name` | 그룹 명 | `TEXT` | - | - | N | - | 그룹 명칭 (예: 포지션 구분) |
+| 4 | `description` | 설명 | `TEXT` | - | - | Y | `NULL` | 코드 그룹 상세 설명 |
+| 5 | `created_by` | 생성자 | `TEXT` | - | - | Y | `NULL` | 생성자 식별자 |
+| 6 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
+| 7 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
+| 8 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 9 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
+
+---
+
+### 2.13 `common_codes` (공통 코드 상세 테이블)
+
+- **설명**: 각 코드 그룹에 정의된 세부 코드(예: TANK, DAMAGE, HEALER 등) 및 코드명, 정렬순서, 사용 여부를 관리하는 테이블입니다.
+
+| 순번 | 컬럼명 (Physical) | 논리명 (Logical) | 데이터 타입 | PK | FK | Null | 기본값 | 제약조건 / 설명 |
+| :---: | :--- | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
+| 1 | `id` | 공통 코드 아이디 | `BIGINT` | **PK** | - | N | `autoincrement()` | 공통 코드 고유 식별자 |
+| 2 | `group_code` | 그룹 코드 | `VARCHAR(50)` | - | **FK** | N | - | `common_code_groups.group_code` (`ON DELETE CASCADE`) |
+| 3 | `code` | 코드값 | `VARCHAR(50)` | - | - | N | - | 세부 코드 키 (예: `TANK`, `DAMAGE`, `HEALER`) |
+| 4 | `code_name` | 코드명 | `TEXT` | - | - | N | - | 코드 표시 이름 (예: `돌격`, `공격`, `지원`) |
+| 5 | `sort_order` | 정렬 순서 | `INTEGER` | - | - | N | `0` | 화면 노출 정렬 순서 |
+| 6 | `is_use` | 사용 여부 | `BOOLEAN` | - | - | N | `true` | 코드 활성화/사용 여부 |
+| 7 | `created_by` | 생성자 | `TEXT` | - | - | Y | `NULL` | 생성자 식별자 |
+| 8 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
+| 9 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
+| 10 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 11 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |

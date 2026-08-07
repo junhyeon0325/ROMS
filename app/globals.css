@@ -140,6 +140,8 @@ body {
 
 /* ---------------- poster hero ---------------- */
 .hero {
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 56px 48px 40px;
   position: relative;
   overflow: hidden;
@@ -229,6 +231,7 @@ body {
 }
 
 .content {
+  margin: 0 auto;
   padding: 0 48px 80px;
   max-width: 1200px;
 }

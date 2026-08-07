@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import React, { useState, useRef } from 'react';
-import Link from 'next/link';
+import React, { useState, useRef } from "react";
+import Link from "next/link";
 
 export default function UserDashboard() {
-  const [activeTab, setActiveTab] = useState('러너리그');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [toastMessage, setToastMessage] = useState('');
+  const [activeTab, setActiveTab] = useState("러너리그");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -20,37 +20,57 @@ export default function UserDashboard() {
   };
 
   const roleLabel: Record<string, string> = {
-    tank: '탱커',
-    dps: '딜러',
-    support: '힐러',
+    tank: "탱커",
+    dps: "딜러",
+    support: "힐러",
   };
 
   const ranking = [
-    { name: '제타치즈', role: 'dps', wins: 5, kda: '4.8', wr: '78%' },
-    { name: '리코샤', role: 'tank', wins: 4, kda: '3.1', wr: '71%' },
-    { name: '후니베어', role: 'support', wins: 3, kda: '5.2', wr: '66%' },
-    { name: '폭풍우진', role: 'dps', wins: 3, kda: '4.1', wr: '64%' },
-    { name: '미스틱캣', role: 'tank', wins: 2, kda: '2.9', wr: '58%' },
+    { name: "제타치즈", role: "dps", wins: 5, kda: "4.8", wr: "78%" },
+    { name: "리코샤", role: "tank", wins: 4, kda: "3.1", wr: "71%" },
+    { name: "후니베어", role: "support", wins: 3, kda: "5.2", wr: "66%" },
+    { name: "폭풍우진", role: "dps", wins: 3, kda: "4.1", wr: "64%" },
+    { name: "미스틱캣", role: "tank", wins: 2, kda: "2.9", wr: "58%" },
   ];
 
   const highlights = [
-    { label: '최다처치', value: '60', name: '제타치즈' },
-    { label: '최다도움', value: '30', name: '후니베어' },
-    { label: '최다죽음', value: '15', name: '산왕이' },
-    { label: '최다피해', value: '20k', name: '폭풍우진' },
-    { label: '최다치유', value: '30k', name: '리코샤' },
-    { label: '최다경감', value: '40k', name: '미스틱캣' },
+    { label: "최다처치", value: "60", name: "제타치즈" },
+    { label: "최다도움", value: "30", name: "후니베어" },
+    { label: "최다죽음", value: "15", name: "산왕이" },
+    { label: "최다피해", value: "20k", name: "폭풍우진" },
+    { label: "최다치유", value: "30k", name: "리코샤" },
+    { label: "최다경감", value: "40k", name: "미스틱캣" },
   ];
 
   const matches = [
-    { tag: 'RUNNER · W5', names: '제타치즈 vs 산왕이', score: '3 : 1', result: 'win' },
-    { tag: 'RIVAL · 8강', names: '리코샤 vs 노을빛', score: '2 : 3', result: 'lose' },
-    { tag: 'RUNNER · W4', names: '후니베어 vs 폭풍우진', score: '3 : 2', result: 'win' },
-    { tag: 'RIVAL · 4강', names: '미스틱캣 vs 제타치즈', score: '1 : 3', result: 'lose' },
+    {
+      tag: "RUNNER · W5",
+      names: "제타치즈 vs 산왕이",
+      score: "3 : 1",
+      result: "win",
+    },
+    {
+      tag: "RIVAL · 8강",
+      names: "리코샤 vs 노을빛",
+      score: "2 : 3",
+      result: "lose",
+    },
+    {
+      tag: "RUNNER · W4",
+      names: "후니베어 vs 폭풍우진",
+      score: "3 : 2",
+      result: "win",
+    },
+    {
+      tag: "RIVAL · 4강",
+      names: "미스틱캣 vs 제타치즈",
+      score: "1 : 3",
+      result: "lose",
+    },
   ];
 
   const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchQuery.trim()) {
+    if (e.key === "Enter" && searchQuery.trim()) {
       triggerToast(`"${searchQuery.trim()}" 검색 결과로 이동합니다`);
     }
   };
@@ -63,14 +83,17 @@ export default function UserDashboard() {
   return (
     <>
       <div className="topbar">
-        <div className="brand" onClick={() => triggerToast('홈으로 이동합니다')}>
+        <div
+          className="brand"
+          onClick={() => triggerToast("홈으로 이동합니다")}
+        >
           RO<span>MS</span>
         </div>
         <div className="nav-tabs">
-          {['러너리그', '라이벌클래시', '랭킹'].map((tab) => (
+          {["러너리그", "라이벌클래시", "랭킹"].map((tab) => (
             <div
               key={tab}
-              className={`nav-tab ${activeTab === tab ? 'active' : ''}`}
+              className={`nav-tab ${activeTab === tab ? "active" : ""}`}
               onClick={() => handleTabClick(tab)}
             >
               {tab}
@@ -96,6 +119,7 @@ export default function UserDashboard() {
         </div>
       </div>
 
+      {/* 러너리그 메인 배너 MVP */}
       <div className="hero">
         <div className="hero-rule"></div>
         <div className="hero-eyebrow">Season 05 · Runner League Champion</div>
@@ -103,14 +127,20 @@ export default function UserDashboard() {
           <div className="hero-num">5</div>
           <div className="hero-info">
             <div className="hero-name">제타치즈</div>
-            <div className="hero-meta">딜러 · 최다처치 60 · K/D 평균 2.4 · 승률 78%</div>
-            <button className="hero-cta" onClick={() => triggerToast('제타치즈 상세화면으로 이동합니다')}>
+            <div className="hero-meta">
+              딜러 · 최다처치 60 · K/D 평균 2.4 · 승률 78%
+            </div>
+            <button
+              className="hero-cta"
+              onClick={() => triggerToast("제타치즈 상세화면으로 이동합니다")}
+            >
               전적 상세보기 →
             </button>
           </div>
         </div>
       </div>
 
+      {/* 러너리그 메인 컨텐츠 영역 */}
       <div className="content">
         <div className="section">
           <div className="section-head">
@@ -122,10 +152,12 @@ export default function UserDashboard() {
               <div
                 key={p.name}
                 className="rank-row"
-                onClick={() => triggerToast(`${p.name} 상세화면으로 이동합니다`)}
+                onClick={() =>
+                  triggerToast(`${p.name} 상세화면으로 이동합니다`)
+                }
               >
-                <span className={`rank-index ${i === 0 ? 'top' : ''}`}>
-                  {String(i + 1).padStart(2, '0')}
+                <span className={`rank-index ${i === 0 ? "top" : ""}`}>
+                  {String(i + 1).padStart(2, "0")}
                 </span>
                 <div className="rank-player">
                   <span className={`role-mark ${p.role}`}></span>
@@ -149,7 +181,9 @@ export default function UserDashboard() {
               <div
                 key={h.label}
                 className="stat-item"
-                onClick={() => triggerToast(`${h.name} 상세화면으로 이동합니다`)}
+                onClick={() =>
+                  triggerToast(`${h.name} 상세화면으로 이동합니다`)
+                }
               >
                 <div className="stat-label">{h.label}</div>
                 <div className="stat-value">{h.value}</div>
@@ -159,7 +193,7 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        <div className="section" style={{ borderBottom: 'none' }}>
+        <div className="section" style={{ borderBottom: "none" }}>
           <div className="section-head">
             <span className="section-title">최근 경기 결과</span>
           </div>
@@ -168,13 +202,13 @@ export default function UserDashboard() {
               <div
                 key={idx}
                 className="match-row"
-                onClick={() => triggerToast('매치 상세 결과로 이동합니다')}
+                onClick={() => triggerToast("매치 상세 결과로 이동합니다")}
               >
                 <span className="match-tag">{m.tag}</span>
                 <span className="match-names">{m.names}</span>
                 <span className="match-score">{m.score}</span>
                 <span className={`match-badge ${m.result}`}>
-                  {m.result === 'win' ? '승리' : '패배'}
+                  {m.result === "win" ? "승리" : "패배"}
                 </span>
               </div>
             ))}
@@ -182,10 +216,9 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      <div id="toast" className={showToast ? 'show' : ''}>
+      <div id="toast" className={showToast ? "show" : ""}>
         {toastMessage}
       </div>
     </>
   );
 }
-

@@ -487,3 +487,159 @@ body {
   }
 }
 
+/* 1. 전체 화면 레이아웃 (Flex로 좌측/우측 분할) */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+/* 2. 좌측 사이드바 Style */
+.admin-sidebar {
+  width: 250px;
+  background: #FFFFFF;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  padding: 28px 20px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  flex-shrink: 0;
+  z-index: 30;
+}
+
+.sidebar-brand {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 20px;
+  cursor: pointer;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sidebar-brand span {
+  color: var(--cobalt);
+}
+
+.sidebar-brand .admin-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--cobalt);
+  margin-left: 4px;
+}
+
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-dim);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sidebar-item:hover {
+  background: rgba(44, 75, 255, 0.06);
+  color: var(--ink);
+}
+
+/* 선택된 Active 메뉴 스타일 */
+.sidebar-item.active {
+  background: var(--ink);
+  color: #FFFFFF;
+}
+
+.sidebar-item.active .sidebar-item-bullet {
+  color: var(--yellow);
+}
+
+/* 메뉴 검색 필터링 시 미포함 메뉴 딤 처리 */
+.sidebar-item.dimmed {
+  opacity: 0.3;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+/* 3. 우측 메인 영역 Style */
+.admin-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* flex 자식 요소의 overflow 방지 */
+}
+
+/* 4. 상단 헤더 & ROMS 로고 우측 메뉴 검색 Style */
+.admin-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 68px;
+  padding: 0 20px;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ROMS 로고 우측 메뉴 검색 박스 */
+.menu-search-box {
+  position: relative;
+  width: 300px;
+}
+
+.menu-search-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 36px 8px 14px;
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.menu-search-input:focus {
+  border-color: var(--cobalt);
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(44, 75, 255, 0.1);
+}
+
+.menu-search-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  stroke: var(--ink-faint);
+  pointer-events: none;
+}
+
+/* 5. 본문 컨텐츠 영역 일반 배치 (중앙 정렬 해제 및 가로 100% 채움) */
+.admin-body {
+  padding: 40px;
+  width: 100%;       /* 기존 max-width: 1200px 제한 해제 */
+  margin: 0;          /* 기존 margin: 0 auto 중앙 정렬 해제 */
+  box-sizing: border-box;
+}
+
+/* 기존 hero 및 content 클래스 오버라이드 (중앙 정렬 방지) */
+.admin-body .hero,
+.admin-body .content {
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+

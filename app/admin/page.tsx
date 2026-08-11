@@ -4,18 +4,18 @@ import React, { useState, useRef } from "react";
 import Link from "next/link";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("경기 결과 관리");
+  const [activeTab, setActiveTab] = useState("공통 마스터 관리");
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 관리자 메뉴 목록 정의
+  // 관리자 메뉴 목록 정의 (ROMS_메뉴구성도.md 기준)
   const adminMenuList = [
-    "경기 결과 관리",
-    "선수/스트리머 관리",
-    "시즌/팀 관리",
-    "공통 코드",
+    "공통 마스터 관리",
+    "시즌 및 팀/로스터 관리",
+    "매치 관리 & 기록 입력",
+    "경기 결과 & 스탯 조회",
   ];
 
   // 메뉴 검색 필터링 로직
@@ -196,200 +196,159 @@ export default function AdminDashboard() {
             </div>
           </header>
           <main className="admin-body">
-            {/* Admin Content Container */}
-            <div className="content">
-              {/* Quick Admin Overview Stat Strip */}
-              <div className="section">
-                <div className="section-head">
-                  <span className="section-title">시스템 현황 요약</span>
-                </div>
-                <div className="stat-strip">
-                  {adminStats.map((st) => (
-                    <div
-                      key={st.label}
-                      className="stat-item"
-                      onClick={() =>
-                        triggerToast(`${st.label} 세부 정보를 확인합니다`)
-                      }
-                    >
-                      <div className="stat-label">{st.label}</div>
-                      <div className="stat-value">{st.value}</div>
-                      <div className="stat-name">{st.name}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Streamer / Player Management */}
-              <div className="section" style={{ borderBottom: "none" }}>
-                <div className="section-head">
-                  <span className="section-title">스트리머 / 선수 관리</span>
-                  <span className="section-sub">
-                    등록된 스트리머 5명 표시 중
-                  </span>
-                </div>
-                <div className="rank-list">
-                  {streamers.map((s) => (
-                    <div
-                      key={s.id}
-                      className="rank-row"
-                      style={{
-                        gridTemplateColumns: "50px 1.5fr 1fr 100px 120px",
-                      }}
-                    >
-                      <span
-                        className="mono"
-                        style={{ fontSize: "13px", color: "var(--ink-faint)" }}
-                      >
-                        0{s.id}
-                      </span>
-                      <div className="rank-player">
-                        <span
-                          className={`role-mark ${s.position.toLowerCase()}`}
-                        ></span>
-                        <span className="rank-name">{s.name}</span>
-                        <span className="rank-role">({s.nickname})</span>
-                      </div>
-                      <span
-                        className="mono"
-                        style={{ fontSize: "13px", color: "var(--ink-dim)" }}
-                      >
-                        {s.team}
-                      </span>
-                      <span
-                        className="mono"
-                        style={{
-                          fontSize: "12px",
-                          fontWeight: 700,
-                          color: "var(--support)",
-                        }}
-                      >
-                        {s.status}
-                      </span>
-                      <button
-                        className="hero-cta"
-                        style={{
-                          padding: "6px 12px",
-                          fontSize: "11px",
-                          background: "var(--ink)",
-                        }}
-                        onClick={() =>
-                          triggerToast(`${s.name} 선수 정보를 수정합니다`)
-                        }
-                      >
-                        선수 관리
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {/* Recent Matches Management */}
-            <div className="section">
+            {/* 1. 상단 KPI 요약 스트립 */}
+            <section className="section" style={{ paddingTop: 0 }}>
               <div className="section-head">
-                <span className="section-title">최근 등록 경기 관리</span>
-                <span className="section-sub">
-                  수정 및 세트별 전적 입력 가능
-                </span>
+                <h2 className="section-title">SYSTEM OVERVIEW</h2>
+                <span className="section-sub">실시간 운영 현황 요약</span>
               </div>
-              <div className="rank-list">
-                {recentMatches.map((m) => (
-                  <div
-                    key={m.id}
-                    className="rank-row"
-                    style={{
-                      gridTemplateColumns: "70px 1.5fr 1fr 100px 120px",
-                    }}
-                  >
-                    <span
-                      className="mono"
-                      style={{
-                        fontSize: "13px",
-                        color: "var(--ink-faint)",
-                        fontWeight: 700,
-                      }}
-                    >
-                      #{m.id}
-                    </span>
-                    <div>
-                      <span
-                        className="mono"
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--cobalt)",
-                          display: "block",
-                        }}
-                      >
-                        {m.tag} ({m.date})
-                      </span>
-                      <span style={{ fontWeight: 700, fontSize: "14px" }}>
-                        {m.teamA} vs {m.teamB}
-                      </span>
-                    </div>
-                    <div
-                      className="mono"
-                      style={{ fontSize: "14px", fontWeight: 700 }}
-                    >
-                      {m.score}{" "}
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--ink-dim)",
-                          fontWeight: 400,
-                        }}
-                      >
-                        ({m.winner})
-                      </span>
-                    </div>
-                    <div>
-                      <span
-                        className="match-badge win"
-                        style={{
-                          background:
-                            m.status === "최종 승인"
-                              ? "rgba(18,183,106,0.1)"
-                              : "rgba(255,210,63,0.3)",
-                          color:
-                            m.status === "최종 승인"
-                              ? "var(--support)"
-                              : "var(--ink)",
-                        }}
-                      >
-                        {m.status}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <button
-                        className="hero-cta"
-                        style={{ padding: "6px 10px", fontSize: "11px" }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          triggerToast(
-                            `경기 #${m.id} 수정 모달을 활성화합니다`,
-                          );
-                        }}
-                      >
-                        수정
-                      </button>
-                      <button
-                        className="hero-cta"
-                        style={{
-                          padding: "6px 10px",
-                          fontSize: "11px",
-                          background: "var(--dps)",
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          triggerToast(`경기 #${m.id} 삭제 요청되었습니다`);
-                        }}
-                      >
-                        삭제
-                      </button>
-                    </div>
+              <div className="stat-strip">
+                {adminStats.map((stat, idx) => (
+                  <div key={idx} className="stat-item">
+                    <div className="stat-label">{stat.label}</div>
+                    <div className="stat-value">{stat.value}</div>
+                    <div className="stat-name">{stat.name}</div>
                   </div>
                 ))}
               </div>
+            </section>
+
+            {/* 2. 빠른 실행 CTA 바 */}
+            <div style={{ display: "flex", gap: "12px", margin: "24px 0 36px" }}>
+              <button
+                className="hero-cta"
+                onClick={() => triggerToast("경기 결과 입력 페이지로 이동합니다")}
+              >
+                + 신규 경기 스탯 입력
+              </button>
+              <button
+                className="admin-switch-btn"
+                onClick={() => triggerToast("선수 등록 팝업을 열었습니다")}
+              >
+                + 선수/스트리머 등록
+              </button>
             </div>
+
+            {/* 3. activeTab별 동적 탭 컨텐츠 (ROMS_메뉴구성도.md 메뉴 순서 적용) */}
+            {activeTab === "공통 마스터 관리" && (
+              <section className="section">
+                <div className="section-head">
+                  <h2 className="section-title">공통 마스터 관리 (스트리머/영웅/맵)</h2>
+                  <span className="section-sub">등록 스트리머, 영웅 픽풀, 맵 데이터 관리 (SCR-009 / AD-004)</span>
+                </div>
+                <div className="rank-list">
+                  {streamers.map((s, idx) => (
+                    <div
+                      key={s.id}
+                      className="rank-row"
+                      style={{ gridTemplateColumns: "40px 1fr 140px 100px 80px" }}
+                    >
+                      <span className="rank-index">{idx + 1}</span>
+                      <div className="rank-player">
+                        <span className={`role-mark ${s.position.toLowerCase()}`} />
+                        <span className="rank-name">{s.name}</span>
+                        <span className="rank-role">({s.nickname})</span>
+                      </div>
+                      <span className="rank-cell">{s.team}</span>
+                      <span className="rank-cell wins">{s.position}</span>
+                      <button
+                        className="admin-switch-btn"
+                        onClick={() => triggerToast(`${s.name} 선수 정보 수정`)}
+                      >
+                        수정
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {activeTab === "시즌 및 팀/로스터 관리" && (
+              <section className="section">
+                <div className="section-head">
+                  <h2 className="section-title">시즌 및 팀/로스터 관리</h2>
+                  <span className="section-sub">대회 시즌 생성, 팀 생성 및 선수 배정 (SCR-005 / AD-001, AD-002)</span>
+                </div>
+                <p style={{ color: "var(--ink-dim)", fontSize: "14px" }}>
+                  시즌 및 팀/로스터 관리 메뉴 준비 중입니다. (요구사항 ID: AD-001, AD-002)
+                </p>
+              </section>
+            )}
+
+            {activeTab === "매치 관리 & 기록 입력" && (
+              <section className="section">
+                <div className="section-head">
+                  <h2 className="section-title">매치 관리 & 기록 입력</h2>
+                  <span className="section-sub">매치 생성 및 게임 흐름 기반 상세 스탯 입력 (SCR-007 / AD-003)</span>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {recentMatches.map((match) => (
+                    <div key={match.id} className="match-row">
+                      <span className="match-tag">{match.tag}</span>
+                      <div className="match-names">
+                        {match.teamA}{" "}
+                        <span style={{ color: "var(--ink-faint)", margin: "0 6px" }}>
+                          VS
+                        </span>{" "}
+                        {match.teamB}
+                      </div>
+                      <span className="match-score">{match.score}</span>
+                      <span
+                        className={`match-badge ${match.status === "최종 승인" ? "win" : "lose"}`}
+                      >
+                        {match.status}
+                      </span>
+                      <button
+                        className="admin-switch-btn"
+                        style={{ marginLeft: "12px" }}
+                        onClick={() =>
+                          triggerToast(`Match #${match.id} 스탯 입력 화면으로 이동`)
+                        }
+                      >
+                        {match.status === "최종 승인" ? "스탯 수정" : "스탯 입력"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {activeTab === "경기 결과 & 스탯 조회" && (
+              <section className="section">
+                <div className="section-head">
+                  <h2 className="section-title">경기 결과 & 스탯 통합 조회</h2>
+                  <span className="section-sub">시즌/팀/선수별 경기 세트 및 상세 스탯 필터링 조회·검수 (SCR-010 / AD-003)</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {recentMatches
+                    .filter((match) => match.status === "최종 승인")
+                    .map((match) => (
+                      <div key={match.id} className="match-row">
+                        <span className="match-tag">{match.tag}</span>
+                        <div className="match-names">
+                          {match.teamA}{" "}
+                          <span style={{ color: "var(--ink-faint)", margin: "0 6px" }}>
+                            VS
+                          </span>{" "}
+                          {match.teamB}
+                        </div>
+                        <span className="match-score">{match.score}</span>
+                        <span className="match-badge win">최종 승인</span>
+                        <button
+                          className="admin-switch-btn"
+                          style={{ marginLeft: "12px" }}
+                          onClick={() =>
+                            triggerToast(`Match #${match.id} 결과 상세 조회`)
+                          }
+                        >
+                          상세 보기
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </section>
+            )}
           </main>
         </div>
       </div>

@@ -1,11 +1,14 @@
+// app/page.tsx
 "use client";
 
 import React, { useState, useRef } from "react";
-import Link from "next/link";
+import UserHeader from "@/components/layout/UserHeader";
 
 export default function UserDashboard() {
   const [activeTab, setActiveTab] = useState("러너리그");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Toast 상태 관리
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -75,51 +78,19 @@ export default function UserDashboard() {
     }
   };
 
-  const handleTabClick = (tabName: string) => {
-    setActiveTab(tabName);
-    triggerToast(`${tabName} 화면으로 이동합니다`);
-  };
-
   return (
     <>
-      <div className="topbar">
-        <div
-          className="brand"
-          onClick={() => triggerToast("홈으로 이동합니다")}
-        >
-          RO<span>MS</span>
-        </div>
-        <div className="nav-tabs">
-          {["러너리그", "라이벌클래시", "랭킹"].map((tab) => (
-            <div
-              key={tab}
-              className={`nav-tab ${activeTab === tab ? "active" : ""}`}
-              onClick={() => handleTabClick(tab)}
-            >
-              {tab}
-            </div>
-          ))}
-        </div>
-        <Link href="/admin" className="admin-switch-btn ml-4">
-          ⚙️ 관리자 대시보드
-        </Link>
-        <div className="search-wrap">
-          <input
-            id="searchInput"
-            type="text"
-            placeholder="선수 검색"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleSearchSubmit}
-          />
-          <svg viewBox="0 0 24 24" fill="none" stroke="#14141A" strokeWidth="2">
-            <circle cx="11" cy="11" r="7" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-        </div>
-      </div>
+      {/* 1. 상단 사용자 헤더 컴포넌트 삽입 */}
+      <UserHeader
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        onSearchSubmit={handleSearchSubmit}
+        onToast={triggerToast}
+      />
 
-      {/* 러너리그 메인 배너 MVP */}
+      {/* 2. 러너리그 메인 배너 MVP */}
       <div className="hero">
         <div className="hero-rule"></div>
         <div className="hero-eyebrow">Season 05 · Runner League Champion</div>
@@ -140,7 +111,7 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      {/* 러너리그 메인 컨텐츠 영역 */}
+      {/* 3. 러너리그 메인 컨텐츠 영역 */}
       <div className="content">
         <div className="section">
           <div className="section-head">
@@ -216,6 +187,7 @@ export default function UserDashboard() {
         </div>
       </div>
 
+      {/* 토스트 알림창 */}
       <div id="toast" className={showToast ? "show" : ""}>
         {toastMessage}
       </div>

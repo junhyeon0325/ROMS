@@ -11,7 +11,6 @@ interface UserHeaderProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onSearchSubmit: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  onToast: (msg: string) => void;
 }
 
 export default function UserHeader({
@@ -20,13 +19,16 @@ export default function UserHeader({
   searchQuery,
   setSearchQuery,
   onSearchSubmit,
-  onToast,
 }: UserHeaderProps) {
   return (
     <div className="topbar">
-      <div className="brand" onClick={() => onToast("홈으로 이동합니다")}>
+      <Link
+        href="/"
+        className="brand"
+        style={{ color: "inherit", textDecoration: "none" }}
+      >
         RO<span>MS</span>
-      </div>
+      </Link>
 
       <div className="nav-tabs">
         {USER_NAV_ITEMS.map((item) => (
@@ -35,7 +37,6 @@ export default function UserHeader({
             className={`nav-tab ${activeTab === item.label ? "active" : ""}`}
             onClick={() => {
               setActiveTab(item.label);
-              onToast(`${item.label} 화면으로 이동합니다`);
             }}
           >
             {item.label}

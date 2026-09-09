@@ -1,26 +1,12 @@
 // app/admin/page.tsx
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import AdminSidebar from "@/components/layout/AdminSidebar";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("공통 마스터 관리");
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
-
-  // Toast 상태 관리
-  const [toastMessage, setToastMessage] = useState("");
-  const [showToast, setShowToast] = useState(false);
-  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const triggerToast = (msg: string) => {
-    setToastMessage(msg);
-    setShowToast(true);
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => {
-      setShowToast(false);
-    }, 1800);
-  };
 
   // 관리자 메뉴 목록 정의
   const adminMenuList = [
@@ -139,7 +125,6 @@ export default function AdminDashboard() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           filteredMenuList={filteredMenuList}
-          onToast={triggerToast}
         />
 
         {/* 2. 메인 콘텐츠 영역 */}
@@ -155,7 +140,6 @@ export default function AdminDashboard() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && filteredMenuList.length > 0) {
                     setActiveTab(filteredMenuList[0]);
-                    triggerToast(`${filteredMenuList[0]} 화면으로 전환합니다`);
                   }
                 }}
               />
@@ -196,15 +180,13 @@ export default function AdminDashboard() {
             >
               <button
                 className="hero-cta"
-                onClick={() =>
-                  triggerToast("신규 경기 스탯 입력 화면으로 이동")
-                }
+                onClick={() => setActiveTab("매치 관리 & 기록 입력")}
               >
                 + 신규 경기 스탯 입력
               </button>
               <button
                 className="admin-switch-btn"
-                onClick={() => triggerToast("선수/스트리머 등록 화면으로 이동")}
+                onClick={() => setActiveTab("공통 마스터 관리")}
               >
                 + 선수/스트리머 등록
               </button>
@@ -242,9 +224,6 @@ export default function AdminDashboard() {
                       <span className="rank-cell wins">{s.position}</span>
                       <button
                         className="admin-switch-btn"
-                        onClick={() =>
-                          triggerToast(`${s.name} 수정 화면으로 이동`)
-                        }
                       >
                         수정
                       </button>
@@ -309,11 +288,6 @@ export default function AdminDashboard() {
                       <button
                         className="admin-switch-btn"
                         style={{ marginLeft: "12px" }}
-                        onClick={() =>
-                          triggerToast(
-                            `Match #${match.id} 스탯 입력 화면으로 이동`,
-                          )
-                        }
                       >
                         {match.status === "최종 승인"
                           ? "스탯 수정"
@@ -364,9 +338,6 @@ export default function AdminDashboard() {
                         <button
                           className="admin-switch-btn"
                           style={{ marginLeft: "12px" }}
-                          onClick={() =>
-                            triggerToast(`Match #${match.id} 결과 상세 조회`)
-                          }
                         >
                           상세 보기
                         </button>
@@ -377,11 +348,6 @@ export default function AdminDashboard() {
             )}
           </main>
         </div>
-      </div>
-
-      {/* 토스트 알림창 */}
-      <div id="toast" className={showToast ? "show" : ""}>
-        {toastMessage}
       </div>
     </>
   );

@@ -10,23 +10,22 @@ interface AdminSidebarProps {
   activeTab: string;
   setActiveTab: (tabLabel: string) => void;
   filteredMenuList: string[];
-  onToast: (msg: string) => void;
 }
 
 export default function AdminSidebar({
   activeTab,
   setActiveTab,
   filteredMenuList,
-  onToast,
 }: AdminSidebarProps) {
   return (
     <aside className="admin-sidebar">
-      <div
+      <Link
+        href="/admin"
         className="sidebar-brand"
-        onClick={() => onToast("관리자 홈으로 이동합니다")}
+        style={{ display: "block", color: "inherit", textDecoration: "none" }}
       >
         RO<span>MS</span> <span className="admin-tag">[ADMIN]</span>
-      </div>
+      </Link>
 
       <div className="sidebar-menu">
         {ADMIN_NAV_ITEMS.map((item) => {
@@ -39,7 +38,6 @@ export default function AdminSidebar({
               className={`sidebar-item ${isActive ? "active" : ""} ${!isSearched ? "dimmed" : ""}`}
               onClick={() => {
                 setActiveTab(item.label);
-                onToast(`${item.label} 화면으로 전환합니다`);
               }}
             >
               <span className="sidebar-item-bullet">•</span>

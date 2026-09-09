@@ -1,26 +1,12 @@
 // app/page.tsx
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import UserHeader from "@/components/layout/UserHeader";
 
 export default function UserDashboard() {
   const [activeTab, setActiveTab] = useState("러너리그");
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Toast 상태 관리
-  const [toastMessage, setToastMessage] = useState("");
-  const [showToast, setShowToast] = useState(false);
-  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const triggerToast = (msg: string) => {
-    setToastMessage(msg);
-    setShowToast(true);
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => {
-      setShowToast(false);
-    }, 1800);
-  };
 
   const roleLabel: Record<string, string> = {
     tank: "탱커",
@@ -73,8 +59,8 @@ export default function UserDashboard() {
   ];
 
   const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
-      triggerToast(`"${searchQuery.trim()}" 검색 결과로 이동합니다`);
+    if (e.key === "Enter") {
+      e.preventDefault();
     }
   };
 
@@ -87,7 +73,6 @@ export default function UserDashboard() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onSearchSubmit={handleSearchSubmit}
-        onToast={triggerToast}
       />
 
       {/* 2. 러너리그 메인 배너 MVP */}
@@ -103,7 +88,6 @@ export default function UserDashboard() {
             </div>
             <button
               className="hero-cta"
-              onClick={() => triggerToast("제타치즈 상세화면으로 이동합니다")}
             >
               전적 상세보기 →
             </button>
@@ -116,16 +100,13 @@ export default function UserDashboard() {
         <div className="section">
           <div className="section-head">
             <span className="section-title">러너리그 순위</span>
-            <span className="section-sub">클릭 시 선수 상세화면으로 이동</span>
+            <span className="section-sub">선수별 통합 전적 현황</span>
           </div>
           <div className="rank-list" id="rankList">
             {ranking.map((p, i) => (
               <div
                 key={p.name}
                 className="rank-row"
-                onClick={() =>
-                  triggerToast(`${p.name} 상세화면으로 이동합니다`)
-                }
               >
                 <span className={`rank-index ${i === 0 ? "top" : ""}`}>
                   {String(i + 1).padStart(2, "0")}
@@ -152,9 +133,6 @@ export default function UserDashboard() {
               <div
                 key={h.label}
                 className="stat-item"
-                onClick={() =>
-                  triggerToast(`${h.name} 상세화면으로 이동합니다`)
-                }
               >
                 <div className="stat-label">{h.label}</div>
                 <div className="stat-value">{h.value}</div>
@@ -173,7 +151,6 @@ export default function UserDashboard() {
               <div
                 key={idx}
                 className="match-row"
-                onClick={() => triggerToast("매치 상세 결과로 이동합니다")}
               >
                 <span className="match-tag">{m.tag}</span>
                 <span className="match-names">{m.names}</span>
@@ -185,11 +162,6 @@ export default function UserDashboard() {
             ))}
           </div>
         </div>
-      </div>
-
-      {/* 토스트 알림창 */}
-      <div id="toast" className={showToast ? "show" : ""}>
-        {toastMessage}
       </div>
     </>
   );

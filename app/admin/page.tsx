@@ -1,354 +1,433 @@
 // app/admin/page.tsx
 "use client";
 
-import React, { useState } from "react";
-import AdminSidebar from "@/components/layout/AdminSidebar";
+import React from "react";
+import Link from "next/link";
+import { useAdmin } from "@/lib/context/AdminContext";
+import AdminCard from "@/components/admin/AdminCard";
+import AdminKpiCard from "@/components/admin/AdminKpiCard";
 
-export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("공통 마스터 관리");
-  const [menuSearchQuery, setMenuSearchQuery] = useState("");
-
-  // 관리자 메뉴 목록 정의
-  const adminMenuList = [
-    "공통 마스터 관리",
-    "시즌 및 팀/로스터 관리",
-    "매치 관리 & 기록 입력",
-    "경기 결과 & 스탯 조회",
-  ];
-
-  // 메뉴 검색 필터링 로직
-  const filteredMenuList = adminMenuList.filter((menu) =>
-    menu.toLowerCase().includes(menuSearchQuery.trim().toLowerCase()),
-  );
-
-  // Mock Admin Data
-  const adminStats = [
-    { label: "등록 스트리머", value: "42명", name: "전체 등록 완료" },
-    { label: "진행 시즌", value: "S05", name: "러너리그 Season 05" },
-    { label: "완료 경기", value: "18", name: "누적 매치 완료" },
-    { label: "평균 KDA", value: "3.42", name: "시즌 통합 평균" },
-    { label: "최고 승률", value: "78%", name: "제타치즈 (딜러)" },
-    { label: "시스템 상태", value: "OK", name: "Prisma DB 정상" },
-  ];
-
-  const recentMatches = [
-    {
-      id: 101,
-      tag: "RUNNER · W5",
-      teamA: "제타치즈 팀",
-      teamB: "산왕이 팀",
-      score: "3 : 1",
-      winner: "제타치즈 팀",
-      date: "2026.08.05",
-      status: "최종 승인",
-    },
-    {
-      id: 102,
-      tag: "RIVAL · 8강",
-      teamA: "리코샤 팀",
-      teamB: "노을빛 팀",
-      score: "2 : 3",
-      winner: "노을빛 팀",
-      date: "2026.08.04",
-      status: "최종 승인",
-    },
-    {
-      id: 103,
-      tag: "RUNNER · W4",
-      teamA: "후니베어 팀",
-      teamB: "폭풍우진 팀",
-      score: "3 : 2",
-      winner: "후니베어 팀",
-      date: "2026.08.02",
-      status: "최종 승인",
-    },
-    {
-      id: 104,
-      tag: "RUNNER · W6",
-      teamA: "미스틱캣 팀",
-      teamB: "카이저 팀",
-      score: "0 : 0",
-      winner: "미정",
-      date: "2026.08.08",
-      status: "경기 예정",
-    },
-  ];
-
-  const streamers = [
-    {
-      id: 1,
-      name: "제타치즈",
-      nickname: "ZetaCheese",
-      position: "DAMAGE",
-      team: "제타치즈 팀",
-      status: "활성",
-    },
-    {
-      id: 2,
-      name: "리코샤",
-      nickname: "Ricosha",
-      position: "TANK",
-      team: "리코샤 팀",
-      status: "활성",
-    },
-    {
-      id: 3,
-      name: "후니베어",
-      nickname: "HooniBear",
-      position: "HEALER",
-      team: "후니베어 팀",
-      status: "활성",
-    },
-    {
-      id: 4,
-      name: "폭풍우진",
-      nickname: "StormWoojin",
-      position: "DAMAGE",
-      team: "폭풍우진 팀",
-      status: "활성",
-    },
-    {
-      id: 5,
-      name: "미스틱캣",
-      nickname: "MysticCat",
-      position: "TANK",
-      team: "미스틱캣 팀",
-      status: "활성",
-    },
-  ];
+export default function AdminDashboardPage() {
+  const { members, tournaments, maps, codes, showFeedback } = useAdmin();
 
   return (
-    <>
-      <div className="admin-layout">
-        {/* 1. 좌측 사이드바 컴포넌트 삽입 */}
-        <AdminSidebar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          filteredMenuList={filteredMenuList}
-        />
-
-        {/* 2. 메인 콘텐츠 영역 */}
-        <div className="admin-main">
-          <header className="admin-header">
-            <div className="menu-search-box">
-              <input
-                type="text"
-                className="menu-search-input"
-                placeholder="메뉴 검색 (예: 경기, 스트리머...)"
-                value={menuSearchQuery}
-                onChange={(e) => setMenuSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && filteredMenuList.length > 0) {
-                    setActiveTab(filteredMenuList[0]);
-                  }
-                }}
-              />
-              <svg
-                className="menu-search-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="11" cy="11" r="7" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </div>
-          </header>
-
-          <main className="admin-body">
-            {/* 상단 KPI 요약 스트립 */}
-            <section className="section" style={{ paddingTop: 0 }}>
-              <div className="section-head">
-                <h2 className="section-title">SYSTEM OVERVIEW</h2>
-                <span className="section-sub">실시간 운영 현황 요약</span>
-              </div>
-              <div className="stat-strip">
-                {adminStats.map((stat, idx) => (
-                  <div key={idx} className="stat-item">
-                    <div className="stat-label">{stat.label}</div>
-                    <div className="stat-value">{stat.value}</div>
-                    <div className="stat-name">{stat.name}</div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* 빠른 실행 CTA 바 */}
-            <div
-              style={{ display: "flex", gap: "12px", margin: "24px 0 36px" }}
+    <section className="space-y-6">
+      {/* 1) 관리자 대시보드 히어로 배너 & 퀵 액션 */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 p-6 md:p-8 text-white shadow-xl border border-slate-700/60 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="relative z-10 max-w-2xl">
+          <div className="flex items-center gap-3 text-xl md:text-2xl font-bold tracking-tight text-white mb-2">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#60A5FA"
+              strokeWidth="2"
+              className="w-6 h-6 md:w-7 md:h-7 shrink-0"
             >
-              <button
-                className="hero-cta"
-                onClick={() => setActiveTab("매치 관리 & 기록 입력")}
-              >
-                + 신규 경기 스탯 입력
-              </button>
-              <button
-                className="admin-switch-btn"
-                onClick={() => setActiveTab("공통 마스터 관리")}
-              >
-                + 선수/스트리머 등록
-              </button>
-            </div>
+              <rect x="3" y="3" width="7" height="9" rx="1" />
+              <rect x="14" y="3" width="7" height="5" rx="1" />
+              <rect x="14" y="12" width="7" height="9" rx="1" />
+              <rect x="3" y="16" width="7" height="5" rx="1" />
+            </svg>
+            <span>ROMS 통합 관제 센터</span>
+          </div>
+          <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
+            오버워치 e스포츠 경기 아카이브 및 대회 운영 통합 관리 플랫폼입니다.
+            선수 로스터, 대회 일정, 공식 전장 맵풀 및 공통 마스터 코드를 실시간으로 관리하고 모니터링할 수 있습니다.
+          </p>
+        </div>
 
-            {/* Tab 1: 공통 마스터 관리 */}
-            {activeTab === "공통 마스터 관리" && (
-              <section className="section">
-                <div className="section-head">
-                  <h2 className="section-title">
-                    공통 마스터 관리 (스트리머/영웅/맵)
-                  </h2>
-                  <span className="section-sub">
-                    등록 스트리머, 영웅 픽풀, 맵 데이터 관리 (SCR-009 / AD-004)
-                  </span>
-                </div>
-                <div className="rank-list">
-                  {streamers.map((s, idx) => (
-                    <div
-                      key={s.id}
-                      className="rank-row"
-                      style={{
-                        gridTemplateColumns: "40px 1fr 140px 100px 80px",
-                      }}
-                    >
-                      <span className="rank-index">{idx + 1}</span>
-                      <div className="rank-player">
-                        <span
-                          className={`role-mark ${s.position.toLowerCase()}`}
-                        />
-                        <span className="rank-name">{s.name}</span>
-                        <span className="rank-role">({s.nickname})</span>
-                      </div>
-                      <span className="rank-cell">{s.team}</span>
-                      <span className="rank-cell wins">{s.position}</span>
-                      <button
-                        className="admin-switch-btn"
-                      >
-                        수정
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Tab 2: 시즌 및 팀/로스터 관리 */}
-            {activeTab === "시즌 및 팀/로스터 관리" && (
-              <section className="section">
-                <div className="section-head">
-                  <h2 className="section-title">시즌 및 팀/로스터 관리</h2>
-                  <span className="section-sub">
-                    대회 시즌 생성, 팀 생성 및 선수 배정 (SCR-005 / AD-001,
-                    AD-002)
-                  </span>
-                </div>
-                <p style={{ color: "var(--ink-dim)", fontSize: "14px" }}>
-                  시즌 및 팀/로스터 관리 메뉴 준비 중입니다. (요구사항 ID:
-                  AD-001, AD-002)
-                </p>
-              </section>
-            )}
-
-            {/* Tab 3: 매치 관리 & 기록 입력 */}
-            {activeTab === "매치 관리 & 기록 입력" && (
-              <section className="section">
-                <div className="section-head">
-                  <h2 className="section-title">매치 관리 & 기록 입력</h2>
-                  <span className="section-sub">
-                    매치 생성 및 게임 흐름 기반 상세 스탯 입력 (SCR-007 /
-                    AD-003)
-                  </span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                  }}
-                >
-                  {recentMatches.map((match) => (
-                    <div key={match.id} className="match-row">
-                      <span className="match-tag">{match.tag}</span>
-                      <div className="match-names">
-                        {match.teamA}{" "}
-                        <span
-                          style={{ color: "var(--ink-faint)", margin: "0 6px" }}
-                        >
-                          VS
-                        </span>{" "}
-                        {match.teamB}
-                      </div>
-                      <span className="match-score">{match.score}</span>
-                      <span
-                        className={`match-badge ${match.status === "최종 승인" ? "win" : "lose"}`}
-                      >
-                        {match.status}
-                      </span>
-                      <button
-                        className="admin-switch-btn"
-                        style={{ marginLeft: "12px" }}
-                      >
-                        {match.status === "최종 승인"
-                          ? "스탯 수정"
-                          : "스탯 입력"}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Tab 4: 경기 결과 & 스탯 조회 */}
-            {activeTab === "경기 결과 & 스탯 조회" && (
-              <section className="section">
-                <div className="section-head">
-                  <h2 className="section-title">경기 결과 & 스탯 통합 조회</h2>
-                  <span className="section-sub">
-                    시즌/팀/선수별 경기 세트 및 상세 스탯 필터링 조회·검수
-                    (SCR-010 / AD-003)
-                  </span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                  }}
-                >
-                  {recentMatches
-                    .filter((match) => match.status === "최종 승인")
-                    .map((match) => (
-                      <div key={match.id} className="match-row">
-                        <span className="match-tag">{match.tag}</span>
-                        <div className="match-names">
-                          {match.teamA}{" "}
-                          <span
-                            style={{
-                              color: "var(--ink-faint)",
-                              margin: "0 6px",
-                            }}
-                          >
-                            VS
-                          </span>{" "}
-                          {match.teamB}
-                        </div>
-                        <span className="match-score">{match.score}</span>
-                        <span className="match-badge win">최종 승인</span>
-                        <button
-                          className="admin-switch-btn"
-                          style={{ marginLeft: "12px" }}
-                        >
-                          상세 보기
-                        </button>
-                      </div>
-                    ))}
-                </div>
-              </section>
-            )}
-          </main>
+        <div className="relative z-10 flex flex-wrap items-center gap-2 md:gap-2.5">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+            onClick={() => showFeedback("통합 관제 지표 데이터를 갱신했습니다.")}
+            title="실시간 상태 새로고침"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="w-3.5 h-3.5"
+            >
+              <path d="M23 4v6h-6" />
+              <path d="M1 20v-6h6" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+            새로고침
+          </button>
+          <Link
+            href="/admin/members"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 border border-blue-400/40 text-white transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+          >
+            + 인원 관리
+          </Link>
+          <Link
+            href="/admin/tournaments"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+          >
+            + 대회 관리
+          </Link>
+          <Link
+            href="/admin/maps"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+          >
+            + 전장 관리
+          </Link>
+          <Link
+            href="/admin/codes"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+          >
+            + 코드 관리
+          </Link>
         </div>
       </div>
-    </>
+
+      {/* 2) 실시간 KPI 핵심 통계 지표 그리드 (6종) - AdminKpiCard 컴포넌트로 모듈화 */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3.5">
+        <AdminKpiCard
+          href="/admin/members"
+          label="등록 선수 · 스태프"
+          value={members.length}
+          unit="명"
+          color="blue"
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          }
+          meta={`치지직 ${members.filter((m) => m.type === "치지직 연동").length} · 일반 ${members.filter((m) => m.type === "일반 등록").length}`}
+          title="팀장·선수·감독 등록 화면으로 이동"
+        />
+
+        <AdminKpiCard
+          href="/admin/tournaments"
+          label="개설 대회 토너먼트"
+          value={tournaments.length}
+          unit="개"
+          color="purple"
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <circle cx="12" cy="8" r="7" />
+              <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+            </svg>
+          }
+          meta={`진행 ${tournaments.filter((t) => t.status === "진행중").length} · 접수 ${tournaments.filter((t) => t.status === "접수중").length}`}
+          title="대회 등록 관리 화면으로 이동"
+        />
+
+        <AdminKpiCard
+          href="/admin/maps"
+          label="공식 지정 전장"
+          value={maps.length}
+          unit="종"
+          color="emerald"
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+              <line x1="8" y1="2" x2="8" y2="18" />
+              <line x1="16" y1="6" x2="16" y2="22" />
+            </svg>
+          }
+          meta="오버워치 2 5개 모드"
+          title="맵(전장) 등록 관리 화면으로 이동"
+        />
+
+        <AdminKpiCard
+          href="/admin/codes"
+          label="시스템 마스터 코드"
+          value={codes.length}
+          unit="건"
+          color="amber"
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <polyline points="16 18 22 12 16 6" />
+              <polyline points="8 6 2 12 8 18" />
+            </svg>
+          }
+          meta="4대 표준 코드 그룹"
+          title="공통코드 관리 화면으로 이동"
+        />
+
+        <AdminKpiCard
+          onClick={() => showFeedback("데이터베이스 엔진 및 API 서버가 최적 상태로 가동 중입니다.")}
+          label="시스템 가동률"
+          value="99.9"
+          unit="%"
+          color="cyan"
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+          }
+          meta="Prisma DB 연결 정상"
+          actionText="정상"
+          title="시스템 가동 상태 확인"
+        />
+
+        <AdminKpiCard
+          onClick={() => showFeedback("치지직 공식 스트리머 연동 모듈이 대기 중입니다.")}
+          label="치지직 API 모듈"
+          value="LIVE"
+          color="rose"
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <circle cx="12" cy="12" r="2" />
+              <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14" />
+            </svg>
+          }
+          meta="스트리머 연동 준비"
+          actionText="대기"
+          title="외부 플랫폼 연동 상태 확인"
+        />
+      </div>
+
+      {/* 3) 대시보드 메인 2열 그리드 - AdminCard 컴포넌트로 통일 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 좌측 열: 등록 인원 현황 & 진행 대회 요약 */}
+        <div className="flex flex-col gap-6">
+          {/* 패널 1: 최근 등록 인원 */}
+          <AdminCard
+            title={
+              <>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" className="w-4.5 h-4.5">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                </svg>
+                <span>최근 등록 인원 (팀장 · 선수 · 감독)</span>
+              </>
+            }
+            actions={
+              <Link
+                href="/admin/members"
+                className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
+              >
+                전체 관리 ({members.length}명) →
+              </Link>
+            }
+          >
+            <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/80">
+              {members.map((m) => (
+                <Link
+                  key={m.id}
+                  href="/admin/members"
+                  className="group flex items-center justify-between py-3 px-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                  title="클릭하여 상세 정보 조회 및 수정"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-sm shrink-0">
+                      {m.name.slice(0, 1)}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        <span>{m.name}</span>
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                            m.type === "치지직 연동"
+                              ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                          }`}
+                        >
+                          {m.type === "치지직 연동" ? "치지직" : "일반"}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                        {m.id} {m.channelId ? `· @${m.channelId}` : ""}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    {m.roles.map((r) => (
+                      <span
+                        key={r}
+                        className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700"
+                      >
+                        {r}
+                      </span>
+                    ))}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </AdminCard>
+
+          {/* 패널 2: 진행 대회 요약 */}
+          <AdminCard
+            title={
+              <>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" className="w-4.5 h-4.5">
+                  <circle cx="12" cy="8" r="7" />
+                  <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+                </svg>
+                <span>현재 진행 및 접수 중 대회 현황</span>
+              </>
+            }
+            actions={
+              <Link
+                href="/admin/tournaments"
+                className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline transition-colors"
+              >
+                대회 관리 ({tournaments.length}건) →
+              </Link>
+            }
+          >
+            <div className="flex flex-col gap-3">
+              {tournaments.map((t) => (
+                <Link
+                  key={t.id}
+                  href="/admin/tournaments"
+                  className="group p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 hover:border-purple-300 dark:hover:border-purple-700 hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-all block"
+                  title="대회 상세 설정으로 이동"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                      {t.name}
+                    </span>
+                    <span
+                      className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                        t.status === "진행중"
+                          ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                          : t.status === "접수중"
+                          ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                      }`}
+                    >
+                      {t.status}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+                    <span>주최: {t.organizer}</span>
+                    <span>팀 수: {t.teams}개 팀</span>
+                    <span className="text-amber-600 dark:text-amber-400 font-semibold">상금: {t.prize}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </AdminCard>
+        </div>
+
+        {/* 우측 열: 공식 맵풀 요약 & 감사 로그 */}
+        <div className="flex flex-col gap-6">
+          {/* 패널 3: 공식 지정 전장 맵풀 요약 */}
+          <AdminCard
+            title={
+              <>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" className="w-4.5 h-4.5">
+                  <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                </svg>
+                <span>공식 지정 전장 맵풀 요약</span>
+              </>
+            }
+            actions={
+              <Link
+                href="/admin/maps"
+                className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors"
+              >
+                전장 풀 관리 ({maps.length}종) →
+              </Link>
+            }
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-4">
+              {maps.map((map) => (
+                <div
+                  key={map.id}
+                  className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 text-xs font-medium text-slate-700 dark:text-slate-200"
+                >
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+                    {map.mode}
+                  </span>
+                  <span className="truncate mx-1">{map.nameKr}</span>
+                  {map.isActive && <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl text-xs text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 leading-relaxed">
+              💡 <strong className="text-slate-800 dark:text-slate-200">러너리그 공식 맵풀</strong>에는 혼합, 호위, 쟁탈, 밀기, 플래시포인트 모드의 대표 전장 6종이 사전 승인되어 등록되어 있습니다.
+            </div>
+          </AdminCard>
+
+          {/* 패널 4: 최근 시스템 감사 로그 (Audit Log) */}
+          <AdminCard
+            title={
+              <>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" className="w-4.5 h-4.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 14 14" />
+                </svg>
+                <span>최근 시스템 감사 로그 (Audit Logs)</span>
+              </>
+            }
+            actions={
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                실시간 자동 기록
+              </span>
+            }
+          >
+            <div className="flex flex-col">
+              <div className="flex gap-3.5 pb-4 last:pb-0 relative">
+                <div className="flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0 mt-1" />
+                  <div className="w-0.5 grow bg-slate-200 dark:bg-slate-700 mt-1" />
+                </div>
+                <div className="grow min-w-0">
+                  <div className="text-xs font-medium text-slate-800 dark:text-slate-200 leading-snug">
+                    <strong className="text-blue-600 dark:text-blue-400">[인원 연동]</strong> 치지직 스트리머 제타치즈(MB-002) 계정 연동 완료
+                  </div>
+                  <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">방금 전 · 관리자 승인 완료</div>
+                </div>
+              </div>
+
+              <div className="flex gap-3.5 pb-4 last:pb-0 relative">
+                <div className="flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 rounded-full bg-purple-600 shrink-0 mt-1" />
+                  <div className="w-0.5 grow bg-slate-200 dark:bg-slate-700 mt-1" />
+                </div>
+                <div className="grow min-w-0">
+                  <div className="text-xs font-medium text-slate-800 dark:text-slate-200 leading-snug">
+                    <strong className="text-purple-600 dark:text-purple-400">[대회 상태]</strong> 러너리그 2026 Season 5 진행 상태 변경 (접수중 → 진행중)
+                  </div>
+                  <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">1시간 전 · 대회 운영팀</div>
+                </div>
+              </div>
+
+              <div className="flex gap-3.5 pb-4 last:pb-0 relative">
+                <div className="flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0 mt-1" />
+                  <div className="w-0.5 grow bg-slate-200 dark:bg-slate-700 mt-1" />
+                </div>
+                <div className="grow min-w-0">
+                  <div className="text-xs font-medium text-slate-800 dark:text-slate-200 leading-snug">
+                    <strong className="text-emerald-600 dark:text-emerald-400">[전장 등록]</strong> 공식 맵풀 6종 활성화 및 모드별 밸런스 데이터 검증
+                  </div>
+                  <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">3시간 전 · 시스템 데몬</div>
+                </div>
+              </div>
+
+              <div className="flex gap-3.5 last:pb-0 relative">
+                <div className="flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-600 shrink-0 mt-1" />
+                </div>
+                <div className="grow min-w-0">
+                  <div className="text-xs font-medium text-slate-800 dark:text-slate-200 leading-snug">
+                    <strong className="text-amber-600 dark:text-amber-400">[공통코드]</strong> MEMBER_ROLE, MAP_MODE 마스터 코드 그룹 최신화
+                  </div>
+                  <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">어제 · 시스템 관리자</div>
+                </div>
+              </div>
+            </div>
+          </AdminCard>
+        </div>
+      </div>
+
+      {/* 4) 하단 안내 푸터 바 */}
+      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 dark:text-slate-500 pt-6 pb-2 border-t border-slate-200 dark:border-slate-800 gap-2 text-center sm:text-left">
+        <span className="font-semibold text-slate-600 dark:text-slate-400">ROMS · 통합 관리자 관제 센터</span>
+        <span>Runner&apos;s Overwatch Match System Admin Suite v1.0 · All Rights Reserved</span>
+      </div>
+    </section>
   );
 }

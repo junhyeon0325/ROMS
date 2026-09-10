@@ -8,6 +8,7 @@ export interface NavItem {
     href?: string;
     description?: string;
     icon?: string;
+    children?: NavItem[];
 }
 
 // 사용자 페이지 메인메뉴
@@ -19,8 +20,42 @@ export const USER_NAV_ITEMS: NavItem[] = [
 
 // 관리자 페이지 메뉴
 export const ADMIN_NAV_ITEMS: NavItem[] = [
-    { id: "master", label: "공통 마스터 관리", description: "등록 스트리머, 영웅 픽풀, 맵 데이터 관리", href: "/admin/master", },
-    { id: "season", label: "시즌 및 팀/로스터 관리", description: "대회 시즌 생성, 팀 생성 및 선수 배정", href: "/admin/season", },
-    { id: "match-entry", label: "매치 관리 & 기록 입력", description: "매치 생성 및 게임 흐름 기반 상세 스탯 입력", href: "/admin/matches", },
-    { id: "match-results", label: "경기 결과 & 스탯 조회", description: "등록 스트리머, 영웅 픽풀, 맵 데이터 관리", href: "/admin/master", },
-]
+    {
+        id: "dashboard",
+        label: "대시보드",
+        href: "/admin",
+        description: "ROMS 시스템 통합 현황 및 실시간 관제 지표",
+        icon: "dashboard",
+    },
+    {
+        id: "common",
+        label: "공통관리",
+        icon: "folder",
+        children: [
+            {
+                id: "tournament",
+                label: "대회등록",
+                href: "/admin/tournaments",
+                description: "시즌 및 대회 정보 신규 등록 및 진행 상태 관리",
+            },
+            {
+                id: "map",
+                label: "맵 등록",
+                href: "/admin/maps",
+                description: "오버워치 전장(맵) 및 게임 모드 데이터 관리",
+            },
+            {
+                id: "roster",
+                label: "팀장 선수 감독 관리",
+                href: "/admin/members",
+                description: "대회 참가 팀장, 선수, 감독 및 스트리머 통합 관리",
+            },
+            {
+                id: "code",
+                label: "공통코드",
+                href: "/admin/codes",
+                description: "시스템 표준 마스터 코드 그룹 및 상세 코드 관리",
+            },
+        ],
+    },
+]

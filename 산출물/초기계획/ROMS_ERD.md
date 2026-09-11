@@ -1,4 +1,4 @@
-# ROMS (Runner's Overwatch Match System) 논리 / 물리 ERD 설계서
+# ROMS (Runner-league Overwatch Management System) 논리 / 물리 ERD 설계서
 
 > **문서 버전**: v1.6 (공통 코드 그룹 및 공통 코드 상세 엔터티 추가 반영)  
 > **작성일**: 2026-08-06  

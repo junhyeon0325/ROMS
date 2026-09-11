@@ -59,7 +59,7 @@ export default function AdminFooter() {
       </div>
 
       <div className="flex items-center gap-3 text-[11px] text-slate-400 dark:text-slate-500 font-normal">
-        <span>Runner&apos;s Overwatch Match System Admin Suite v1.0</span>
+        <span>Runner-league Overwatch Management System Admin Suite v1.0</span>
         <span className="hidden sm:inline">·</span>
         <span className="hidden sm:inline">All Rights Reserved</span>
       </div>

@@ -1,4 +1,9 @@
 // components/layout/UserHeader.tsx
+/**
+ * [사용자 헤더 컴포넌트]
+ * - 사용자 메인 화면 상단에 고정되는 내비게이션 바
+ * - 로고, 카테고리 탭(대회 안내, 대진표 등), 검색창, 다크모드 토글 버튼 제공
+ */
 "use client";
 
 import React from "react";
@@ -49,7 +54,7 @@ export default function UserHeader({
         href="/"
         className="font-black text-lg tracking-tight text-slate-900 dark:text-white shrink-0 cursor-pointer"
       >
-        RO<span className="text-blue-600">MS</span>
+        RO<span className="text-[#f99e1a]">MS</span>
       </Link>
 
       {/* 네비게이션 탭 */}
@@ -60,7 +65,7 @@ export default function UserHeader({
             type="button"
             className={`text-xs font-bold pb-1 cursor-pointer transition-all border-b-2 ${
               activeTab === item.label
-                ? "text-slate-900 dark:text-white border-blue-600"
+                ? "text-slate-900 dark:text-white border-[#f99e1a]"
                 : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 border-transparent"
             }`}
             onClick={() => {

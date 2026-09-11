@@ -1,151 +1,15 @@
 // lib/mock/adminData.ts
 // ROMS 관리자 대시보드 및 메뉴별 초기 Mock(샘플) 데이터
 
-import { MemberItem, TournamentItem, MapItem, CodeItem } from "@/lib/types/admin";
+import { MemberItem, TournamentItem, MapItem, CodeItem, TournamentParticipant } from "@/lib/types/admin";
 
-export const initialMembers: MemberItem[] = [
-  {
-    id: "MB-001",
-    name: "땡교",
-    type: "일반 등록",
-    roles: ["팀장", "선수"],
-    followers: "—",
-    registeredDate: "2026-09-08",
-    profileImg: "",
-    memo: "오버워치 2 올라운더 스트리머. 팀장 및 메인 딜러 겸직.",
-  },
-  {
-    id: "MB-002",
-    name: "제타치즈",
-    type: "치지직 연동",
-    channelId: "zetacheese99",
-    roles: ["팀장", "선수"],
-    followers: "14.2K",
-    registeredDate: "2026-09-07",
-    profileImg: "",
-    memo: "히트스캔 스페셜리스트. 제타치즈 팀 팀장.",
-  },
-  {
-    id: "MB-003",
-    name: "러너",
-    type: "치지직 연동",
-    channelId: "runner_chzzk",
-    roles: ["감독"],
-    followers: "185K",
-    registeredDate: "2026-09-01",
-    profileImg: "",
-    memo: "대회 총괄 디렉터 및 러너스 아카데미 감독.",
-  },
-  {
-    id: "MB-004",
-    name: "후니베어",
-    type: "일반 등록",
-    roles: ["선수"],
-    followers: "—",
-    registeredDate: "2026-09-06",
-    profileImg: "",
-    memo: "메인 힐러 지원가 전문 선수.",
-  },
-];
+export const initialMembers: MemberItem[] = [];
 
-export const initialTournaments: TournamentItem[] = [
-  {
-    id: "TOUR-005",
-    name: "러너리그 Season 05",
-    status: "진행중",
-    period: "2026.07.15 ~ 2026.08.30",
-    teams: 8,
-    prize: "10,000,000원",
-    organizer: "러너 (Runner)",
-    desc: "오버워치 2 러너 정규 e스포츠 리그 시즌 5",
-  },
-  {
-    id: "TOUR-006",
-    name: "라이벌클래시 2026 Summer",
-    status: "접수중",
-    period: "2026.08.10 ~ 2026.09.05",
-    teams: 12,
-    prize: "5,000,000원",
-    organizer: "라이벌스 협회",
-    desc: "티어별 맞춤형 라이벌 토너먼트 서머 매치",
-  },
-  {
-    id: "TOUR-004",
-    name: "러너리그 Season 04",
-    status: "종료",
-    period: "2026.02.01 ~ 2026.03.20",
-    teams: 8,
-    prize: "8,000,000원",
-    organizer: "러너 (Runner)",
-    desc: "러너리그 시즌 4 (최종 우승: 제타치즈 팀)",
-  },
-];
+export const initialTournaments: TournamentItem[] = [];
 
-export const initialMaps: MapItem[] = [
-  {
-    id: "MAP-01",
-    nameKr: "왕의 길",
-    nameEn: "King's Row",
-    mode: "혼합",
-    location: "영국 런던",
-    isActive: true,
-    desc: "좁은 골목길과 지하 거점이 특징인 전통적인 인기 하이브리드 전장.",
-  },
-  {
-    id: "MAP-02",
-    nameKr: "샴발리 수도원",
-    nameEn: "Shambali Monastery",
-    mode: "호위",
-    location: "네팔 히말라야",
-    isActive: true,
-    desc: "가파른 오르막길과 옴닉 사원이 배경인 공식 호위 전장.",
-  },
-  {
-    id: "MAP-03",
-    nameKr: "일리오스",
-    nameEn: "Ilios",
-    mode: "쟁탈",
-    location: "그리스 에게해",
-    isActive: true,
-    desc: "등대, 우물, 폐허로 구성된 대표적인 낙사 쟁탈 전장.",
-  },
-  {
-    id: "MAP-04",
-    nameKr: "수라바사",
-    nameEn: "Suravasa",
-    mode: "플래시포인트",
-    location: "인도",
-    isActive: true,
-    desc: "5개 거점 중 3개를 먼저 선점하는 신규 플래시포인트 모드 전장.",
-  },
-  {
-    id: "MAP-05",
-    nameKr: "뉴 퀸 스트리트",
-    nameEn: "New Queen Street",
-    mode: "밀기",
-    location: "캐나다 토론토",
-    isActive: true,
-    desc: "중앙 TS-1 로봇을 양 팀 거점으로 밀어내는 밀기 전장.",
-  },
-  {
-    id: "MAP-06",
-    nameKr: "미드타운",
-    nameEn: "Midtown",
-    mode: "혼합",
-    location: "미국 뉴욕",
-    isActive: true,
-    desc: "뉴욕 그랜드 센트럴 터미널을 배경으로 한 하이브리드 전장.",
-  },
-];
+export const initialParticipants: TournamentParticipant[] = [];
 
-export const initialCodes: CodeItem[] = [
-  { group: "MEMBER_ROLE", code: "LEAD", name: "팀장", nameEn: "Team Leader", sort: 1, useYn: "Y", desc: "대회 참가 팀장" },
-  { group: "MEMBER_ROLE", code: "PLAYER", name: "선수", nameEn: "Player", sort: 2, useYn: "Y", desc: "대회 공식 선수" },
-  { group: "MEMBER_ROLE", code: "COACH", name: "감독", nameEn: "Head Coach", sort: 3, useYn: "Y", desc: "팀 지도자 및 총괄" },
-  { group: "MAP_MODE", code: "HYBRID", name: "혼합", nameEn: "Hybrid", sort: 1, useYn: "Y", desc: "거점 점령 후 화물 호위" },
-  { group: "MAP_MODE", code: "ESCORT", name: "호위", nameEn: "Escort", sort: 2, useYn: "Y", desc: "화물 호위 전장" },
-  { group: "MAP_MODE", code: "CONTROL", name: "쟁탈", nameEn: "Control", sort: 3, useYn: "Y", desc: "거점 100% 점령 쟁탈전" },
-  { group: "TOUR_STAT", code: "PREP", name: "준비중", nameEn: "Preparation", sort: 1, useYn: "Y", desc: "대회 준비 상태" },
-  { group: "TOUR_STAT", code: "RECRUIT", name: "접수중", nameEn: "Recruiting", sort: 2, useYn: "Y", desc: "참가자 접수 기간" },
-  { group: "TOUR_STAT", code: "IN_PROGRESS", name: "진행중", nameEn: "In Progress", sort: 3, useYn: "Y", desc: "정규 시즌 진행 중" },
-];
+export const initialMaps: MapItem[] = [];
+
+export const initialCodes: CodeItem[] = [];
+

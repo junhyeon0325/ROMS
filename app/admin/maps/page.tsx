@@ -1,10 +1,14 @@
 // app/admin/maps/page.tsx
+/**
+ * [전장(맵) 풀 관리 페이지 컴포넌트]
+ * - 오버워치 전장 풀(Map Pool) 데이터 관리 화면 (URL: "/admin/maps")
+ * - 게임 모드별 전장 목록 조회, 신규 전장 등록 및 전장 활성/비활성 설정 폼 제공
+ */
 "use client";
 
 import React, { useState } from "react";
 import { useAdmin } from "@/lib/context/AdminContext";
 import { MapItem } from "@/lib/types/admin";
-import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
 
@@ -19,16 +23,17 @@ export default function AdminMapsPage() {
     플래시포인트: true,
     밀기: true,
   });
-  const [selectedMapId, setSelectedMapId] = useState<string | null>("MAP-01");
+  const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
 
   const [mapForm, setMapForm] = useState({
-    nameKr: "왕의 길",
-    nameEn: "King's Row",
+    nameKr: "",
+    nameEn: "",
     mode: "혼합" as "혼합" | "호위" | "쟁탈" | "플래시포인트" | "밀기",
-    location: "영국 런던",
+    location: "",
     isActive: true,
-    desc: "좁은 골목길과 지하 거점이 특징인 전통적인 인기 하이브리드 전장.",
+    desc: "",
   });
+
 
   const filteredMapList = maps.filter((m) => {
     const matchSearch =
@@ -91,37 +96,32 @@ export default function AdminMapsPage() {
   };
 
   return (
-    <section className="space-y-6">
-      {/* 1) 메인 타이틀 & 부연 설명 */}
-      <AdminPageHeader
-        title="맵(전장) 등록"
-        description="오버워치 2 공식 전장(맵)과 게임 모드를 등록하고 공식 맵풀 운영 여부를 관리할 수 있습니다."
-      />
-
-      {/* 2) 2단 분할 레이아웃 */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+    <section className="h-full min-h-0 flex flex-col">
+      {/* 2단 분할 레이아웃 */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 h-full min-h-0 flex-1">
         {/* [좌측 7컬럼] 등록된 전장 조회 */}
-        <div className="xl:col-span-7">
+        <div className="xl:col-span-7 h-full min-h-0 flex flex-col">
           <AdminCard
             title="등록된 전장(맵) 조회"
             countBadge={`총 ${filteredMapList.length}건`}
+            className="h-full"
           >
             {/* 검색 & 필터 박스 */}
-            <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-4 space-y-3">
+            <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-3 space-y-2.5 shrink-0">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
                   맵 이름 또는 위치 검색
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                  placeholder="국문/영문 전장명 또는 국가 검색..."
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
+                  placeholder="맵 이름 또는 배경 지역 검색..."
                   value={mapSearch}
                   onChange={(e) => setMapSearch(e.target.value)}
                 />
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                 <div className="flex items-center gap-3">
                   {(["혼합", "호위", "쟁탈", "플래시포인트", "밀기"] as const).map((m) => (
                     <label
@@ -130,7 +130,7 @@ export default function AdminMapsPage() {
                     >
                       <input
                         type="checkbox"
-                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700"
+                        className="rounded border-slate-300 text-[#f99e1a] focus:ring-[#f99e1a] accent-[#f99e1a] dark:bg-slate-800 dark:border-slate-700"
                         checked={mapModeFilter[m]}
                         onChange={(e) =>
                           setMapModeFilter((p) => ({ ...p, [m]: e.target.checked }))
@@ -153,60 +153,76 @@ export default function AdminMapsPage() {
               </div>
             </div>
 
-            {/* 전장 목록 테이블 */}
-            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            {/* 전장 목록 테이블 (그리드 내부 스크롤) */}
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 custom-scrollbar relative">
               <table className="w-full text-left text-xs divide-y divide-slate-200 dark:divide-slate-800">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 font-semibold">
-                    <th className="px-3.5 py-3">전장명 (국문 / 영문)</th>
-                    <th className="px-3.5 py-3 w-28">모드</th>
-                    <th className="px-3.5 py-3 w-32">지역</th>
-                    <th className="px-3.5 py-3 w-24">맵풀 여부</th>
+                <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#151c2e] shadow-2xs">
+                  <tr className="text-slate-600 dark:text-slate-300 font-semibold">
+                    <th className="px-3.5 py-2.5 bg-slate-100 dark:bg-[#151c2e]">전장명 (국문 / 영문)</th>
+                    <th className="px-3.5 py-2.5 w-28 bg-slate-100 dark:bg-[#151c2e]">모드</th>
+                    <th className="px-3.5 py-2.5 w-32 bg-slate-100 dark:bg-[#151c2e]">지역</th>
+                    <th className="px-3.5 py-2.5 w-24 bg-slate-100 dark:bg-[#151c2e]">맵풀 여부</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
-                  {filteredMapList.map((m) => {
-                    const isSelected = selectedMapId === m.id;
-                    return (
-                      <tr
-                        key={m.id}
-                        className={`cursor-pointer transition-colors ${
-                          isSelected
-                            ? "bg-blue-50/80 dark:bg-blue-950/40 font-medium"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                        }`}
-                        onClick={() => handleSelectMap(m)}
-                      >
-                        <td className="px-3.5 py-3">
-                          <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                            {m.nameKr}
-                          </div>
-                          <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                            {m.nameEn} · {m.id}
-                          </div>
-                        </td>
-                        <td className="px-3.5 py-3">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900">
-                            {m.mode}
-                          </span>
-                        </td>
-                        <td className="px-3.5 py-3 text-slate-600 dark:text-slate-300">
-                          {m.location}
-                        </td>
-                        <td className="px-3.5 py-3">
-                          <span
-                            className={`text-xs font-bold ${
-                              m.isActive
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-slate-400 dark:text-slate-600"
-                            }`}
-                          >
-                            {m.isActive ? "공식 승인" : "미지정"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredMapList.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-3.5 py-16 text-center text-slate-400 dark:text-slate-500">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <span className="text-3xl">🗺️</span>
+                          <p className="font-semibold text-xs text-slate-700 dark:text-slate-300">
+                            등록된 전장(맵)이 없습니다.
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            우측 등록 폼에서 새로운 전장을 등록해주세요.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredMapList.map((m) => {
+                      const isSelected = selectedMapId === m.id;
+                      return (
+                        <tr
+                          key={m.id}
+                          className={`cursor-pointer transition-colors ${
+                            isSelected
+                              ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium border-l-2 border-[#f99e1a]"
+                              : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                          }`}
+                          onClick={() => handleSelectMap(m)}
+                        >
+                          <td className="px-3.5 py-3">
+                            <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                              {m.nameKr}
+                            </div>
+                            <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                              {m.nameEn} · {m.id}
+                            </div>
+                          </td>
+                          <td className="px-3.5 py-3">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 text-[#f99e1a] dark:text-amber-400 border border-amber-500/30">
+                              {m.mode}
+                            </span>
+                          </td>
+                          <td className="px-3.5 py-3 text-slate-600 dark:text-slate-300">
+                            {m.location}
+                          </td>
+                          <td className="px-3.5 py-3">
+                            <span
+                              className={`text-xs font-bold ${
+                                m.isActive
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-slate-400 dark:text-slate-600"
+                              }`}
+                            >
+                              {m.isActive ? "공식 승인" : "미지정"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -214,9 +230,10 @@ export default function AdminMapsPage() {
         </div>
 
         {/* [우측 5컬럼] 전장 정보 등록 및 수정 폼 */}
-        <div className="xl:col-span-5">
+        <div className="xl:col-span-5 h-full min-h-0 flex flex-col">
           <AdminCard
             title="전장 정보 등록 / 수정"
+            className="h-full"
             actions={
               <AdminFormActions
                 onSave={handleSaveMap}
@@ -226,7 +243,7 @@ export default function AdminMapsPage() {
               />
             }
           >
-            <div className="space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1.5 custom-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -234,8 +251,8 @@ export default function AdminMapsPage() {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    placeholder="예: 왕의 길"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
+                    placeholder="예: 킹스 로우"
                     value={mapForm.nameKr}
                     onChange={(e) =>
                       setMapForm((p) => ({ ...p, nameKr: e.target.value }))
@@ -244,11 +261,11 @@ export default function AdminMapsPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    전장명 (영문) <span className="text-rose-500">*</span>
+                    영문 전장명 <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all font-mono"
                     placeholder="예: King's Row"
                     value={mapForm.nameEn}
                     onChange={(e) =>
@@ -268,7 +285,7 @@ export default function AdminMapsPage() {
                       key={mode}
                       className={`flex-1 min-w-[60px] text-center py-2 text-xs font-semibold rounded-xl border cursor-pointer transition-all ${
                         mapForm.mode === mode
-                          ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                          ? "bg-[#f99e1a] text-slate-950 font-bold border-[#f99e1a] shadow-sm"
                           : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100"
                       }`}
                     >
@@ -291,7 +308,7 @@ export default function AdminMapsPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                   placeholder="예: 영국 런던"
                   value={mapForm.location}
                   onChange={(e) =>
@@ -309,7 +326,7 @@ export default function AdminMapsPage() {
                     <input
                       type="radio"
                       name="isActive"
-                      className="text-blue-600 focus:ring-blue-500"
+                      className="text-[#f99e1a] focus:ring-[#f99e1a] accent-[#f99e1a]"
                       checked={mapForm.isActive === true}
                       onChange={() => setMapForm((p) => ({ ...p, isActive: true }))}
                     />
@@ -334,7 +351,7 @@ export default function AdminMapsPage() {
                 </label>
                 <textarea
                   rows={4}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all resize-none"
                   placeholder="전장의 주요 격전지 및 밴픽 유의사항을 입력하세요."
                   value={mapForm.desc}
                   onChange={(e) =>
@@ -345,12 +362,6 @@ export default function AdminMapsPage() {
             </div>
           </AdminCard>
         </div>
-      </div>
-
-      {/* 3) 푸터 안내 바 */}
-      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 dark:text-slate-500 pt-6 pb-2 border-t border-slate-200 dark:border-slate-800 gap-2 text-center sm:text-left">
-        <span className="font-semibold text-slate-600 dark:text-slate-400">ROMS · 맵(전장) 등록 관리</span>
-        <span>등록된 전장 데이터는 세트별 전장 선택 및 밴픽 시스템에 연동됩니다.</span>
       </div>
     </section>
   );

@@ -2,10 +2,11 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { MemberItem, TournamentItem, MapItem, CodeItem } from "@/lib/types/admin";
+import { MemberItem, TournamentItem, MapItem, CodeItem, TournamentParticipant } from "@/lib/types/admin";
 import {
   initialMembers,
   initialTournaments,
+  initialParticipants,
   initialMaps,
   initialCodes,
 } from "@/lib/mock/adminData";
@@ -13,8 +14,11 @@ import {
 interface AdminContextType {
   members: MemberItem[];
   setMembers: React.Dispatch<React.SetStateAction<MemberItem[]>>;
+  refreshMembers: () => Promise<void>;
   tournaments: TournamentItem[];
   setTournaments: React.Dispatch<React.SetStateAction<TournamentItem[]>>;
+  participants: TournamentParticipant[];
+  setParticipants: React.Dispatch<React.SetStateAction<TournamentParticipant[]>>;
   maps: MapItem[];
   setMaps: React.Dispatch<React.SetStateAction<MapItem[]>>;
   codes: CodeItem[];
@@ -32,12 +36,30 @@ const AdminContext = createContext<AdminContextType | undefined>(undefined);
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [members, setMembers] = useState<MemberItem[]>(initialMembers);
   const [tournaments, setTournaments] = useState<TournamentItem[]>(initialTournaments);
+  const [participants, setParticipants] = useState<TournamentParticipant[]>(initialParticipants);
   const [maps, setMaps] = useState<MapItem[]>(initialMaps);
   const [codes, setCodes] = useState<CodeItem[]>(initialCodes);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // DB에서 스트리머 목록 실시간 동기화
+  const refreshMembers = async () => {
+    try {
+      const res = await fetch("/api/streamers");
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setMembers(json.data);
+      }
+    } catch (e) {
+      console.error("Failed to load streamers from DB:", e);
+    }
+  };
+
+  useEffect(() => {
+    refreshMembers();
+  }, []);
 
   // 마운트 시 현재 <html> 태그의 dark 클래스 상태 동기화
   useEffect(() => {
@@ -78,8 +100,11 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       value={{
         members,
         setMembers,
+        refreshMembers,
         tournaments,
         setTournaments,
+        participants,
+        setParticipants,
         maps,
         setMaps,
         codes,

@@ -1,4 +1,9 @@
 // components/admin/AdminFormActions.tsx
+/**
+ * [관리자 폼 버튼 그룹 컴포넌트]
+ * - 관리자 등록/수정 폼의 상·하단에 배치되는 공통 조작 버튼 모음
+ * - 등록 모드와 수정 모드에 맞춰 [신규등록], [저장], [삭제] 버튼 제공
+ */
 import React from "react";
 
 interface AdminFormActionsProps {
@@ -25,7 +30,7 @@ export default function AdminFormActions({
       <button
         type="button"
         onClick={onSave}
-        className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+        className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#f99e1a] hover:bg-[#ea8c08] text-slate-950 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
       >
         {saveLabel}
       </button>

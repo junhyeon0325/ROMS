@@ -1,4 +1,9 @@
 // app/admin/page.tsx
+/**
+ * [관리자 통합 관제 대시보드 페이지 컴포넌트]
+ * - 관리자 접속 시 첫 화면 (URL: "/admin")
+ * - 시스템 핵심 KPI 지표 요약, 퀵 배너 및 주요 현황(회원/대회/전장 등) 바로가기 제공
+ */
 "use client";
 
 import React from "react";
@@ -58,9 +63,9 @@ export default function AdminDashboardPage() {
           </button>
           <Link
             href="/admin/members"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 border border-blue-400/40 text-white transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#f99e1a] hover:bg-[#ea8c08] border border-[#f99e1a]/40 text-slate-950 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
           >
-            + 인원 관리
+            + 스트리머 관리
           </Link>
           <Link
             href="/admin/tournaments"
@@ -72,7 +77,7 @@ export default function AdminDashboardPage() {
             href="/admin/maps"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
           >
-            + 전장 관리
+            + 맵 관리
           </Link>
           <Link
             href="/admin/codes"
@@ -87,7 +92,7 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3.5">
         <AdminKpiCard
           href="/admin/members"
-          label="등록 선수 · 스태프"
+          label="등록 스트리머"
           value={members.length}
           unit="명"
           color="blue"
@@ -100,7 +105,7 @@ export default function AdminDashboardPage() {
             </svg>
           }
           meta={`치지직 ${members.filter((m) => m.type === "치지직 연동").length} · 일반 ${members.filter((m) => m.type === "일반 등록").length}`}
-          title="팀장·선수·감독 등록 화면으로 이동"
+          title="스트리머 관리 화면으로 이동"
         />
 
         <AdminKpiCard
@@ -133,7 +138,7 @@ export default function AdminDashboardPage() {
             </svg>
           }
           meta="오버워치 2 5개 모드"
-          title="맵(전장) 등록 관리 화면으로 이동"
+          title="맵 관리 화면으로 이동"
         />
 
         <AdminKpiCard
@@ -193,7 +198,7 @@ export default function AdminDashboardPage() {
           <AdminCard
             title={
               <>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" className="w-4.5 h-4.5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#F99E1A" strokeWidth="2" className="w-4.5 h-4.5">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
                 </svg>
@@ -203,55 +208,68 @@ export default function AdminDashboardPage() {
             actions={
               <Link
                 href="/admin/members"
-                className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
+                className="text-xs font-semibold text-[#f99e1a] dark:text-amber-400 hover:text-[#ea8c08] dark:hover:text-amber-300 hover:underline transition-colors"
               >
                 전체 관리 ({members.length}명) →
               </Link>
             }
           >
-            <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/80">
-              {members.map((m) => (
-                <Link
-                  key={m.id}
-                  href="/admin/members"
-                  className="group flex items-center justify-between py-3 px-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
-                  title="클릭하여 상세 정보 조회 및 수정"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-sm shrink-0">
-                      {m.name.slice(0, 1)}
+            {members.length === 0 ? (
+              <div className="text-center py-10 text-xs text-slate-400 dark:text-slate-500">
+                <span className="text-2xl block mb-1">👤</span>
+                등록된 스트리머가 없습니다.
+              </div>
+            ) : (
+              <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/80">
+                {members.map((m) => (
+                  <Link
+                    key={m.id}
+                    href="/admin/members"
+                    className="group flex items-center justify-between py-3 px-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                    title="클릭하여 상세 정보 조회 및 수정"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold flex items-center justify-center text-sm shadow-sm shrink-0">
+                        {m.name.slice(0, 1)}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          <span>{m.name}</span>
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                              m.type === "치지직 연동"
+                                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                            }`}
+                          >
+                            {m.type === "치지직 연동" ? "치지직" : "일반"}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                          {m.id} {m.channelId ? `· @${m.channelId}` : ""}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        <span>{m.name}</span>
-                        <span
-                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                            m.type === "치지직 연동"
-                              ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-                          }`}
-                        >
-                          {m.type === "치지직 연동" ? "치지직" : "일반"}
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      {m.roles && m.roles.length > 0 ? (
+                        m.roles.map((r) => (
+                          <span
+                            key={r}
+                            className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700"
+                          >
+                            {r}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          {m.registeredDate}
                         </span>
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                        {m.id} {m.channelId ? `· @${m.channelId}` : ""}
-                      </div>
+                      )}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                    {m.roles.map((r) => (
-                      <span
-                        key={r}
-                        className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700"
-                      >
-                        {r}
-                      </span>
-                    ))}
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </AdminCard>
 
           {/* 패널 2: 진행 대회 요약 */}
@@ -274,38 +292,45 @@ export default function AdminDashboardPage() {
               </Link>
             }
           >
-            <div className="flex flex-col gap-3">
-              {tournaments.map((t) => (
-                <Link
-                  key={t.id}
-                  href="/admin/tournaments"
-                  className="group p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 hover:border-purple-300 dark:hover:border-purple-700 hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-all block"
-                  title="대회 상세 설정으로 이동"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                      {t.name}
-                    </span>
-                    <span
-                      className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
-                        t.status === "진행중"
-                          ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                          : t.status === "접수중"
-                          ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-                      }`}
-                    >
-                      {t.status}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-                    <span>주최: {t.organizer}</span>
-                    <span>팀 수: {t.teams}개 팀</span>
-                    <span className="text-amber-600 dark:text-amber-400 font-semibold">상금: {t.prize}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            {tournaments.length === 0 ? (
+              <div className="text-center py-10 text-xs text-slate-400 dark:text-slate-500">
+                <span className="text-2xl block mb-1">🏆</span>
+                개설된 대회가 없습니다.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {tournaments.map((t) => (
+                  <Link
+                    key={t.id}
+                    href="/admin/tournaments"
+                    className="group p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 hover:border-purple-300 dark:hover:border-purple-700 hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-all block"
+                    title="대회 상세 설정으로 이동"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                        {t.name}
+                      </span>
+                      <span
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                          t.status === "진행중"
+                            ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                            : t.status === "접수중"
+                            ? "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                        }`}
+                      >
+                        {t.status}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+                      <span>주최: {t.organizer}</span>
+                      <span>팀 수: {t.teams}개 팀</span>
+                      <span className="text-amber-600 dark:text-amber-400 font-semibold">상금: {t.prize}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </AdminCard>
         </div>
 
@@ -330,20 +355,28 @@ export default function AdminDashboardPage() {
               </Link>
             }
           >
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-4">
-              {maps.map((map) => (
-                <div
-                  key={map.id}
-                  className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 text-xs font-medium text-slate-700 dark:text-slate-200"
-                >
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
-                    {map.mode}
-                  </span>
-                  <span className="truncate mx-1">{map.nameKr}</span>
-                  {map.isActive && <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
-                </div>
-              ))}
-            </div>
+            {maps.length === 0 ? (
+              <div className="text-center py-10 text-xs text-slate-400 dark:text-slate-500">
+                <span className="text-2xl block mb-1">🗺️</span>
+                지정된 공식 전장이 없습니다.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-4">
+                {maps.map((map) => (
+                  <div
+                    key={map.id}
+                    className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 text-xs font-medium text-slate-700 dark:text-slate-200"
+                  >
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+                      {map.mode}
+                    </span>
+                    <span className="truncate mx-1">{map.nameKr}</span>
+                    {map.isActive && <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+
 
             <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl text-xs text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 leading-relaxed">
               💡 <strong className="text-slate-800 dark:text-slate-200">러너리그 공식 맵풀</strong>에는 혼합, 호위, 쟁탈, 밀기, 플래시포인트 모드의 대표 전장 6종이 사전 승인되어 등록되어 있습니다.
@@ -370,12 +403,12 @@ export default function AdminDashboardPage() {
             <div className="flex flex-col">
               <div className="flex gap-3.5 pb-4 last:pb-0 relative">
                 <div className="flex flex-col items-center">
-                  <div className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0 mt-1" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#f99e1a] shrink-0 mt-1" />
                   <div className="w-0.5 grow bg-slate-200 dark:bg-slate-700 mt-1" />
                 </div>
                 <div className="grow min-w-0">
                   <div className="text-xs font-medium text-slate-800 dark:text-slate-200 leading-snug">
-                    <strong className="text-blue-600 dark:text-blue-400">[인원 연동]</strong> 치지직 스트리머 제타치즈(MB-002) 계정 연동 완료
+                    <strong className="text-[#f99e1a] dark:text-amber-400">[인원 연동]</strong> 치지직 스트리머 제타치즈(MB-002) 계정 연동 완료
                   </div>
                   <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">방금 전 · 관리자 승인 완료</div>
                 </div>
@@ -421,12 +454,6 @@ export default function AdminDashboardPage() {
             </div>
           </AdminCard>
         </div>
-      </div>
-
-      {/* 4) 하단 안내 푸터 바 */}
-      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 dark:text-slate-500 pt-6 pb-2 border-t border-slate-200 dark:border-slate-800 gap-2 text-center sm:text-left">
-        <span className="font-semibold text-slate-600 dark:text-slate-400">ROMS · 통합 관리자 관제 센터</span>
-        <span>Runner&apos;s Overwatch Match System Admin Suite v1.0 · All Rights Reserved</span>
       </div>
     </section>
   );

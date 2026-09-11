@@ -1,4 +1,9 @@
 // components/admin/AdminPageHeader.tsx
+/**
+ * [관리자 페이지 헤더 컴포넌트]
+ * - 관리자 각 서브 페이지 최상단에 배치되는 공통 타이틀 영역
+ * - 페이지 대제목(H1), 상세 설명 안내 문구, 우측 조작 버튼(Children) 배치 지원
+ */
 import React from "react";
 
 interface AdminPageHeaderProps {

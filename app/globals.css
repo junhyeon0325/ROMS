@@ -5,6 +5,18 @@
 :root {
   --bg: #FAFAF7;
   --ink: #14141A;
+  accent-color: #f99e1a;
+}
+
+/* 전역 텍스트 드래그/선택 시 오버워치 시그니처 오렌지 하이라이트 */
+::selection {
+  background-color: #f99e1a;
+  color: #0b0e14;
+}
+
+::-moz-selection {
+  background-color: #f99e1a;
+  color: #0b0e14;
 }
 
 * {
@@ -12,6 +24,22 @@
   margin: 0;
   padding: 0;
 }
+
+/* 전역 폼 입력창 브라우저 기본 포커스 링(검은색 깜빡임) 원천 차단 */
+input,
+textarea,
+select {
+  outline: none !important;
+}
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none !important;
+}
+
 
 body {
   background: var(--bg);
@@ -24,9 +52,32 @@ html.dark {
   color-scheme: dark;
   --bg: #0B0E14;
   --ink: #F1F5F9;
+  accent-color: #f99e1a;
 }
 
 html.dark body {
   background-color: #0B0E14;
   color: #F1F5F9;
 }
+
+/* Custom sleek scrollbar for internal grids and cards */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}
+html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+}
+html.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}

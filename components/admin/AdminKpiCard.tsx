@@ -1,4 +1,9 @@
 // components/admin/AdminKpiCard.tsx
+/**
+ * [관리자 핵심 지표(KPI) 요약 카드 컴포넌트]
+ * - 대시보드 및 관리 화면 상단에 주요 통계 수치를 강조 표시하는 카드 UI
+ * - 라벨, 통계 수치, 단위, 증감/설명 문구, 아이콘, 6가지 테마 색상 지원
+ */
 import React from "react";
 import Link from "next/link";
 
@@ -28,10 +33,10 @@ const COLOR_MAP: Record<
   }
 > = {
   blue: {
-    border: "border-l-blue-500",
-    iconBg: "bg-blue-50 dark:bg-blue-950/50",
-    iconText: "text-blue-600 dark:text-blue-400",
-    actionText: "text-blue-600 dark:text-blue-400",
+    border: "border-l-[#f99e1a]",
+    iconBg: "bg-amber-500/10 dark:bg-amber-500/15",
+    iconText: "text-[#f99e1a] dark:text-amber-400",
+    actionText: "text-[#f99e1a] dark:text-amber-400",
   },
   purple: {
     border: "border-l-purple-500",

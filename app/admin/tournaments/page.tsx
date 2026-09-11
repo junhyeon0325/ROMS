@@ -1,10 +1,14 @@
 // app/admin/tournaments/page.tsx
+/**
+ * [대회 관리 페이지 컴포넌트]
+ * - 전체 러너리그 대회 일정 및 기본 정보 관리 화면 (URL: "/admin/tournaments")
+ * - 대회 목록 검색/상태 필터, 신규 대회 개설 및 운영 설정 수정 폼 제공
+ */
 "use client";
 
 import React, { useState } from "react";
 import { useAdmin } from "@/lib/context/AdminContext";
 import { TournamentItem } from "@/lib/types/admin";
-import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
 
@@ -17,17 +21,18 @@ export default function AdminTournamentsPage() {
     접수중: true,
     종료: true,
   });
-  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>("TOUR-005");
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
   const [tournamentForm, setTournamentForm] = useState({
-    name: "러너리그 Season 05",
-    status: "진행중" as "진행중" | "접수중" | "종료",
-    organizer: "러너 (Runner)",
-    period: "2026.07.15 ~ 2026.08.30",
+    name: "",
+    status: "접수중" as "진행중" | "접수중" | "종료",
+    organizer: "",
+    period: "",
     teams: 8,
-    prize: "10,000,000원",
-    desc: "오버워치 2 러너 정규 e스포츠 리그 시즌 5",
+    prize: "",
+    desc: "",
   });
+
 
   const filteredTournamentList = tournaments.filter((t) => {
     const matchSearch =
@@ -93,37 +98,32 @@ export default function AdminTournamentsPage() {
   };
 
   return (
-    <section className="space-y-6">
-      {/* 1) 메인 타이틀 & 부연 설명 */}
-      <AdminPageHeader
-        title="대회 등록"
-        description="시즌 및 정규 리그 대회 정보를 등록하고 진행 상태와 상금 규모를 관리할 수 있습니다."
-      />
-
-      {/* 2) 2단 분할 레이아웃 */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+    <section className="h-full min-h-0 flex flex-col">
+      {/* 2단 분할 레이아웃 */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 h-full min-h-0 flex-1">
         {/* [좌측 7컬럼] 등록된 대회 조회 */}
-        <div className="xl:col-span-7">
+        <div className="xl:col-span-7 h-full min-h-0 flex flex-col">
           <AdminCard
             title="등록된 대회 조회"
             countBadge={`총 ${filteredTournamentList.length}건`}
+            className="h-full"
           >
             {/* 검색 & 필터 박스 */}
-            <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-4 space-y-3">
+            <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-3 space-y-2.5 shrink-0">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
                   대회명 또는 주최자 검색
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                   placeholder="대회명 또는 주최자 검색..."
                   value={tournamentSearch}
                   onChange={(e) => setTournamentSearch(e.target.value)}
                 />
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                 <div className="flex items-center gap-3">
                   {(["진행중", "접수중", "종료"] as const).map((stat) => (
                     <label
@@ -132,7 +132,7 @@ export default function AdminTournamentsPage() {
                     >
                       <input
                         type="checkbox"
-                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700"
+                        className="rounded border-slate-300 text-[#f99e1a] focus:ring-[#f99e1a] accent-[#f99e1a] dark:bg-slate-800 dark:border-slate-700"
                         checked={tournamentStatusFilter[stat]}
                         onChange={(e) =>
                           setTournamentStatusFilter((p) => ({
@@ -158,26 +158,42 @@ export default function AdminTournamentsPage() {
               </div>
             </div>
 
-            {/* 대회 목록 테이블 */}
-            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            {/* 대회 목록 테이블 (그리드 내부 스크롤) */}
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 custom-scrollbar relative">
               <table className="w-full text-left text-xs divide-y divide-slate-200 dark:divide-slate-800">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 font-semibold">
-                    <th className="px-3.5 py-3">대회명 / 주최</th>
-                    <th className="px-3.5 py-3 w-24">상태</th>
-                    <th className="px-3.5 py-3 w-28">규모 / 상금</th>
-                    <th className="px-3.5 py-3 w-32">진행 기간</th>
+                <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#151c2e] shadow-2xs">
+                  <tr className="text-slate-600 dark:text-slate-300 font-semibold">
+                    <th className="px-3.5 py-2.5 bg-slate-100 dark:bg-[#151c2e]">대회명 / 주최</th>
+                    <th className="px-3.5 py-2.5 w-24 bg-slate-100 dark:bg-[#151c2e]">상태</th>
+                    <th className="px-3.5 py-2.5 w-28 bg-slate-100 dark:bg-[#151c2e]">규모 / 상금</th>
+                    <th className="px-3.5 py-2.5 w-32 bg-slate-100 dark:bg-[#151c2e]">진행 기간</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
-                  {filteredTournamentList.map((t) => {
+                  {filteredTournamentList.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-3.5 py-16 text-center text-slate-400 dark:text-slate-500">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <span className="text-3xl">🏆</span>
+                          <p className="font-semibold text-xs text-slate-700 dark:text-slate-300">
+                            등록된 대회가 없습니다.
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            우측 등록 폼에서 새로운 대회를 생성해주세요.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredTournamentList.map((t) => {
+
                     const isSelected = selectedTournamentId === t.id;
                     return (
                       <tr
                         key={t.id}
                         className={`cursor-pointer transition-colors ${
                           isSelected
-                            ? "bg-blue-50/80 dark:bg-blue-950/40 font-medium"
+                            ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium border-l-2 border-[#f99e1a]"
                             : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                         }`}
                         onClick={() => handleSelectTournament(t)}
@@ -196,7 +212,7 @@ export default function AdminTournamentsPage() {
                               t.status === "진행중"
                                 ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
                                 : t.status === "접수중"
-                                ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                                ? "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800"
                                 : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                             }`}
                           >
@@ -216,7 +232,8 @@ export default function AdminTournamentsPage() {
                         </td>
                       </tr>
                     );
-                  })}
+                  })
+                )}
                 </tbody>
               </table>
             </div>
@@ -224,9 +241,10 @@ export default function AdminTournamentsPage() {
         </div>
 
         {/* [우측 5컬럼] 대회 정보 등록 및 수정 폼 */}
-        <div className="xl:col-span-5">
+        <div className="xl:col-span-5 h-full min-h-0 flex flex-col">
           <AdminCard
             title="대회 정보 등록 / 수정"
+            className="h-full"
             actions={
               <AdminFormActions
                 onSave={handleSaveTournament}
@@ -236,14 +254,14 @@ export default function AdminTournamentsPage() {
               />
             }
           >
-            <div className="space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1.5 custom-scrollbar">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                   대회명 <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                   placeholder="예: 러너리그 Season 05"
                   value={tournamentForm.name}
                   onChange={(e) =>
@@ -262,7 +280,7 @@ export default function AdminTournamentsPage() {
                       key={stat}
                       className={`flex-1 text-center py-2 text-xs font-semibold rounded-xl border cursor-pointer transition-all ${
                         tournamentForm.status === stat
-                          ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                          ? "bg-[#f99e1a] text-slate-950 font-bold border-[#f99e1a] shadow-sm"
                           : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                       }`}
                     >
@@ -288,7 +306,7 @@ export default function AdminTournamentsPage() {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                     value={tournamentForm.organizer}
                     onChange={(e) =>
                       setTournamentForm((p) => ({ ...p, organizer: e.target.value }))
@@ -301,7 +319,7 @@ export default function AdminTournamentsPage() {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all font-mono"
                     placeholder="YYYY.MM.DD ~ YYYY.MM.DD"
                     value={tournamentForm.period}
                     onChange={(e) =>
@@ -318,7 +336,7 @@ export default function AdminTournamentsPage() {
                   </label>
                   <input
                     type="number"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                     value={tournamentForm.teams}
                     onChange={(e) =>
                       setTournamentForm((p) => ({
@@ -334,7 +352,7 @@ export default function AdminTournamentsPage() {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                     value={tournamentForm.prize}
                     onChange={(e) =>
                       setTournamentForm((p) => ({ ...p, prize: e.target.value }))
@@ -349,7 +367,7 @@ export default function AdminTournamentsPage() {
                 </label>
                 <textarea
                   rows={4}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all resize-none"
                   placeholder="대회 개요 및 참가 규정을 입력하세요."
                   value={tournamentForm.desc}
                   onChange={(e) =>
@@ -360,12 +378,6 @@ export default function AdminTournamentsPage() {
             </div>
           </AdminCard>
         </div>
-      </div>
-
-      {/* 3) 푸터 안내 바 */}
-      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 dark:text-slate-500 pt-6 pb-2 border-t border-slate-200 dark:border-slate-800 gap-2 text-center sm:text-left">
-        <span className="font-semibold text-slate-600 dark:text-slate-400">ROMS · 대회 등록 관리</span>
-        <span>등록된 대회 정보는 경기 일정 및 대진표에 연동됩니다.</span>
       </div>
     </section>
   );

@@ -1,63 +1,116 @@
 // app/admin/members/page.tsx
+/**
+ * [회원/선수 관리 페이지 컴포넌트]
+ * - 관리자 회원 및 선수 명단 관리 화면 (URL: "/admin/members")
+ * - 회원 검색/필터링 목록, 신규 회원 등록 및 기본 정보 수정 폼 제공
+ */
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAdmin } from "@/lib/context/AdminContext";
 import { MemberItem } from "@/lib/types/admin";
-import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
 
-export default function AdminMembersPage() {
-  const { members, setMembers, showFeedback } = useAdmin();
+// 치지직 후보 스트리머 인터페이스
+interface ChzzkCandidate {
+  channelId: string;
+  channelName: string;
+  channelImageUrl: string | null;
+  followerCount: number;
+  followerText: string;
+  channelDescription: string;
+  openLive?: boolean;
+  verifiedMark?: boolean;
+}
 
-  // 검색 & 필터 상태
-  const [memberSearch, setMemberSearch] = useState("");
-  const [memberRoleFilter, setMemberRoleFilter] = useState<{
-    선수: boolean;
-    감독: boolean;
-    팀장: boolean;
-  }>({
-    선수: true,
-    감독: true,
-    팀장: true,
-  });
+// MemberAvatar 컴포넌트: 이미지 로드 실패(onError) 또는 미등록 시 이름 첫 글자 이니셜 아바타 표시
+function MemberAvatar({
+  name,
+  profileImg,
+  size = "w-8 h-8 text-xs",
+}: {
+  name: string;
+  profileImg?: string;
+  size?: string;
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  // profileImg가 바뀌면 에러 상태 리셋
+  useEffect(() => {
+    setHasError(false);
+  }, [profileImg]);
+
+  if (!profileImg || hasError) {
+    return (
+      <div
+        className={`${size} rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold flex items-center justify-center shrink-0 shadow-xs select-none`}
+      >
+        {(name || "?").trim().slice(0, 1)}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={profileImg}
+      alt={name}
+      className={`${size} rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700 shadow-2xs`}
+      onError={() => setHasError(true)}
+    />
+  );
+}
+
+export default function AdminMembersPage() {
+  const { members, setMembers, showFeedback, refreshMembers } = useAdmin();
+
+  // 검색 & 구분 필터 상태 (조건별 분리)
+  const [nameSearch, setNameSearch] = useState("");
+  const [memoSearch, setMemoSearch] = useState("");
+  const [memberTypeFilter, setMemberTypeFilter] = useState<"전체" | "치지직 연동" | "일반 등록">("전체");
 
   // 선택된 인원 ID (우측 폼 바인딩용)
-  const [selectedMemberId, setSelectedMemberId] = useState<string | null>("MB-001");
-  const [chzzkLoading, setChzzkLoading] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // 우측 등록 폼 상태
+  // 치지직 스트리머 조회 모달 상태
+  const [candidates, setCandidates] = useState<ChzzkCandidate[]>([]);
+  const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
+  const [modalQuery, setModalQuery] = useState("");
+  const [searchedQuery, setSearchedQuery] = useState("");
+  const [modalLoading, setModalLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  // 우측 등록 폼 상태 (역할 입력 필드는 대회 구성 관리로 이전됨)
   const [memberForm, setMemberForm] = useState<{
     regType: "치지직 연동" | "일반 등록";
     channelUrl: string;
     name: string;
-    roles: { 팀장: boolean; 선수: boolean; 감독: boolean };
     profileImg: string;
     memo: string;
   }>({
     regType: "치지직 연동",
     channelUrl: "",
-    name: "땡교",
-    roles: { 팀장: true, 선수: true, 감독: false },
+    name: "",
     profileImg: "",
-    memo: "오버워치 2 올라운더 스트리머. 팀장 및 메인 딜러 겸직.",
+    memo: "",
   });
 
-  // 인원 필터링
+  // 인원 필터링 (이름/채널, 메모, 등록 구분 조건별 분리)
   const filteredMemberList = members.filter((m) => {
-    const matchSearch =
-      m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
-      (m.channelId && m.channelId.toLowerCase().includes(memberSearch.toLowerCase()));
+    const matchName =
+      !nameSearch.trim() ||
+      m.name.toLowerCase().includes(nameSearch.toLowerCase()) ||
+      (m.channelId && m.channelId.toLowerCase().includes(nameSearch.toLowerCase()));
 
-    const matchRole = m.roles.some((r) => {
-      if (r === "선수" && memberRoleFilter.선수) return true;
-      if (r === "감독" && memberRoleFilter.감독) return true;
-      if (r === "팀장" && memberRoleFilter.팀장) return true;
-      return false;
-    });
+    const matchMemo =
+      !memoSearch.trim() ||
+      (m.memo && m.memo.toLowerCase().includes(memoSearch.toLowerCase()));
 
-    return matchSearch && matchRole;
+    const matchType =
+      memberTypeFilter === "전체" || m.type === memberTypeFilter;
+
+    return matchName && matchMemo && matchType;
   });
 
   // 목록 항목 클릭 시 우측 폼에 바인딩
@@ -65,13 +118,8 @@ export default function AdminMembersPage() {
     setSelectedMemberId(m.id);
     setMemberForm({
       regType: m.type === "치지직 연동" ? "치지직 연동" : "일반 등록",
-      channelUrl: m.channelId ? `https://chzzk.naver.com/${m.channelId}` : "",
+      channelUrl: m.channelId ? (m.channelId.startsWith("http") ? m.channelId : `https://chzzk.naver.com/${m.channelId}`) : "",
       name: m.name,
-      roles: {
-        팀장: m.roles.includes("팀장"),
-        선수: m.roles.includes("선수"),
-        감독: m.roles.includes("감독"),
-      },
       profileImg: m.profileImg || "",
       memo: m.memo || "",
     });
@@ -84,229 +132,349 @@ export default function AdminMembersPage() {
       regType: "치지직 연동",
       channelUrl: "",
       name: "",
-      roles: { 팀장: false, 선수: true, 감독: false },
       profileImg: "",
       memo: "",
     });
-    showFeedback("신규 인원 등록 모드로 전환되었습니다.");
+    showFeedback("신규 스트리머 등록 모드로 전환되었습니다.");
   };
 
-  // 치지직 조회 시뮬레이션
-  const handleChzzkLookup = () => {
-    if (!memberForm.channelUrl.trim()) {
-      showFeedback("치지직 채널 주소 또는 ID를 먼저 입력해주세요.");
-      return;
-    }
-    setChzzkLoading(true);
-    const cleanId = memberForm.channelUrl.replace("https://chzzk.naver.com/", "").trim();
-    setTimeout(() => {
-      setChzzkLoading(false);
-      setMemberForm((prev) => ({
-        ...prev,
-        name: prev.name || cleanId || "치지직스트리머",
-        profileImg: `https://api.chzzk.naver.com/avatar/${cleanId || "default"}.png`,
-      }));
-      showFeedback(`치지직 채널 [${cleanId}] 프로필 및 채널 정보가 연동되었습니다.`);
-    }, 450);
+  // 치지직 후보 중 선택 적용 함수
+  const applySelectedCandidate = (candidate: ChzzkCandidate) => {
+    setMemberForm((prev) => ({
+      ...prev,
+      regType: "치지직 연동",
+      channelUrl: `https://chzzk.naver.com/${candidate.channelId}`,
+      name: candidate.channelName,
+      profileImg: candidate.channelImageUrl || prev.profileImg,
+      memo: prev.memo || candidate.channelDescription || "",
+    }));
+    setIsCandidateModalOpen(false);
+    showFeedback(`치지직 [${candidate.channelName}] 채널이 연동되었습니다.`);
   };
 
-  // 인원 저장
-  const handleSaveMember = () => {
-    const selectedRoles: string[] = [];
-    if (memberForm.roles.팀장) selectedRoles.push("팀장");
-    if (memberForm.roles.선수) selectedRoles.push("선수");
-    if (memberForm.roles.감독) selectedRoles.push("감독");
-
-    if (selectedRoles.length === 0) {
-      showFeedback("최소 하나 이상의 역할을 선택해주세요.");
+  // 모달 내 치지직 스트리머 검색 함수
+  const searchChzzkStreamers = async (q: string) => {
+    const trimmed = q.trim();
+    if (!trimmed) {
+      showFeedback("검색할 스트리머 닉네임이나 채널 주소를 입력해주세요.");
       return;
     }
+    setModalLoading(true);
+    setSearchedQuery(trimmed);
+    setHasSearched(true);
+    try {
+      const res = await fetch(`/api/chzzk?query=${encodeURIComponent(trimmed)}`);
+      const result = await res.json();
+      if (result.success) {
+        const channelList: ChzzkCandidate[] =
+          result.channels || (result.channel ? [result.channel] : []);
+        setCandidates(channelList);
+      } else {
+        setCandidates([]);
+        showFeedback(result.message || "치지직 채널을 찾을 수 없습니다.");
+      }
+    } catch (e: any) {
+      setCandidates([]);
+      showFeedback("치지직 채널 조회 중 통신 오류가 발생했습니다.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // '스트리머 조회' 버튼 클릭 시 모달 열기
+  const handleOpenStreamerModal = () => {
+    setModalQuery("");
+    setCandidates([]);
+    setHasSearched(false);
+    setIsCandidateModalOpen(true);
+  };
+
+  // 스트리머 Supabase DB 저장 (신규 등록 or 수정)
+  const handleSaveMember = async () => {
     if (!memberForm.name.trim()) {
       showFeedback("이름 또는 채널명을 입력해주세요.");
       return;
     }
 
-    if (selectedMemberId) {
-      setMembers((prev) =>
-        prev.map((item) =>
-          item.id === selectedMemberId
-            ? {
-                ...item,
-                name: memberForm.name,
-                type: memberForm.regType,
-                channelId: memberForm.channelUrl.replace("https://chzzk.naver.com/", ""),
-                roles: selectedRoles,
-                profileImg: memberForm.profileImg,
-                memo: memberForm.memo,
-              }
-            : item,
-        ),
-      );
-      showFeedback(`[${memberForm.name}] 정보가 성공적으로 수정되었습니다.`);
-    } else {
-      const newId = `MB-${String(members.length + 1).padStart(3, "0")}`;
-      const newItem: MemberItem = {
-        id: newId,
-        name: memberForm.name,
-        type: memberForm.regType,
-        channelId: memberForm.channelUrl.replace("https://chzzk.naver.com/", ""),
-        roles: selectedRoles,
-        followers: memberForm.regType === "치지직 연동" ? "1.2K" : "—",
-        registeredDate: new Date().toISOString().split("T")[0],
-        profileImg: memberForm.profileImg,
-        memo: memberForm.memo,
-      };
-      setMembers((prev) => [newItem, ...prev]);
-      setSelectedMemberId(newId);
-      showFeedback(`[${memberForm.name}] 신규 등록이 완료되었습니다.`);
+    setIsSaving(true);
+    try {
+      if (selectedMemberId) {
+        // 기존 스트리머 수정 (PUT)
+        const res = await fetch("/api/streamers", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: selectedMemberId,
+            name: memberForm.name,
+            regType: memberForm.regType,
+            channelUrl: memberForm.regType === "치지직 연동" ? memberForm.channelUrl : "",
+            profileImg: memberForm.profileImg,
+            memo: memberForm.memo,
+          }),
+        });
+        const result = await res.json();
+        if (result.success && result.data) {
+          setMembers((prev) =>
+            prev.map((item) => (item.id === selectedMemberId ? result.data : item))
+          );
+          showFeedback(`[${memberForm.name}] 스트리머 정보가 DB에 저장되었습니다.`);
+        } else {
+          showFeedback(result.message || "수정에 실패했습니다.");
+        }
+      } else {
+        // 신규 스트리머 등록 (POST)
+        const res = await fetch("/api/streamers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: memberForm.name,
+            regType: memberForm.regType,
+            channelUrl: memberForm.regType === "치지직 연동" ? memberForm.channelUrl : "",
+            profileImg: memberForm.profileImg,
+            memo: memberForm.memo,
+          }),
+        });
+        const result = await res.json();
+        if (result.success && result.data) {
+          setMembers((prev) => [result.data, ...prev]);
+          setSelectedMemberId(result.data.id);
+          showFeedback(`[${memberForm.name}] 스트리머가 DB에 정상 등록되었습니다.`);
+        } else {
+          showFeedback(result.message || "등록에 실패했습니다.");
+        }
+      }
+    } catch (e: any) {
+      showFeedback("DB 저장 중 네트워크 오류가 발생했습니다.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // 인원 삭제
-  const handleDeleteMember = () => {
+  // 스트리머 Supabase DB 삭제 (DELETE)
+  const handleDeleteMember = async () => {
     if (!selectedMemberId) return;
     const target = members.find((m) => m.id === selectedMemberId);
-    setMembers((prev) => prev.filter((m) => m.id !== selectedMemberId));
-    handleNewMember();
-    showFeedback(`[${target?.name || "항목"}] 삭제되었습니다.`);
+    if (!confirm(`[${target?.name || "스트리머"}] 정말 DB에서 삭제하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/streamers?id=${selectedMemberId}`, {
+        method: "DELETE",
+      });
+      const result = await res.json();
+      if (result.success) {
+        setMembers((prev) => prev.filter((m) => m.id !== selectedMemberId));
+        handleNewMember();
+        showFeedback(`[${target?.name || "항목"}] DB에서 삭제되었습니다.`);
+      } else {
+        showFeedback(result.message || "삭제에 실패했습니다.");
+      }
+    } catch (e) {
+      showFeedback("삭제 중 오류가 발생했습니다.");
+    }
   };
 
   return (
-    <section className="space-y-6">
-      {/* 1) 메인 타이틀 & 부연 설명 */}
-      <AdminPageHeader
-        title="팀장·선수·감독 등록"
-        description="치지직 채널 연동 또는 일반 등록으로 팀장·선수·감독을 등록하고 복수 역할을 관리할 수 있습니다."
-      />
-
-      {/* 2) 2단 분할 레이아웃 */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+    <section className="h-full min-h-0 flex flex-col">
+      {/* 2단 분할 레이아웃 */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 h-full min-h-0 flex-1">
         {/* [좌측 7컬럼] 등록된 인원 조회 카드 */}
-        <div className="xl:col-span-7">
+        <div className="xl:col-span-7 h-full min-h-0 flex flex-col">
           <AdminCard
-            title="등록된 인원 조회"
+            title="등록된 스트리머 조회"
             countBadge={`총 ${filteredMemberList.length}명`}
+            className="h-full"
           >
-            {/* 검색 및 필터 박스 */}
-            <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-4 space-y-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                  이름 또는 치지직 채널 ID 검색
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                  placeholder="이름 또는 채널 ID 검색..."
-                  value={memberSearch}
-                  onChange={(e) => setMemberSearch(e.target.value)}
-                />
+            {/* 검색 및 필터 박스 (조건별 분리) */}
+            <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-3 space-y-2.5 shrink-0">
+              {/* 조건별 검색 입력창 2단 그리드 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* 1. 이름 / 채널 검색 */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                      이름 / 채널 검색
+                    </label>
+                    {nameSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setNameSearch("")}
+                        className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        지우기
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="w-full pl-3 pr-8 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
+                      placeholder="이름 또는 채널 ID..."
+                      value={nameSearch}
+                      onChange={(e) => setNameSearch(e.target.value)}
+                    />
+                    <svg className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* 2. 메모 / 특이사항 검색 */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                      메모 / 특이사항 검색
+                    </label>
+                    {memoSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setMemoSearch("")}
+                        className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        지우기
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="w-full pl-3 pr-8 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
+                      placeholder="메모 내용 검색..."
+                      value={memoSearch}
+                      onChange={(e) => setMemoSearch(e.target.value)}
+                    />
+                    <svg className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                    </svg>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                <div className="flex items-center gap-4">
-                  {(["선수", "감독", "팀장"] as const).map((role) => (
-                    <label
-                      key={role}
-                      className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700"
-                        checked={memberRoleFilter[role]}
-                        onChange={(e) =>
-                          setMemberRoleFilter((p) => ({
-                            ...p,
-                            [role]: e.target.checked,
-                          }))
-                        }
-                      />
-                      <span>{role}</span>
-                    </label>
-                  ))}
+              {/* 하단: 구분 필터 & 초기화 버튼 */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">구분:</span>
+                  <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
+                    {(["전체", "치지직 연동", "일반 등록"] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setMemberTypeFilter(type)}
+                        className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
+                          memberTypeFilter === type
+                            ? "bg-[#f99e1a] text-slate-950 font-bold shadow-xs"
+                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
                 <button
                   type="button"
-                  className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:underline transition-colors"
+                  disabled={!nameSearch && !memoSearch && memberTypeFilter === "전체"}
+                  className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-40 disabled:hover:no-underline disabled:cursor-not-allowed hover:underline transition-colors flex items-center gap-1"
                   onClick={() => {
-                    setMemberSearch("");
-                    setMemberRoleFilter({ 선수: true, 감독: true, 팀장: true });
+                    setNameSearch("");
+                    setMemoSearch("");
+                    setMemberTypeFilter("전체");
                   }}
                 >
-                  필터 초기화
+                  조건 초기화
                 </button>
               </div>
             </div>
 
-            {/* 인원 리스트 테이블 */}
-            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            {/* 인원 리스트 테이블 (그리드 내부 스크롤) */}
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 custom-scrollbar relative">
               <table className="w-full text-left text-xs divide-y divide-slate-200 dark:divide-slate-800">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 font-semibold">
-                    <th className="px-3.5 py-3">이름 / 채널</th>
-                    <th className="px-3.5 py-3 w-28">구분</th>
-                    <th className="px-3.5 py-3">역할</th>
-                    <th className="px-3.5 py-3 w-24">등록일</th>
+                <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#151c2e] shadow-2xs">
+                  <tr className="text-slate-600 dark:text-slate-300 font-semibold">
+                    <th className="px-3.5 py-2.5 bg-slate-100 dark:bg-[#151c2e]">이름 / 채널</th>
+                    <th className="px-3.5 py-2.5 w-24 bg-slate-100 dark:bg-[#151c2e]">구분</th>
+                    <th className="px-3.5 py-2.5 bg-slate-100 dark:bg-[#151c2e]">메모 / 특이사항</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
-                  {filteredMemberList.map((m) => {
-                    const isSelected = selectedMemberId === m.id;
-                    return (
-                      <tr
-                        key={m.id}
-                        className={`cursor-pointer transition-colors ${
-                          isSelected
-                            ? "bg-blue-50/80 dark:bg-blue-950/40 font-medium"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                        }`}
-                        onClick={() => handleSelectMember(m)}
-                      >
-                        <td className="px-3.5 py-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-xs">
-                              {m.name.slice(0, 1)}
-                            </div>
-                            <div>
-                              <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                                {m.name}
-                              </div>
-                              {m.channelId && (
-                                <div className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
-                                  @{m.channelId}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-3.5 py-3">
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                              m.type === "치지직 연동"
-                                ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-                            }`}
-                          >
-                            {m.type === "치지직 연동" ? "치지직" : "일반"}
+                  {filteredMemberList.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="px-3.5 py-16 text-center text-slate-400 dark:text-slate-500">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <span className="text-3xl">
+                            {members.length === 0 ? "👤" : "🔍"}
                           </span>
-                        </td>
-                        <td className="px-3.5 py-3">
-                          <div className="flex flex-wrap gap-1">
-                            {m.roles.map((r) => (
-                              <span
-                                key={r}
-                                className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700"
-                              >
-                                {r}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-3.5 py-3 text-[11px] text-slate-400 dark:text-slate-500 font-mono">
-                          {m.registeredDate}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          <p className="font-semibold text-xs text-slate-700 dark:text-slate-300">
+                            {members.length === 0
+                              ? "등록된 스트리머가 없습니다."
+                              : "검색 조건에 일치하는 스트리머가 없습니다."}
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            {members.length === 0
+                              ? "우측 등록 폼에서 새로운 스트리머를 등록해주세요."
+                              : "이름 또는 메모 검색 조건, 구분 필터를 변경해보세요."}
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredMemberList.map((m) => {
+                      const isSelected = selectedMemberId === m.id;
+                      return (
+                        <tr
+                          key={m.id}
+                          className={`cursor-pointer transition-colors ${
+                            isSelected
+                              ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium border-l-2 border-[#f99e1a]"
+                              : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                          }`}
+                          onClick={() => handleSelectMember(m)}
+                        >
+                          <td className="px-3.5 py-3">
+                            <div className="flex items-center gap-2.5">
+                              <MemberAvatar name={m.name} profileImg={m.profileImg} />
+                              <div>
+                                <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                                  {m.name}
+                                </div>
+                                {m.channelId && (
+                                  <a
+                                    href={m.channelId.startsWith("http") ? m.channelId : `https://chzzk.naver.com/${m.channelId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono hover:underline flex items-center gap-0.5"
+                                    onClick={(e) => e.stopPropagation()}
+                                    title={`치지직 채널 바로가기: ${m.channelId}`}
+                                  >
+                                    @{m.channelId.length > 12 ? `${m.channelId.slice(0, 10)}...` : m.channelId}
+                                    <span className="text-[9px]">↗</span>
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3.5 py-3">
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                m.type === "치지직 연동"
+                                  ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                              }`}
+                            >
+                              {m.type === "치지직 연동" ? "치지직" : "일반"}
+                            </span>
+                          </td>
+                          <td className="px-3.5 py-3 text-slate-500 dark:text-slate-400">
+                            <span className="line-clamp-1 text-[11px]">
+                              {m.memo || "—"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -314,19 +482,21 @@ export default function AdminMembersPage() {
         </div>
 
         {/* [우측 5컬럼] 등록 / 수정 폼 카드 */}
-        <div className="xl:col-span-5">
+        <div className="xl:col-span-5 h-full min-h-0 flex flex-col">
           <AdminCard
-            title="인원 등록 / 정보 관리"
+            title={selectedMemberId ? "스트리머 정보 수정" : "스트리머 신규 등록"}
+            className="h-full"
             actions={
               <AdminFormActions
                 onSave={handleSaveMember}
                 onDelete={selectedMemberId ? handleDeleteMember : undefined}
                 onNew={handleNewMember}
                 isEditing={!!selectedMemberId}
+                saveLabel={isSaving ? "저장중..." : "저장"}
               />
             }
           >
-            <div className="space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1.5 custom-scrollbar">
               {/* 등록 방식 선택 */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -336,7 +506,7 @@ export default function AdminMembersPage() {
                   <label
                     className={`flex-1 text-center py-2 text-xs font-semibold rounded-xl border cursor-pointer transition-all ${
                       memberForm.regType === "치지직 연동"
-                        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                        ? "bg-[#f99e1a] text-slate-950 font-bold border-[#f99e1a] shadow-sm"
                         : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100"
                     }`}
                   >
@@ -354,7 +524,7 @@ export default function AdminMembersPage() {
                   <label
                     className={`flex-1 text-center py-2 text-xs font-semibold rounded-xl border cursor-pointer transition-all ${
                       memberForm.regType === "일반 등록"
-                        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                        ? "bg-[#f99e1a] text-slate-950 font-bold border-[#f99e1a] shadow-sm"
                         : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100"
                     }`}
                   >
@@ -375,13 +545,18 @@ export default function AdminMembersPage() {
               {/* 치지직 연동 시 채널 주소 입력창 */}
               {memberForm.regType === "치지직 연동" && (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    치지직 채널 주소 <span className="text-rose-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      치지직 채널 주소 <span className="text-rose-500">*</span>
+                    </label>
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                      스트리머 조회 버튼으로 간편 연동
+                    </span>
+                  </div>
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
+                      className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all font-mono"
                       placeholder="예: https://chzzk.naver.com/xxxxxxxx"
                       value={memberForm.channelUrl}
                       onChange={(e) =>
@@ -390,15 +565,17 @@ export default function AdminMembersPage() {
                     />
                     <button
                       type="button"
-                      className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shrink-0 disabled:opacity-50"
-                      onClick={handleChzzkLookup}
-                      disabled={chzzkLoading}
+                      className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shrink-0 flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                      onClick={handleOpenStreamerModal}
                     >
-                      {chzzkLoading ? "조회중..." : "치지직 조회"}
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <span>스트리머 조회</span>
                     </button>
                   </div>
                   <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
-                    채널을 조회하면 채널명과 프로필 이미지가 자동으로 연동됩니다.
+                    [스트리머 조회] 버튼을 누르면 검색창에서 원하는 스트리머를 찾아 바로 연동할 수 있습니다.
                   </p>
                 </div>
               )}
@@ -411,7 +588,7 @@ export default function AdminMembersPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                   placeholder={
                     memberForm.regType === "치지직 연동"
                       ? "조회 시 자동 입력됩니다 (수정 가능)"
@@ -424,60 +601,38 @@ export default function AdminMembersPage() {
                 />
               </div>
 
-              {/* 역할 선택 */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  역할 (복수 선택 가능) <span className="text-rose-500">*</span>
-                </label>
-                <div className="flex gap-2">
-                  {(["팀장", "선수", "감독"] as const).map((role) => (
-                    <button
-                      key={role}
-                      type="button"
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                        memberForm.roles[role]
-                          ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                          : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100"
-                      }`}
-                      onClick={() =>
-                        setMemberForm((p) => ({
-                          ...p,
-                          roles: { ...p.roles, [role]: !p.roles[role] },
-                        }))
-                      }
-                    >
-                      {memberForm.roles[role] ? "✓ " : ""}
-                      {role}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* 프로필 이미지 URL */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                   프로필 이미지 URL
                 </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
-                  placeholder="치지직 조회 시 자동 연동되거나 직접 이미지 URL 입력"
-                  value={memberForm.profileImg}
-                  onChange={(e) =>
-                    setMemberForm((p) => ({ ...p, profileImg: e.target.value }))
-                  }
-                />
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="text"
+                    className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all font-mono"
+                    placeholder="치지직 조회 시 자동 연동되거나 직접 이미지 URL 입력"
+                    value={memberForm.profileImg}
+                    onChange={(e) =>
+                      setMemberForm((p) => ({ ...p, profileImg: e.target.value }))
+                    }
+                  />
+                  {memberForm.profileImg && (
+                    <div className="shrink-0" title="프로필 이미지 미리보기">
+                      <MemberAvatar name={memberForm.name || "미리보기"} profileImg={memberForm.profileImg} />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* 메모 및 특이사항 */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  메모 / 특이사항
+                  메모 / 주 포지션 및 특이사항
                 </label>
                 <textarea
-                  rows={3}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
-                  placeholder="선수의 주 포지션, 모스트 영웅, 티어 또는 특이사항을 기록하세요."
+                  rows={4}
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all resize-none"
+                  placeholder="스트리머의 주 포지션(탱커/딜러/힐러), 모스트 영웅, 티어 또는 특이사항을 기록하세요."
                   value={memberForm.memo}
                   onChange={(e) =>
                     setMemberForm((p) => ({ ...p, memo: e.target.value }))
@@ -488,12 +643,223 @@ export default function AdminMembersPage() {
           </AdminCard>
         </div>
       </div>
+      {/* 치지직 스트리머 조회 및 검색 모달 */}
+      {isCandidateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 모달 헤더 */}
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between shrink-0 bg-slate-50/80 dark:bg-slate-800/50">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  치지직 스트리머 조회
+                </h3>
+                {hasSearched && (
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400">
+                    검색 결과 {candidates.length}건
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCandidateModalOpen(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title="닫기"
+              >
+                ✕
+              </button>
+            </div>
 
-      {/* 3) 푸터 안내 바 */}
-      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 dark:text-slate-500 pt-6 pb-2 border-t border-slate-200 dark:border-slate-800 gap-2 text-center sm:text-left">
-        <span className="font-semibold text-slate-600 dark:text-slate-400">ROMS · 팀장·선수·감독 등록 관리</span>
-        <span>등록된 팀장·선수·감독 정보는 경기 운영에 사용됩니다.</span>
-      </div>
+            {/* 모달 내부 검색 바 */}
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-800/20 shrink-0">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  searchChzzkStreamers(modalQuery);
+                }}
+                className="flex gap-2"
+              >
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    autoFocus
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all font-medium"
+                    placeholder="스트리머 닉네임 또는 채널 주소를 입력하세요..."
+                    value={modalQuery}
+                    onChange={(e) => setModalQuery(e.target.value)}
+                  />
+                  <svg
+                    className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+                <button
+                  type="submit"
+                  disabled={modalLoading}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shrink-0 disabled:opacity-50 flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                >
+                  {modalLoading ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>검색중...</span>
+                    </>
+                  ) : (
+                    <span>검색</span>
+                  )}
+                </button>
+              </form>
+            </div>
+
+            {/* 후보 리스트 및 상태 영역 */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2.5 custom-scrollbar min-h-[260px] max-h-[460px]">
+              {modalLoading ? (
+                <div className="h-48 flex flex-col items-center justify-center text-center">
+                  <div className="w-7 h-7 border-2 border-[#f99e1a] border-t-transparent rounded-full animate-spin mb-3" />
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    치지직 스트리머를 조회하고 있습니다...
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    잠시만 기다려주세요.
+                  </p>
+                </div>
+              ) : !hasSearched ? (
+                <div className="h-48 flex flex-col items-center justify-center text-center p-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                    🔍
+                  </div>
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    등록할 스트리머를 검색해주세요
+                  </p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 max-w-xs">
+                    상단 검색창에 스트리머 닉네임 또는 채널 주소를 입력한 뒤 검색 버튼을 누르세요.
+                  </p>
+                </div>
+              ) : candidates.length === 0 ? (
+                <div className="h-48 flex flex-col items-center justify-center text-center p-4">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-xl mb-3">
+                    👀
+                  </div>
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    ‘{searchedQuery}’에 대한 검색 결과가 없습니다
+                  </p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 max-w-xs">
+                    철자를 확인하시거나, 치지직 웹페이지의 채널 고유 주소(URL)를 입력해주세요.
+                  </p>
+                </div>
+              ) : (
+                candidates.map((cand) => (
+                  <div
+                    key={cand.channelId}
+                    onClick={() => applySelectedCandidate(cand)}
+                    className="group relative p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-800/40 hover:bg-amber-500/5 dark:hover:bg-amber-500/10 hover:border-[#f99e1a] dark:hover:border-[#f99e1a] transition-all cursor-pointer flex items-center justify-between gap-3.5 shadow-2xs hover:shadow-md"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {/* 아바타 */}
+                      <MemberAvatar
+                        name={cand.channelName}
+                        profileImg={cand.channelImageUrl || undefined}
+                        size="w-10 h-10 text-sm"
+                      />
+
+                      {/* 스트리머 정보 */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-xs text-slate-900 dark:text-slate-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                            {cand.channelName}
+                          </span>
+                          {cand.verifiedMark && (
+                            <span
+                              className="inline-flex items-center text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 font-semibold"
+                              title="치지직 공식 파트너"
+                            >
+                              공식
+                            </span>
+                          )}
+                          {cand.openLive && (
+                            <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.2 rounded bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 font-bold">
+                              ● LIVE
+                            </span>
+                          )}
+                        </div>
+
+                        {/* 팔로워 & 채널 ID */}
+                        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                          <span className="font-semibold text-amber-600 dark:text-amber-400">
+                            팔로워 {cand.followerText}명
+                          </span>
+                          <span className="text-slate-300 dark:text-slate-700">•</span>
+                          <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">
+                            ID: {cand.channelId.slice(0, 8)}...
+                          </span>
+                        </div>
+
+                        {/* 소개글 */}
+                        {cand.channelDescription && (
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-1">
+                            {cand.channelDescription}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 우측 버튼 영역 */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <a
+                        href={`https://chzzk.naver.com/${cand.channelId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+                        title="치지직 채널 바로가기 새창 열기"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          applySelectedCandidate(cand);
+                        }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white dark:bg-white dark:text-slate-900 group-hover:bg-[#f99e1a] group-hover:text-slate-950 transition-colors shadow-2xs cursor-pointer"
+                      >
+                        선택
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* 모달 푸터 */}
+            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between shrink-0">
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                원하는 스트리머를 [선택]하면 채널 주소와 프로필이 자동으로 연동됩니다.
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsCandidateModalOpen(false)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

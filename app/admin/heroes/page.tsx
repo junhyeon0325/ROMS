@@ -1,4 +1,9 @@
 // app/admin/heroes/page.tsx
+/**
+ * [영웅 데이터 관리 페이지 컴포넌트]
+ * - 오버워치 영웅 마스터 데이터 관리 화면 (URL: "/admin/heroes")
+ * - 역할군(돌격/공격/지원)별 영웅 목록 조회, 신규 영웅 추가 및 픽 가능 여부 설정 폼 제공
+ */
 "use client";
 
 import React, { useState } from "react";
@@ -133,31 +138,32 @@ export default function AdminHeroesPage() {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="h-full min-h-0 flex flex-col">
       {/* 2단 레이아웃 */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 h-full min-h-0 flex-1">
         {/* 좌측 7컬럼: 영웅 목록 */}
-        <div className="xl:col-span-7">
+        <div className="xl:col-span-7 h-full min-h-0 flex flex-col">
           <AdminCard
             title="등록된 영웅 목록"
             countBadge={`총 ${filteredHeroes.length}명`}
+            className="h-full"
           >
             {/* 검색 및 역할군 필터 */}
-            <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-4 space-y-3">
+            <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-3 space-y-2.5 shrink-0">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
                   영웅 이름 검색
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                   placeholder="영웅 이름 (예: 디바, D.Va, 아나, Tracer...) 검색..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-2 pt-0.5">
                 {(["ALL", "돌격", "공격", "지원"] as const).map((r) => (
                   <button
                     key={r}
@@ -165,7 +171,7 @@ export default function AdminHeroesPage() {
                     onClick={() => setRoleFilter(r)}
                     className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
                       roleFilter === r
-                        ? "bg-blue-600 text-white font-bold shadow-xs"
+                        ? "bg-[#f99e1a] text-slate-950 font-bold shadow-xs"
                         : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                   >
@@ -176,79 +182,83 @@ export default function AdminHeroesPage() {
               </div>
             </div>
 
-            {/* 영웅 목록 그리드 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {filteredHeroes.map((hero) => {
-                const isSelected = hero.id === selectedHeroId;
+            {/* 영웅 목록 그리드 (내부 스크롤) */}
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 custom-scrollbar">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {filteredHeroes.map((hero) => {
+                  const isSelected = hero.id === selectedHeroId;
 
-                return (
-                  <div
-                    key={hero.id}
-                    onClick={() => handleSelectHero(hero)}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
-                      isSelected
-                        ? "bg-blue-50/70 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800 shadow-xs"
-                        : "bg-white dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-lg shrink-0">
-                        {roleIcon(hero.role)}
+                  return (
+                    <div
+                      key={hero.id}
+                      onClick={() => handleSelectHero(hero)}
+                      className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
+                        isSelected
+                          ? "bg-amber-500/10 dark:bg-amber-500/15 border-[#f99e1a] shadow-xs"
+                          : "bg-white dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-lg shrink-0">
+                          {roleIcon(hero.role)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                              {hero.nameKr}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {hero.nameEn}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${roleColor(
+                                hero.role
+                              )}`}
+                            >
+                              {hero.role}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              난이도: {hero.difficulty}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                            {hero.nameKr}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            {hero.nameEn}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span
-                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${roleColor(
-                              hero.role
-                            )}`}
-                          >
-                            {hero.role}
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            난이도: {hero.difficulty}
-                          </span>
-                        </div>
+
+                      <div className="shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => handleTogglePickable(hero.id, e)}
+                          className={`text-[10px] font-bold px-2 py-1 rounded-md border transition-colors ${
+                            hero.isPickable
+                              ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                              : "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800"
+                          }`}
+                        >
+                          {hero.isPickable ? "픽 가능" : "밴 (선택불가)"}
+                        </button>
                       </div>
                     </div>
-
-                    <div className="shrink-0">
-                      <button
-                        type="button"
-                        onClick={(e) => handleTogglePickable(hero.id, e)}
-                        className={`text-[10px] font-bold px-2 py-1 rounded-md border transition-colors ${
-                          hero.isPickable
-                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                            : "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800"
-                        }`}
-                      >
-                        {hero.isPickable ? "픽 가능" : "밴 (선택불가)"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {filteredHeroes.length === 0 && (
-              <div className="text-center py-10 text-xs text-slate-400">
-                조건에 일치하는 영웅이 없습니다.
+                  );
+                })}
               </div>
-            )}
+
+              {filteredHeroes.length === 0 && (
+                <div className="text-center py-16 text-xs text-slate-400">
+                  <span className="text-3xl block mb-2">🦸</span>
+                  조건에 일치하는 영웅이 없습니다.
+                </div>
+              )}
+            </div>
           </AdminCard>
         </div>
 
         {/* 우측 5컬럼: 영웅 상세/등록 폼 */}
-        <div className="xl:col-span-5">
+        <div className="xl:col-span-5 h-full min-h-0 flex flex-col">
           <AdminCard
             title={selectedHeroId ? `영웅 상세 정보 (${heroForm.nameKr})` : "신규 영웅 등록"}
+            className="h-full"
             actions={
               <AdminFormActions
                 onSave={handleSaveHero}
@@ -258,7 +268,7 @@ export default function AdminHeroesPage() {
               />
             }
           >
-            <div className="space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1.5 custom-scrollbar">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
@@ -349,7 +359,7 @@ export default function AdminHeroesPage() {
                   onChange={(e) =>
                     setHeroForm({ ...heroForm, isPickable: e.target.checked })
                   }
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded text-[#f99e1a] focus:ring-[#f99e1a] accent-[#f99e1a]"
                 />
               </div>
             </div>

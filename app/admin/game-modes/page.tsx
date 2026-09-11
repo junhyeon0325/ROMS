@@ -1,4 +1,9 @@
 // app/admin/game-modes/page.tsx
+/**
+ * [게임 모드 관리 페이지 컴포넌트]
+ * - 오버워치 경기 방식(쟁탈, 혼합, 호위, 밀기 등) 관리 화면 (URL: "/admin/game-modes")
+ * - 모드별 승리 조건, 제한 시간 설정 및 신규 모드 등록/수정 폼 제공
+ */
 "use client";
 
 import React, { useState } from "react";
@@ -127,31 +132,32 @@ export default function AdminGameModesPage() {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="h-full min-h-0 flex flex-col">
       {/* 2단 레이아웃 */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 h-full min-h-0 flex-1">
         {/* 좌측 7컬럼: 게임 모드 목록 */}
-        <div className="xl:col-span-7">
+        <div className="xl:col-span-7 h-full min-h-0 flex flex-col">
           <AdminCard
             title="등록된 게임 모드 목록"
             countBadge={`총 ${filteredModes.length}종`}
+            className="h-full"
           >
             {/* 검색 및 필터 */}
-            <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-4 space-y-3">
+            <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-3 space-y-2.5 shrink-0">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
                   모드명 또는 코드 검색
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                   placeholder="모드명 (예: 혼합, Hybrid, ESCORT) 검색..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-2 pt-0.5">
                 {(["ALL", "ACTIVE", "INACTIVE"] as const).map((filterKey) => (
                   <button
                     key={filterKey}
@@ -159,7 +165,7 @@ export default function AdminGameModesPage() {
                     onClick={() => setActiveFilter(filterKey)}
                     className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-colors ${
                       activeFilter === filterKey
-                        ? "bg-blue-600 text-white font-bold"
+                        ? "bg-[#f99e1a] text-slate-950 font-bold"
                         : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                   >
@@ -169,8 +175,8 @@ export default function AdminGameModesPage() {
               </div>
             </div>
 
-            {/* 카드 리스트 */}
-            <div className="space-y-2.5">
+            {/* 카드 리스트 (내부 스크롤) */}
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-1.5 custom-scrollbar">
               {filteredModes.map((mode) => {
                 const isSelected = mode.id === selectedModeId;
 
@@ -180,7 +186,7 @@ export default function AdminGameModesPage() {
                     onClick={() => handleSelectMode(mode)}
                     className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                       isSelected
-                        ? "bg-blue-50/70 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800 shadow-xs"
+                        ? "bg-amber-500/10 dark:bg-amber-500/15 border-[#f99e1a] shadow-xs"
                         : "bg-white dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
                     }`}
                   >
@@ -224,7 +230,8 @@ export default function AdminGameModesPage() {
               })}
 
               {filteredModes.length === 0 && (
-                <div className="text-center py-10 text-xs text-slate-400">
+                <div className="text-center py-16 text-xs text-slate-400">
+                  <span className="text-3xl block mb-2">🎮</span>
                   조건에 맞는 게임 모드가 없습니다.
                 </div>
               )}
@@ -233,9 +240,10 @@ export default function AdminGameModesPage() {
         </div>
 
         {/* 우측 5컬럼: 게임 모드 등록/수정 폼 */}
-        <div className="xl:col-span-5">
+        <div className="xl:col-span-5 h-full min-h-0 flex flex-col">
           <AdminCard
             title={selectedModeId ? `게임 모드 상세 정보 (${modeForm.nameKr})` : "신규 게임 모드 등록"}
+            className="h-full"
             actions={
               <AdminFormActions
                 onSave={handleSaveMode}
@@ -245,7 +253,7 @@ export default function AdminGameModesPage() {
               />
             }
           >
-            <div className="space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1.5 custom-scrollbar">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
@@ -366,7 +374,7 @@ export default function AdminGameModesPage() {
                   type="checkbox"
                   checked={modeForm.isActive}
                   onChange={(e) => setModeForm({ ...modeForm, isActive: e.target.checked })}
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded text-[#f99e1a] focus:ring-[#f99e1a] accent-[#f99e1a]"
                 />
               </div>
             </div>

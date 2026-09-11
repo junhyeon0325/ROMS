@@ -1,4 +1,9 @@
 // app/admin/codes/page.tsx
+/**
+ * [공통 코드 관리 페이지 컴포넌트]
+ * - 시스템 전반에서 쓰이는 공통 분류 코드(그룹/상세 코드) 관리 화면 (URL: "/admin/codes")
+ * - 역할군, 티어, 경기 상태 등 표준 코드 목록 조회 및 등록/수정 폼 제공
+ */
 "use client";
 
 import React, { useState } from "react";
@@ -85,17 +90,18 @@ export default function AdminCodesPage() {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="h-full min-h-0 flex flex-col">
       {/* 2단 분할 레이아웃 */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 h-full min-h-0 flex-1">
         {/* [좌측 7컬럼] 등록된 코드 조회 */}
-        <div className="xl:col-span-7">
+        <div className="xl:col-span-7 h-full min-h-0 flex flex-col">
           <AdminCard
             title="등록된 코드 조회"
             countBadge={`총 ${filteredCodeList.length}건`}
+            className="h-full"
           >
             {/* 검색 & 그룹 필터 박스 */}
-            <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-4 space-y-3">
+            <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-3 space-y-2.5 shrink-0">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
                   코드 그룹 필터
@@ -112,7 +118,7 @@ export default function AdminCodesPage() {
                       type="button"
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                         codeGroupFilter === g.id
-                          ? "bg-blue-600 text-white shadow-xs"
+                          ? "bg-[#f99e1a] text-slate-950 font-bold shadow-xs"
                           : "bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                       }`}
                       onClick={() => setCodeGroupFilter(g.id)}
@@ -126,7 +132,7 @@ export default function AdminCodesPage() {
               <div>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                   placeholder="코드 ID 또는 코드명 검색..."
                   value={codeSearch}
                   onChange={(e) => setCodeSearch(e.target.value)}
@@ -134,23 +140,23 @@ export default function AdminCodesPage() {
               </div>
             </div>
 
-            {/* 코드 목록 테이블 */}
-            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            {/* 코드 목록 테이블 (그리드 내부 스크롤) */}
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 custom-scrollbar relative">
               <table className="w-full text-left text-xs divide-y divide-slate-200 dark:divide-slate-800">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 font-semibold">
-                    <th className="px-3.5 py-3 w-32">코드 ID</th>
-                    <th className="px-3.5 py-3">코드명 (국문/영문)</th>
-                    <th className="px-3.5 py-3 w-20">순서</th>
-                    <th className="px-3.5 py-3 w-24">사용여부</th>
+                <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#151c2e] shadow-2xs">
+                  <tr className="text-slate-600 dark:text-slate-300 font-semibold">
+                    <th className="px-3.5 py-2.5 w-32 bg-slate-100 dark:bg-[#151c2e]">코드 ID</th>
+                    <th className="px-3.5 py-2.5 bg-slate-100 dark:bg-[#151c2e]">코드명 (국문/영문)</th>
+                    <th className="px-3.5 py-2.5 w-20 bg-slate-100 dark:bg-[#151c2e]">순서</th>
+                    <th className="px-3.5 py-2.5 w-24 bg-slate-100 dark:bg-[#151c2e]">사용여부</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
                   {filteredCodeList.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-3.5 py-12 text-center text-slate-400 dark:text-slate-500">
+                      <td colSpan={4} className="px-3.5 py-16 text-center text-slate-400 dark:text-slate-500">
                         <div className="flex flex-col items-center justify-center gap-2">
-                          <span className="text-2xl">⚙️</span>
+                          <span className="text-3xl">⚙️</span>
                           <p className="font-semibold text-xs text-slate-700 dark:text-slate-300">
                             등록된 공통코드가 없습니다.
                           </p>
@@ -168,12 +174,12 @@ export default function AdminCodesPage() {
                           key={c.code}
                           className={`cursor-pointer transition-colors ${
                             isSelected
-                              ? "bg-blue-50/80 dark:bg-blue-950/40 font-medium"
+                              ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium border-l-2 border-[#f99e1a]"
                               : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                           }`}
                           onClick={() => handleSelectCode(c)}
                         >
-                          <td className="px-3.5 py-3 font-mono font-bold text-blue-600 dark:text-blue-400">
+                          <td className="px-3.5 py-3 font-mono font-bold text-[#f99e1a] dark:text-amber-400">
                             {c.code}
                           </td>
                           <td className="px-3.5 py-3">
@@ -209,9 +215,10 @@ export default function AdminCodesPage() {
         </div>
 
         {/* [우측 5컬럼] 코드 등록 관리 */}
-        <div className="xl:col-span-5">
+        <div className="xl:col-span-5 h-full min-h-0 flex flex-col">
           <AdminCard
             title="코드 등록 / 상세 관리"
+            className="h-full"
             actions={
               <AdminFormActions
                 onSave={handleSaveCode}
@@ -221,13 +228,13 @@ export default function AdminCodesPage() {
               />
             }
           >
-            <div className="space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1.5 custom-scrollbar">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                   코드 그룹 <span className="text-rose-500">*</span>
                 </label>
                 <select
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                   value={codeForm.group}
                   onChange={(e) =>
                     setCodeForm((p) => ({ ...p, group: e.target.value }))
@@ -246,7 +253,7 @@ export default function AdminCodesPage() {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono uppercase disabled:opacity-60"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all font-mono uppercase disabled:opacity-60"
                     placeholder="예: COACH, HYBRID"
                     value={codeForm.code}
                     onChange={(e) =>
@@ -261,7 +268,7 @@ export default function AdminCodesPage() {
                   </label>
                   <input
                     type="number"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                     value={codeForm.sort}
                     onChange={(e) =>
                       setCodeForm((p) => ({ ...p, sort: Number(e.target.value) || 1 }))
@@ -277,7 +284,7 @@ export default function AdminCodesPage() {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                     value={codeForm.name}
                     onChange={(e) =>
                       setCodeForm((p) => ({ ...p, name: e.target.value }))
@@ -290,7 +297,7 @@ export default function AdminCodesPage() {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                     value={codeForm.nameEn}
                     onChange={(e) =>
                       setCodeForm((p) => ({ ...p, nameEn: e.target.value }))
@@ -308,7 +315,7 @@ export default function AdminCodesPage() {
                     <input
                       type="radio"
                       name="useYn"
-                      className="text-blue-600 focus:ring-blue-500"
+                      className="text-[#f99e1a] focus:ring-[#f99e1a] accent-[#f99e1a]"
                       checked={codeForm.useYn === "Y"}
                       onChange={() => setCodeForm((p) => ({ ...p, useYn: "Y" }))}
                     />
@@ -318,7 +325,7 @@ export default function AdminCodesPage() {
                     <input
                       type="radio"
                       name="useYn"
-                      className="text-blue-600 focus:ring-blue-500"
+                      className="text-[#f99e1a] focus:ring-[#f99e1a] accent-[#f99e1a]"
                       checked={codeForm.useYn === "N"}
                       onChange={() => setCodeForm((p) => ({ ...p, useYn: "N" }))}
                     />
@@ -333,7 +340,7 @@ export default function AdminCodesPage() {
                 </label>
                 <textarea
                   rows={4}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all resize-none"
                   placeholder="코드 용도 및 정의를 입력하세요."
                   value={codeForm.desc}
                   onChange={(e) =>
@@ -344,12 +351,6 @@ export default function AdminCodesPage() {
             </div>
           </AdminCard>
         </div>
-      </div>
-
-      {/* 3) 푸터 안내 바 */}
-      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 dark:text-slate-500 pt-6 pb-2 border-t border-slate-200 dark:border-slate-800 gap-2 text-center sm:text-left">
-        <span className="font-semibold text-slate-600 dark:text-slate-400">ROMS · 공통코드 관리</span>
-        <span>시스템 전반의 표준 코드 규격을 정의하고 관리합니다.</span>
       </div>
     </section>
   );

@@ -1,5 +1,9 @@
 // components/layout/AdminSidebar.tsx
-// 관리자 사이드바
+/**
+ * [관리자 좌측 사이드바 컴포넌트]
+ * - 관리자 전체 메뉴를 탐색하는 내비게이션 패널
+ * - 메뉴 실시간 검색, 대메뉴 접기/펼치기(아코디언), 다크모드 전환 스위치 제공
+ */
 "use client";
 
 import React, { useState } from "react";
@@ -65,8 +69,8 @@ export default function AdminSidebar() {
           className="font-black text-xl tracking-tight mb-4 pb-3 border-b border-slate-200/80 dark:border-slate-800 flex items-center gap-1 text-slate-900 dark:text-white shrink-0"
           title="관리자 대시보드로 이동"
         >
-          RO<span className="text-blue-600">MS</span>{" "}
-          <span className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded border border-blue-200/60 dark:border-blue-900 ml-1.5">
+          RO<span className="text-[#f99e1a]">MS</span>{" "}
+          <span className="text-[10px] font-mono font-bold text-amber-500 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30 ml-1.5">
             ADMIN
           </span>
         </Link>
@@ -76,7 +80,7 @@ export default function AdminSidebar() {
           <div className="relative">
             <input
               type="text"
-              className="w-full pl-8 pr-7 py-2 text-xs rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 focus:border-blue-500 dark:focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-all shadow-2xs"
+              className="w-full pl-8 pr-7 py-2 text-xs rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 focus:border-[#f99e1a] dark:focus:border-[#f99e1a] focus:bg-white dark:focus:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-all shadow-2xs"
               placeholder="메뉴 검색..."
               value={menuSearchQuery}
               onChange={(e) => setMenuSearchQuery(e.target.value)}
@@ -178,7 +182,7 @@ export default function AdminSidebar() {
                             href={sub.href || "/admin"}
                             className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs border transition-colors ${
                               isActive
-                                ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold border-blue-200/50 dark:border-blue-900/50 shadow-xs"
+                                ? "bg-amber-500/10 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold border-amber-500/30 shadow-xs"
                                 : "border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/40 hover:text-slate-900 dark:hover:text-slate-200"
                             } ${!isSearched ? "opacity-30" : ""}`}
                             title={sub.description || sub.label}
@@ -186,7 +190,7 @@ export default function AdminSidebar() {
                             <span
                               className={`text-[8px] ${
                                 isActive
-                                  ? "text-blue-600 dark:text-blue-400"
+                                  ? "text-amber-500 dark:text-amber-400"
                                   : "text-slate-300 dark:text-slate-600"
                               }`}
                             >
@@ -214,7 +218,7 @@ export default function AdminSidebar() {
                 href={item.href || "/admin"}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                   isActive
-                    ? "bg-blue-600 text-white font-bold shadow-sm"
+                    ? "bg-[#f99e1a] text-slate-950 font-bold shadow-sm"
                     : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60"
                 } ${!isSearched ? "opacity-30" : ""}`}
                 title={item.description || item.label}
@@ -258,7 +262,7 @@ export default function AdminSidebar() {
           </div>
           <div
             className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center ${
-              isDarkMode ? "bg-blue-600" : "bg-slate-300"
+              isDarkMode ? "bg-[#f99e1a]" : "bg-slate-300"
             }`}
           >
             <span

@@ -1,8 +1,14 @@
 // app/page.tsx
+/**
+ * [사용자 메인 대시보드 페이지 컴포넌트]
+ * - 일반 사용자가 접속하는 서비스 첫 화면 (URL: "/")
+ * - 시즌 하이라이트 지표, 대회 참가팀 순위표, 최근 경기 결과 요약 제공
+ */
 "use client";
 
 import React, { useState } from "react";
 import UserHeader from "@/components/layout/UserHeader";
+import UserFooter from "@/components/layout/UserFooter";
 
 interface RankingItem {
   name: string;
@@ -47,7 +53,7 @@ export default function UserDashboard() {
 
 
   return (
-    <div className="min-h-screen bg-[#FAFAF7] dark:bg-[#0B0E14] text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen flex flex-col bg-[#FAFAF7] dark:bg-[#0B0E14] text-slate-900 dark:text-slate-100 transition-colors">
       {/* 1. 상단 사용자 헤더 */}
       <UserHeader
         activeTab={activeTab}
@@ -57,10 +63,11 @@ export default function UserDashboard() {
         onSearchSubmit={handleSearchSubmit}
       />
 
-      {/* 2. 메인 배너 */}
+      <main className="flex-1">
+        {/* 2. 메인 배너 */}
       <div className="max-w-6xl mx-auto px-6 md:px-12 pt-10 pb-10 relative overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600/10 via-indigo-600/5 to-purple-600/10 border border-blue-200/60 dark:border-blue-900/40 rounded-3xl p-8 md:p-12 relative overflow-hidden">
-          <div className="font-mono text-xs tracking-widest uppercase text-blue-600 dark:text-blue-400 font-bold mb-3">
+        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-slate-800/10 border border-amber-500/20 dark:border-amber-500/20 rounded-3xl p-8 md:p-12 relative overflow-hidden">
+          <div className="font-mono text-xs tracking-widest uppercase text-[#f99e1a] dark:text-amber-400 font-bold mb-3">
             ROMS · Runner Overwatch Match System
           </div>
           <h1 className="font-black text-2xl md:text-4xl text-slate-900 dark:text-white mb-3 tracking-tight">
@@ -71,7 +78,7 @@ export default function UserDashboard() {
           </p>
           <a
             href="/admin"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-3 rounded-xl transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+            className="inline-flex items-center gap-2 bg-[#f99e1a] hover:bg-[#ea8c08] text-slate-950 font-bold text-xs px-5 py-3 rounded-xl transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
           >
             관리자 콘솔 바로가기 →
           </a>
@@ -106,7 +113,7 @@ export default function UserDashboard() {
                   <span
                     className={`font-black text-xl md:text-2xl ${
                       i === 0
-                        ? "text-blue-600 dark:text-blue-400"
+                        ? "text-[#f99e1a] dark:text-amber-400"
                         : "text-slate-300 dark:text-slate-600"
                     }`}
                   >
@@ -123,7 +130,7 @@ export default function UserDashboard() {
                           : "bg-emerald-500"
                       }`}
                     />
-                    <span className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    <span className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-[#f99e1a] dark:group-hover:text-[#f99e1a] transition-colors">
                       {p.name}
                     </span>
                     <span className="text-xs text-slate-400 dark:text-slate-500 ml-1 font-normal">
@@ -169,7 +176,7 @@ export default function UserDashboard() {
                   <div className="text-xs text-slate-400 dark:text-slate-500 mb-2 font-medium">
                     {h.label}
                   </div>
-                  <div className="font-black text-2xl md:text-3xl text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-1">
+                  <div className="font-black text-2xl md:text-3xl text-slate-900 dark:text-white group-hover:text-[#f99e1a] dark:group-hover:text-[#f99e1a] transition-colors mb-1">
                     {h.value}
                   </div>
                   <div className="text-xs font-bold text-slate-600 dark:text-slate-300">
@@ -204,7 +211,7 @@ export default function UserDashboard() {
                   <span className="font-mono text-xs text-slate-400 dark:text-slate-500 w-28 md:w-32 shrink-0">
                     {m.tag}
                   </span>
-                  <span className="flex-1 font-bold text-xs md:text-sm text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  <span className="flex-1 font-bold text-xs md:text-sm text-slate-900 dark:text-white group-hover:text-[#f99e1a] dark:group-hover:text-[#f99e1a] transition-colors">
                     {m.names}
                   </span>
                   <span className="font-mono font-bold text-sm text-slate-900 dark:text-white mr-3">
@@ -225,6 +232,10 @@ export default function UserDashboard() {
           )}
         </div>
       </div>
+      </main>
+
+      {/* 4. 하단 사용자 고정 푸터 */}
+      <UserFooter />
     </div>
   );
 }

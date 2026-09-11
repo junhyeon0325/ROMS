@@ -1,5 +1,9 @@
 // components/layout/AdminHeader.tsx
-// 관리자 공통 상단 헤더 (페이지 제목/설명 및 브레드크럼, 전역 토스트 알림)
+/**
+ * [관리자 헤더 컴포넌트]
+ * - 관리자 화면 상단에 고정되는 헤더 바
+ * - 현재 접속 메뉴 경로(Breadcrumb) 안내, 사용자 사이트 바로가기 및 전역 알림(토스트) 표시
+ */
 "use client";
 
 import React from "react";

@@ -1,4 +1,9 @@
 // app/admin/page.tsx
+/**
+ * [관리자 통합 관제 대시보드 페이지 컴포넌트]
+ * - 관리자 접속 시 첫 화면 (URL: "/admin")
+ * - 시스템 핵심 KPI 지표 요약, 퀵 배너 및 주요 현황(회원/대회/전장 등) 바로가기 제공
+ */
 "use client";
 
 import React from "react";
@@ -58,7 +63,7 @@ export default function AdminDashboardPage() {
           </button>
           <Link
             href="/admin/members"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 border border-blue-400/40 text-white transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#f99e1a] hover:bg-[#ea8c08] border border-[#f99e1a]/40 text-slate-950 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
           >
             + 스트리머 관리
           </Link>
@@ -193,7 +198,7 @@ export default function AdminDashboardPage() {
           <AdminCard
             title={
               <>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" className="w-4.5 h-4.5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#F99E1A" strokeWidth="2" className="w-4.5 h-4.5">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
                 </svg>
@@ -203,7 +208,7 @@ export default function AdminDashboardPage() {
             actions={
               <Link
                 href="/admin/members"
-                className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
+                className="text-xs font-semibold text-[#f99e1a] dark:text-amber-400 hover:text-[#ea8c08] dark:hover:text-amber-300 hover:underline transition-colors"
               >
                 전체 관리 ({members.length}명) →
               </Link>
@@ -224,7 +229,7 @@ export default function AdminDashboardPage() {
                     title="클릭하여 상세 정보 조회 및 수정"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-sm shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold flex items-center justify-center text-sm shadow-sm shrink-0">
                         {m.name.slice(0, 1)}
                       </div>
                       <div>
@@ -310,7 +315,7 @@ export default function AdminDashboardPage() {
                           t.status === "진행중"
                             ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
                             : t.status === "접수중"
-                            ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                            ? "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800"
                             : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                         }`}
                       >
@@ -362,7 +367,7 @@ export default function AdminDashboardPage() {
                     key={map.id}
                     className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 text-xs font-medium text-slate-700 dark:text-slate-200"
                   >
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
                       {map.mode}
                     </span>
                     <span className="truncate mx-1">{map.nameKr}</span>
@@ -398,12 +403,12 @@ export default function AdminDashboardPage() {
             <div className="flex flex-col">
               <div className="flex gap-3.5 pb-4 last:pb-0 relative">
                 <div className="flex flex-col items-center">
-                  <div className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0 mt-1" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#f99e1a] shrink-0 mt-1" />
                   <div className="w-0.5 grow bg-slate-200 dark:bg-slate-700 mt-1" />
                 </div>
                 <div className="grow min-w-0">
                   <div className="text-xs font-medium text-slate-800 dark:text-slate-200 leading-snug">
-                    <strong className="text-blue-600 dark:text-blue-400">[인원 연동]</strong> 치지직 스트리머 제타치즈(MB-002) 계정 연동 완료
+                    <strong className="text-[#f99e1a] dark:text-amber-400">[인원 연동]</strong> 치지직 스트리머 제타치즈(MB-002) 계정 연동 완료
                   </div>
                   <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">방금 전 · 관리자 승인 완료</div>
                 </div>
@@ -449,12 +454,6 @@ export default function AdminDashboardPage() {
             </div>
           </AdminCard>
         </div>
-      </div>
-
-      {/* 4) 하단 안내 푸터 바 */}
-      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 dark:text-slate-500 pt-6 pb-2 border-t border-slate-200 dark:border-slate-800 gap-2 text-center sm:text-left">
-        <span className="font-semibold text-slate-600 dark:text-slate-400">ROMS · 통합 관리자 관제 센터</span>
-        <span>Runner&apos;s Overwatch Match System Admin Suite v1.0 · All Rights Reserved</span>
       </div>
     </section>
   );

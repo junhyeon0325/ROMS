@@ -14,6 +14,7 @@ import {
 interface AdminContextType {
   members: MemberItem[];
   setMembers: React.Dispatch<React.SetStateAction<MemberItem[]>>;
+  refreshMembers: () => Promise<void>;
   tournaments: TournamentItem[];
   setTournaments: React.Dispatch<React.SetStateAction<TournamentItem[]>>;
   participants: TournamentParticipant[];
@@ -42,6 +43,23 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // DB에서 스트리머 목록 실시간 동기화
+  const refreshMembers = async () => {
+    try {
+      const res = await fetch("/api/streamers");
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setMembers(json.data);
+      }
+    } catch (e) {
+      console.error("Failed to load streamers from DB:", e);
+    }
+  };
+
+  useEffect(() => {
+    refreshMembers();
+  }, []);
 
   // 마운트 시 현재 <html> 태그의 dark 클래스 상태 동기화
   useEffect(() => {
@@ -82,6 +100,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       value={{
         members,
         setMembers,
+        refreshMembers,
         tournaments,
         setTournaments,
         participants,

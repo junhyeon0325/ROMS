@@ -1,3 +1,9 @@
+// app/layout.tsx
+/**
+ * [전체 루트 레이아웃 컴포넌트]
+ * - Next.js 서비스의 최상위 기본 HTML 뼈대(Root Layout)
+ * - 전역 폰트 로드, 기본 메타데이터(SEO), 다크모드 초기화 스크립트 실행
+ */
 import type { Metadata } from 'next';
 import './globals.css';
 

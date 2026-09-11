@@ -1,4 +1,9 @@
 // app/admin/tournaments/structure/page.tsx
+/**
+ * [대회 구조/대진표 편성 페이지 컴포넌트]
+ * - 선택된 대회의 조 편성, 팀 구성, 토너먼트 브라켓을 관리하는 화면 (URL: "/admin/tournaments/structure")
+ * - 참가 선수 배정 드래그 앤 드롭, 조별 리그 구성 및 토너먼트 대진 트리 시각화 제공
+ */
 "use client";
 
 import React, { useState } from "react";
@@ -216,12 +221,12 @@ export default function AdminTournamentStructurePage() {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="h-full min-h-0 flex flex-col gap-4">
       {/* 1) 대회 기본 정보 요약 바 & 탭 네비게이션 */}
       {selectedTournament ? (
-        <div className="bg-gradient-to-r from-blue-600/10 via-indigo-600/5 to-purple-600/10 border border-blue-200/60 dark:border-blue-900/40 rounded-2xl p-4 md:p-5 flex flex-wrap items-center justify-between gap-4">
+        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-slate-800/10 border border-amber-500/20 dark:border-amber-500/20 rounded-2xl p-4 md:p-5 flex flex-wrap items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
-            <span className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
+            <span className="w-9 h-9 rounded-xl bg-[#f99e1a] text-slate-950 flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
               🏆
             </span>
             <div>
@@ -232,7 +237,7 @@ export default function AdminTournamentStructurePage() {
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                     selectedTournament.status === "진행중"
-                      ? "bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400"
+                      ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400"
                       : selectedTournament.status === "접수중"
                       ? "bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400"
                       : "bg-slate-100 dark:bg-slate-800 text-slate-500"
@@ -266,7 +271,7 @@ export default function AdminTournamentStructurePage() {
                   showFeedback(`대상 대회가 변경되었습니다.`);
                 }}
                 disabled={tournaments.length === 0}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60"
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 disabled:opacity-60"
               >
                 {tournaments.length === 0 ? (
                   <option value="">등록된 대회 없음</option>
@@ -286,7 +291,7 @@ export default function AdminTournamentStructurePage() {
               onClick={() => setActiveTab("participants")}
               className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
                 activeTab === "participants"
-                  ? "bg-blue-600 text-white font-bold shadow-xs"
+                  ? "bg-[#f99e1a] text-slate-950 font-bold shadow-xs"
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
@@ -297,7 +302,7 @@ export default function AdminTournamentStructurePage() {
               onClick={() => setActiveTab("groups")}
               className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
                 activeTab === "groups"
-                  ? "bg-blue-600 text-white font-bold shadow-xs"
+                  ? "bg-[#f99e1a] text-slate-950 font-bold shadow-xs"
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
@@ -308,7 +313,7 @@ export default function AdminTournamentStructurePage() {
               onClick={() => setActiveTab("bracket")}
               className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
                 activeTab === "bracket"
-                  ? "bg-blue-600 text-white font-bold shadow-xs"
+                  ? "bg-[#f99e1a] text-slate-950 font-bold shadow-xs"
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
@@ -319,7 +324,7 @@ export default function AdminTournamentStructurePage() {
               onClick={() => setActiveTab("rules")}
               className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
                 activeTab === "rules"
-                  ? "bg-blue-600 text-white font-bold shadow-xs"
+                  ? "bg-[#f99e1a] text-slate-950 font-bold shadow-xs"
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
@@ -329,7 +334,7 @@ export default function AdminTournamentStructurePage() {
         </div>
       </div>
       ) : (
-        <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center text-xs text-slate-500 dark:text-slate-400">
+        <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center text-xs text-slate-500 dark:text-slate-400 shrink-0">
           <span className="text-3xl block mb-2">🏆</span>
           <p className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">
             등록된 대회가 없습니다.
@@ -339,7 +344,7 @@ export default function AdminTournamentStructurePage() {
           </p>
           <Link
             href="/admin/tournaments"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#f99e1a] hover:bg-[#ea8c08] text-slate-950 shadow-sm transition-all"
           >
             + 새 대회 등록하기
           </Link>
@@ -347,20 +352,21 @@ export default function AdminTournamentStructurePage() {
       )}
 
       {/* 3) 2단 분할 레이아웃 */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 min-h-0">
         {/* ========================================================= */}
         {/* 탭 1: 참가 인원 및 역할 관리 */}
         {/* ========================================================= */}
         {activeTab === "participants" && (
           <>
             {/* 좌측 7컬럼: 참가 인원 조회 카드 */}
-            <div className="xl:col-span-7 space-y-4">
+            <div className="xl:col-span-7 h-full min-h-0 flex flex-col">
               <AdminCard
                 title="대회 참가 인원 및 역할 배정 현황"
                 countBadge={`총 ${countStats.total}명 참가`}
+                className="h-full"
               >
                 {/* 상단 통계 배지 요약 바 */}
-                <div className="grid grid-cols-4 gap-2 mb-4">
+                <div className="grid grid-cols-4 gap-2 mb-3 shrink-0">
                   <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 text-center">
                     <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block">
                       총 참가 인원
@@ -377,11 +383,11 @@ export default function AdminTournamentStructurePage() {
                       {countStats.captains}명
                     </span>
                   </div>
-                  <div className="bg-blue-50/70 dark:bg-blue-950/30 p-2.5 rounded-xl border border-blue-200/60 dark:border-blue-900/40 text-center">
-                    <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 block">
+                  <div className="bg-amber-500/10 dark:bg-amber-500/15 p-2.5 rounded-xl border border-amber-500/30 text-center">
+                    <span className="text-[10px] font-semibold text-[#f99e1a] dark:text-amber-400 block">
                       선수 (Players)
                     </span>
-                    <span className="text-base font-extrabold text-blue-700 dark:text-blue-300">
+                    <span className="text-base font-extrabold text-[#f99e1a] dark:text-amber-300">
                       {countStats.players}명
                     </span>
                   </div>
@@ -396,10 +402,10 @@ export default function AdminTournamentStructurePage() {
                 </div>
 
                 {/* 검색 및 역할 필터 바 */}
-                <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-4 space-y-2.5">
+                <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-3 space-y-2.5 shrink-0">
                   <input
                     type="text"
-                    className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                     placeholder="참가자 이름, 채널 또는 소속팀 검색..."
                     value={participantSearch}
                     onChange={(e) => setParticipantSearch(e.target.value)}
@@ -414,7 +420,7 @@ export default function AdminTournamentStructurePage() {
                           onClick={() => setParticipantRoleFilter(role)}
                           className={`px-2.5 py-1 text-xs rounded-lg font-semibold transition-all ${
                             participantRoleFilter === role
-                              ? "bg-blue-600 text-white shadow-xs"
+                              ? "bg-[#f99e1a] text-slate-950 font-bold shadow-xs"
                               : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700"
                           }`}
                         >
@@ -434,24 +440,24 @@ export default function AdminTournamentStructurePage() {
                   </div>
                 </div>
 
-                {/* 참가 인원 테이블 */}
-                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                {/* 참가 인원 테이블 (그리드 내부 스크롤) */}
+                <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 custom-scrollbar relative">
                   <table className="w-full text-left text-xs divide-y divide-slate-200 dark:divide-slate-800">
-                    <thead>
-                      <tr className="bg-slate-50 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 font-semibold">
-                        <th className="px-3.5 py-3">스트리머</th>
-                        <th className="px-3.5 py-3 w-20">구분</th>
-                        <th className="px-3.5 py-3">배정된 역할</th>
-                        <th className="px-3.5 py-3 w-24">소속 팀</th>
-                        <th className="px-3.5 py-3 w-24">참가일자</th>
+                    <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#151c2e] shadow-2xs">
+                      <tr className="text-slate-600 dark:text-slate-300 font-semibold">
+                        <th className="px-3.5 py-2.5 bg-slate-100 dark:bg-[#151c2e]">스트리머</th>
+                        <th className="px-3.5 py-2.5 w-20 bg-slate-100 dark:bg-[#151c2e]">구분</th>
+                        <th className="px-3.5 py-2.5 bg-slate-100 dark:bg-[#151c2e]">배정된 역할</th>
+                        <th className="px-3.5 py-2.5 w-24 bg-slate-100 dark:bg-[#151c2e]">소속 팀</th>
+                        <th className="px-3.5 py-2.5 w-24 bg-slate-100 dark:bg-[#151c2e]">참가일자</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
                       {filteredParticipants.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="px-3.5 py-12 text-center text-slate-400 dark:text-slate-500">
+                          <td colSpan={5} className="px-3.5 py-16 text-center text-slate-400 dark:text-slate-500">
                             <div className="flex flex-col items-center justify-center gap-2">
-                              <span className="text-2xl">🎮</span>
+                              <span className="text-3xl">🎮</span>
                               <p className="font-semibold text-xs text-slate-700 dark:text-slate-300">
                                 {currentTournamentParticipants.length === 0
                                   ? "현재 대회에 참가 신청된 스트리머가 없습니다."
@@ -473,7 +479,7 @@ export default function AdminTournamentStructurePage() {
                               key={p.id}
                               className={`cursor-pointer transition-colors ${
                                 isSelected
-                                  ? "bg-blue-50/80 dark:bg-blue-950/40 font-medium"
+                                  ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium border-l-2 border-[#f99e1a]"
                                   : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                               }`}
                               onClick={() => handleSelectParticipant(p)}
@@ -490,7 +496,7 @@ export default function AdminTournamentStructurePage() {
                                       }}
                                     />
                                   ) : (
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-xs">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-xs">
                                       {p.memberName.slice(0, 1)}
                                     </div>
                                   )}
@@ -560,9 +566,10 @@ export default function AdminTournamentStructurePage() {
             </div>
 
             {/* 우측 5컬럼: 참가 등록 & 역할 배정 폼 */}
-            <div className="xl:col-span-5">
+            <div className="xl:col-span-5 h-full min-h-0 flex flex-col">
               <AdminCard
                 title={selectedParticipantId ? "참가자 역할 수정" : "대회 참가 등록 및 역할 배정"}
+                className="h-full"
                 actions={
                   <AdminFormActions
                     onSave={handleSaveParticipant}
@@ -574,7 +581,7 @@ export default function AdminTournamentStructurePage() {
                   />
                 }
               >
-                <div className="space-y-4">
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1.5 custom-scrollbar">
                   {/* 스트리머 선택 (신규 등록 시 드롭다운, 수정 시 정보 표시) */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -590,7 +597,7 @@ export default function AdminTournamentStructurePage() {
                         return (
                           <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-xs">
+                              <div className="w-8 h-8 rounded-full bg-[#f99e1a] text-slate-950 font-bold flex items-center justify-center text-xs shadow-xs">
                                 {target?.memberName.slice(0, 1)}
                               </div>
                               <div>
@@ -630,7 +637,7 @@ export default function AdminTournamentStructurePage() {
                             onChange={(e) =>
                               setParticipantForm((p) => ({ ...p, memberId: e.target.value }))
                             }
-                            className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                           >
                             <option value="">스트리머를 선택하세요...</option>
                             {members.map((m) => {
@@ -666,7 +673,7 @@ export default function AdminTournamentStructurePage() {
                           role === "팀장"
                             ? "bg-amber-600 text-white border-amber-600 shadow-sm"
                             : role === "선수"
-                            ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                            ? "bg-[#f99e1a] text-slate-950 font-bold border-[#f99e1a] shadow-sm"
                             : "bg-purple-600 text-white border-purple-600 shadow-sm";
 
                         return (
@@ -703,7 +710,7 @@ export default function AdminTournamentStructurePage() {
                     </label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                       placeholder="예: 러너팀, A조 1번 시드팀 등"
                       value={participantForm.teamName}
                       onChange={(e) =>
@@ -723,7 +730,7 @@ export default function AdminTournamentStructurePage() {
                     </div>
                     <ul className="text-[11px] text-slate-500 dark:text-slate-400 space-y-1 list-disc list-inside">
                       <li><strong className="text-amber-600 dark:text-amber-400">팀장</strong>: 조 편성 및 픽밴 회의, 팀원 경매/지명 권한</li>
-                      <li><strong className="text-blue-600 dark:text-blue-400">선수</strong>: 실제 본선 및 세트 경기에 출전하는 플레이어</li>
+                      <li><strong className="text-[#f99e1a] dark:text-amber-400">선수</strong>: 실제 본선 및 세트 경기에 출전하는 플레이어</li>
                       <li><strong className="text-purple-600 dark:text-purple-400">감독</strong>: 밴픽 전략 및 팀 멘토링 전담 역할</li>
                     </ul>
                   </div>
@@ -737,10 +744,11 @@ export default function AdminTournamentStructurePage() {
         {/* 탭 2: 조별 편성 */}
         {/* ========================================================= */}
         {activeTab === "groups" && (
-          <div className="xl:col-span-12">
+          <div className="xl:col-span-12 h-full min-h-0 flex flex-col">
             <AdminCard
               title="조별 예선 그룹 편성 (Group Stage)"
               countBadge={`총 ${groups.length}개조`}
+              className="h-full"
               actions={
                 <button
                   type="button"
@@ -758,7 +766,7 @@ export default function AdminTournamentStructurePage() {
               }
             >
               {groups.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 dark:text-slate-500">
+                <div className="text-center py-16 text-slate-400 dark:text-slate-500 flex-1 min-h-0 flex flex-col justify-center items-center">
                   <span className="text-3xl block mb-2">📋</span>
                   <p className="font-semibold text-xs text-slate-700 dark:text-slate-300 mb-1">
                     편성된 조별 예선 그룹이 없습니다.
@@ -769,13 +777,13 @@ export default function AdminTournamentStructurePage() {
                   <button
                     type="button"
                     onClick={() => setActiveTab("participants")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-500 transition-all"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#f99e1a] text-slate-950 hover:bg-[#ea8c08] transition-all"
                   >
                     참가 인원 및 역할 탭으로 이동 →
                   </button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1.5 custom-scrollbar">
                   {groups.map((grp) => (
                     <div
                       key={grp.name}
@@ -834,12 +842,13 @@ export default function AdminTournamentStructurePage() {
         {/* 탭 3: 토너먼트 트리 */}
         {/* ========================================================= */}
         {activeTab === "bracket" && (
-          <div className="xl:col-span-12">
+          <div className="xl:col-span-12 h-full min-h-0 flex flex-col">
             <AdminCard
               title="본선 토너먼트 대진 브래킷"
               countBadge="4강 토너먼트"
+              className="h-full"
             >
-              <div className="text-center py-12 text-slate-400 dark:text-slate-500">
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 custom-scrollbar flex flex-col justify-center text-center py-16 text-slate-400 dark:text-slate-500">
                 <span className="text-3xl block mb-2">🎯</span>
                 <p className="font-semibold text-xs text-slate-700 dark:text-slate-300 mb-1">
                   생성된 본선 대진표가 없습니다.
@@ -857,15 +866,15 @@ export default function AdminTournamentStructurePage() {
         {/* ========================================================= */}
         {activeTab === "rules" && (
           <>
-            <div className="xl:col-span-7">
-              <AdminCard title="세트별 진행 맵 및 룰 구성" countBadge="표준 OW2 규정">
-                <div className="space-y-3 text-xs">
+            <div className="xl:col-span-7 h-full min-h-0 flex flex-col">
+              <AdminCard title="세트별 진행 맵 및 룰 구성" countBadge="표준 OW2 규정" className="h-full">
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-3 text-xs pr-1.5 custom-scrollbar">
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
                     <div>
                       <div className="font-bold text-slate-800 dark:text-slate-200">1세트: 쟁탈 (Control)</div>
                       <div className="text-slate-500 text-[11px]">고정 맵풀: 네팔, 일리오스, 오아시스</div>
                     </div>
-                    <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">Bo3 필수</span>
+                    <span className="font-mono text-amber-500 dark:text-amber-400 font-bold">Bo3 필수</span>
                   </div>
 
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
@@ -873,7 +882,7 @@ export default function AdminTournamentStructurePage() {
                       <div className="font-bold text-slate-800 dark:text-slate-200">2세트: 혼합 (Hybrid)</div>
                       <div className="text-slate-500 text-[11px]">고정 맵풀: 왕의 길, 눔바니, 미드타운</div>
                     </div>
-                    <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">Bo3 필수</span>
+                    <span className="font-mono text-amber-500 dark:text-amber-400 font-bold">Bo3 필수</span>
                   </div>
 
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
@@ -881,7 +890,7 @@ export default function AdminTournamentStructurePage() {
                       <div className="font-bold text-slate-800 dark:text-slate-200">3세트: 플래시포인트 / 밀기</div>
                       <div className="text-slate-500 text-[11px]">고정 맵풀: 수라바사, 뉴 정크 시티, 이스페란사</div>
                     </div>
-                    <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">Bo3 결정세트</span>
+                    <span className="font-mono text-amber-500 dark:text-amber-400 font-bold">Bo3 결정세트</span>
                   </div>
 
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
@@ -895,9 +904,10 @@ export default function AdminTournamentStructurePage() {
               </AdminCard>
             </div>
 
-            <div className="xl:col-span-5">
+            <div className="xl:col-span-5 h-full min-h-0 flex flex-col">
               <AdminCard
                 title="대회 규정 및 세부 설정"
+                className="h-full"
                 actions={
                   <AdminFormActions
                     onSave={handleSaveStructure}
@@ -907,7 +917,7 @@ export default function AdminTournamentStructurePage() {
                   />
                 }
               >
-                <div className="space-y-4">
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1.5 custom-scrollbar">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
                       조별 풀리그 경기 방식
@@ -997,7 +1007,7 @@ export default function AdminTournamentStructurePage() {
                         onChange={(e) =>
                           setRuleConfig({ ...ruleConfig, heroBanEnabled: e.target.checked })
                         }
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                        className="w-4 h-4 rounded text-[#f99e1a] focus:ring-[#f99e1a] accent-[#f99e1a]"
                       />
                     </div>
 

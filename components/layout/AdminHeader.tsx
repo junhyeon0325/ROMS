@@ -1,36 +1,23 @@
 // components/layout/AdminHeader.tsx
-// 관리자 공통 상단 헤더 (메뉴 검색 및 전역 토스트 알림)
+// 관리자 공통 상단 헤더 (페이지 제목/설명 및 브레드크럼, 전역 토스트 알림)
 "use client";
 
 import React from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useAdmin } from "@/lib/context/AdminContext";
 import { ADMIN_NAV_ITEMS } from "@/lib/constants/navigation";
 
 export default function AdminHeader() {
-  const router = useRouter();
   const pathname = usePathname();
-  const { menuSearchQuery, setMenuSearchQuery, toastMessage } = useAdmin();
+  const { toastMessage } = useAdmin();
 
   // 브레드크럼 매핑 계산
   const getBreadcrumbs = () => {
     if (pathname === "/admin") {
       return ["ROMS 시스템 관리", "대시보드"];
     }
-    if (pathname === "/admin/tournaments") {
-      return ["공통관리", "대회등록"];
-    }
-    if (pathname === "/admin/members") {
-      return ["공통관리", "팀장·선수·감독 등록"];
-    }
-    if (pathname === "/admin/maps") {
-      return ["공통관리", "맵(전장) 등록"];
-    }
-    if (pathname === "/admin/codes") {
-      return ["공통관리", "공통코드 관리"];
-    }
 
-    // fallback 매핑
+    // ADMIN_NAV_ITEMS 트리 기반 매핑
     for (const group of ADMIN_NAV_ITEMS) {
       if (group.children) {
         for (const sub of group.children) {
@@ -42,60 +29,84 @@ export default function AdminHeader() {
         return [group.label];
       }
     }
-    return ["공통관리", "대회등록"];
+
+    // 기본 fallback 매핑
+    if (pathname.startsWith("/admin/tournaments/structure")) {
+      return ["대회 관리", "대회 구성 관리"];
+    }
+    if (pathname.startsWith("/admin/tournaments")) {
+      return ["대회 관리", "대회 등록"];
+    }
+    return ["ROMS 시스템 관리", "관리자 화면"];
   };
 
   const breadcrumbs = getBreadcrumbs();
 
-  // 검색 가능한 전체 메뉴 평탄화
-  const allNavLinks: { label: string; href: string }[] = [];
-  ADMIN_NAV_ITEMS.forEach((item) => {
-    if (item.children) {
-      item.children.forEach((sub) => {
-        if (sub.href) allNavLinks.push({ label: sub.label, href: sub.href });
-      });
-    } else if (item.href) {
-      allNavLinks.push({ label: item.label, href: item.href });
+  // 현재 페이지의 제목과 설명 매핑
+  const getPageInfo = () => {
+    if (pathname === "/admin") {
+      return {
+        title: "대시보드",
+        description: "ROMS 시스템 통합 현황 및 실시간 관제 지표",
+      };
     }
-  });
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && menuSearchQuery.trim()) {
-      const match = allNavLinks.find((m) =>
-        m.label.toLowerCase().includes(menuSearchQuery.trim().toLowerCase()),
-      );
-      if (match) {
-        router.push(match.href);
+    for (const group of ADMIN_NAV_ITEMS) {
+      if (group.children) {
+        for (const sub of group.children) {
+          if (sub.href === pathname) {
+            return {
+              title: sub.label,
+              description: sub.description || "",
+            };
+          }
+        }
+      } else if (group.href === pathname) {
+        return {
+          title: group.label,
+          description: group.description || "",
+        };
       }
     }
+
+    if (pathname.startsWith("/admin/tournaments/structure")) {
+      return {
+        title: "대회 구성 관리",
+        description: "대회별 참가 스트리머의 역할(팀장·선수·감독)을 배정하고, 조 편성(Group Stage), 세트 및 대진 규칙을 구성합니다.",
+      };
+    }
+    if (pathname.startsWith("/admin/tournaments")) {
+      return {
+        title: "대회 등록",
+        description: "시즌 및 정규 리그 대회 정보를 등록하고 진행 상태와 상금 규모를 관리할 수 있습니다.",
+      };
+    }
+
+    return {
+      title: "ROMS 시스템 관리",
+      description: "ROMS 관리자 시스템 페이지",
+    };
   };
+
+  const pageInfo = getPageInfo();
 
   return (
     <>
       <header className="h-16 px-6 md:px-8 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#111726]/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-xs md:max-w-sm">
-          <input
-            type="text"
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-all shadow-inner"
-            placeholder="메뉴 검색 (예: 대회, 맵, 팀장, 코드...)"
-            value={menuSearchQuery}
-            onChange={(e) => setMenuSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
+        {/* 페이지 제목 및 설명 (기존 메뉴 검색 위치) */}
+        <div className="flex flex-col justify-center min-w-0 pr-4">
+          <h1 className="text-sm md:text-base font-bold text-slate-900 dark:text-white tracking-tight leading-none truncate">
+            {pageInfo.title}
+          </h1>
+          {pageInfo.description && (
+            <p className="text-[11px] md:text-xs text-slate-500 dark:text-slate-400 truncate max-w-md lg:max-w-xl xl:max-w-2xl mt-1 leading-none">
+              {pageInfo.description}
+            </p>
+          )}
         </div>
 
-        {/* 메뉴 검색 라인 우측 사이드 브레드크럼 */}
-        <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 font-medium">
+        {/* 우측 사이드 브레드크럼 */}
+        <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 font-medium shrink-0">
           {breadcrumbs.map((crumb, idx) => (
             <React.Fragment key={idx}>
               {idx > 0 && <span className="text-slate-300 dark:text-slate-600 font-mono text-[10px]">&gt;</span>}
@@ -123,3 +134,4 @@ export default function AdminHeader() {
     </>
   );
 }
+

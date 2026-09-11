@@ -4,7 +4,6 @@
 import React, { useState } from "react";
 import { useAdmin } from "@/lib/context/AdminContext";
 import { TournamentItem } from "@/lib/types/admin";
-import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
 
@@ -17,17 +16,18 @@ export default function AdminTournamentsPage() {
     접수중: true,
     종료: true,
   });
-  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>("TOUR-005");
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
   const [tournamentForm, setTournamentForm] = useState({
-    name: "러너리그 Season 05",
-    status: "진행중" as "진행중" | "접수중" | "종료",
-    organizer: "러너 (Runner)",
-    period: "2026.07.15 ~ 2026.08.30",
+    name: "",
+    status: "접수중" as "진행중" | "접수중" | "종료",
+    organizer: "",
+    period: "",
     teams: 8,
-    prize: "10,000,000원",
-    desc: "오버워치 2 러너 정규 e스포츠 리그 시즌 5",
+    prize: "",
+    desc: "",
   });
+
 
   const filteredTournamentList = tournaments.filter((t) => {
     const matchSearch =
@@ -94,13 +94,7 @@ export default function AdminTournamentsPage() {
 
   return (
     <section className="space-y-6">
-      {/* 1) 메인 타이틀 & 부연 설명 */}
-      <AdminPageHeader
-        title="대회 등록"
-        description="시즌 및 정규 리그 대회 정보를 등록하고 진행 상태와 상금 규모를 관리할 수 있습니다."
-      />
-
-      {/* 2) 2단 분할 레이아웃 */}
+      {/* 2단 분할 레이아웃 */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         {/* [좌측 7컬럼] 등록된 대회 조회 */}
         <div className="xl:col-span-7">
@@ -170,7 +164,23 @@ export default function AdminTournamentsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
-                  {filteredTournamentList.map((t) => {
+                  {filteredTournamentList.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-3.5 py-12 text-center text-slate-400 dark:text-slate-500">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <span className="text-2xl">🏆</span>
+                          <p className="font-semibold text-xs text-slate-700 dark:text-slate-300">
+                            등록된 대회가 없습니다.
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            우측 등록 폼에서 새로운 대회를 생성해주세요.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredTournamentList.map((t) => {
+
                     const isSelected = selectedTournamentId === t.id;
                     return (
                       <tr
@@ -216,7 +226,8 @@ export default function AdminTournamentsPage() {
                         </td>
                       </tr>
                     );
-                  })}
+                  })
+                )}
                 </tbody>
               </table>
             </div>

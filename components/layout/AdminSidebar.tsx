@@ -4,16 +4,18 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ADMIN_NAV_ITEMS } from "@/lib/constants/navigation";
 import { useAdmin } from "@/lib/context/AdminContext";
 
 export default function AdminSidebar() {
+  const router = useRouter();
   const pathname = usePathname();
-  const { menuSearchQuery, isDarkMode, toggleDarkMode } = useAdmin();
+  const { menuSearchQuery, setMenuSearchQuery, isDarkMode, toggleDarkMode } = useAdmin();
 
   // 대메뉴 접기/펼치기 상태 관리 (기본적으로 모두 펼침)
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    tournaments: true,
     common: true,
   });
 
@@ -30,13 +32,37 @@ export default function AdminSidebar() {
     return label.toLowerCase().includes(menuSearchQuery.trim().toLowerCase());
   };
 
+  // 검색 가능한 전체 메뉴 평탄화 (Enter 네비게이션용)
+  const allNavLinks: { label: string; href: string }[] = [];
+  ADMIN_NAV_ITEMS.forEach((item) => {
+    if (item.children) {
+      item.children.forEach((sub) => {
+        if (sub.href) allNavLinks.push({ label: sub.label, href: sub.href });
+      });
+    } else if (item.href) {
+      allNavLinks.push({ label: item.label, href: item.href });
+    }
+  });
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && menuSearchQuery.trim()) {
+      const match = allNavLinks.find((m) =>
+        m.label.toLowerCase().includes(menuSearchQuery.trim().toLowerCase()),
+      );
+      if (match) {
+        router.push(match.href);
+      }
+    }
+  };
+
   return (
     <aside className="w-64 bg-white dark:bg-[#111726] border-r border-slate-200 dark:border-slate-800 flex flex-col p-5 md:p-6 sticky top-0 h-screen shrink-0 z-30 justify-between">
-      {/* 1) 브랜드 로고 */}
-      <div>
+      {/* 1) 브랜드 로고 & 메뉴 검색 & 네비게이션 메뉴 */}
+      <div className="flex flex-col flex-1 min-h-0 mb-3">
+        {/* 로고 */}
         <Link
           href="/admin"
-          className="font-black text-xl tracking-tight mb-6 pb-4 border-b border-slate-200/80 dark:border-slate-800 flex items-center gap-1 text-slate-900 dark:text-white"
+          className="font-black text-xl tracking-tight mb-4 pb-3 border-b border-slate-200/80 dark:border-slate-800 flex items-center gap-1 text-slate-900 dark:text-white shrink-0"
           title="관리자 대시보드로 이동"
         >
           RO<span className="text-blue-600">MS</span>{" "}
@@ -45,12 +71,47 @@ export default function AdminSidebar() {
           </span>
         </Link>
 
+        {/* 좌측 메뉴 검색 입력창 */}
+        <div className="relative mb-3 shrink-0">
+          <div className="relative">
+            <input
+              type="text"
+              className="w-full pl-8 pr-7 py-2 text-xs rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 focus:border-blue-500 dark:focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-all shadow-2xs"
+              placeholder="메뉴 검색..."
+              value={menuSearchQuery}
+              onChange={(e) => setMenuSearchQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <svg
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            {menuSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setMenuSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 text-[10px] transition-colors"
+                title="검색어 초기화"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* 2) 네비게이션 메뉴 */}
-        <div className="space-y-1.5 overflow-y-auto max-h-[calc(100vh-220px)] pr-1">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1 py-1">
           {ADMIN_NAV_ITEMS.map((item) => {
             // 하위 메뉴가 있는 대메뉴 그룹인 경우
             if (item.children && item.children.length > 0) {
-              const isOpen = openGroups[item.id] ?? true;
+              const hasMatchingChild = item.children.some((sub) => isMatchSearch(sub.label));
+              const isOpen = (menuSearchQuery.trim() && hasMatchingChild) ? true : (openGroups[item.id] ?? true);
 
               return (
                 <div key={item.id} className="space-y-1">
@@ -61,15 +122,34 @@ export default function AdminSidebar() {
                     title={item.label}
                   >
                     <div className="flex items-center gap-2">
-                      <svg
-                        className="w-4 h-4 text-slate-400"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                      </svg>
+                      {item.id === "tournaments" ? (
+                        <svg
+                          className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                          <path d="M4 22h16" />
+                          <path d="M10 14.66V17c0 .55-.45 1-1 1H7" />
+                          <path d="M14 14.66V17c0 .55.45 1 1 1h2" />
+                          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-4 h-4 text-slate-400 shrink-0"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                        </svg>
+                      )}
                       <span>{item.label}</span>
                     </div>
                     <svg

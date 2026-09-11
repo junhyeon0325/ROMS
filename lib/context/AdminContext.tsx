@@ -2,10 +2,11 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { MemberItem, TournamentItem, MapItem, CodeItem } from "@/lib/types/admin";
+import { MemberItem, TournamentItem, MapItem, CodeItem, TournamentParticipant } from "@/lib/types/admin";
 import {
   initialMembers,
   initialTournaments,
+  initialParticipants,
   initialMaps,
   initialCodes,
 } from "@/lib/mock/adminData";
@@ -15,6 +16,8 @@ interface AdminContextType {
   setMembers: React.Dispatch<React.SetStateAction<MemberItem[]>>;
   tournaments: TournamentItem[];
   setTournaments: React.Dispatch<React.SetStateAction<TournamentItem[]>>;
+  participants: TournamentParticipant[];
+  setParticipants: React.Dispatch<React.SetStateAction<TournamentParticipant[]>>;
   maps: MapItem[];
   setMaps: React.Dispatch<React.SetStateAction<MapItem[]>>;
   codes: CodeItem[];
@@ -32,6 +35,7 @@ const AdminContext = createContext<AdminContextType | undefined>(undefined);
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [members, setMembers] = useState<MemberItem[]>(initialMembers);
   const [tournaments, setTournaments] = useState<TournamentItem[]>(initialTournaments);
+  const [participants, setParticipants] = useState<TournamentParticipant[]>(initialParticipants);
   const [maps, setMaps] = useState<MapItem[]>(initialMaps);
   const [codes, setCodes] = useState<CodeItem[]>(initialCodes);
 
@@ -80,6 +84,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         setMembers,
         tournaments,
         setTournaments,
+        participants,
+        setParticipants,
         maps,
         setMaps,
         codes,

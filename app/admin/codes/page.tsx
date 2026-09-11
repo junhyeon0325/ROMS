@@ -4,7 +4,6 @@
 import React, { useState } from "react";
 import { useAdmin } from "@/lib/context/AdminContext";
 import { CodeItem } from "@/lib/types/admin";
-import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
 
@@ -13,17 +12,18 @@ export default function AdminCodesPage() {
 
   const [codeGroupFilter, setCodeGroupFilter] = useState("ALL");
   const [codeSearch, setCodeSearch] = useState("");
-  const [selectedCodeId, setSelectedCodeId] = useState<string | null>("LEAD");
+  const [selectedCodeId, setSelectedCodeId] = useState<string | null>(null);
 
   const [codeForm, setCodeForm] = useState({
     group: "MEMBER_ROLE",
-    code: "LEAD",
-    name: "팀장",
-    nameEn: "Team Leader",
+    code: "",
+    name: "",
+    nameEn: "",
     sort: 1,
     useYn: "Y" as "Y" | "N",
-    desc: "대회 참가 팀장",
+    desc: "",
   });
+
 
   const filteredCodeList = codes.filter((c) => {
     const matchGroup = codeGroupFilter === "ALL" || c.group === codeGroupFilter;
@@ -86,13 +86,7 @@ export default function AdminCodesPage() {
 
   return (
     <section className="space-y-6">
-      {/* 1) 메인 타이틀 & 부연 설명 */}
-      <AdminPageHeader
-        title="공통코드 관리"
-        description="시스템 표준 마스터 코드 그룹을 조회하고 상세 코드를 신규 등록 및 체계적으로 관리할 수 있습니다."
-      />
-
-      {/* 2) 2단 분할 레이아웃 */}
+      {/* 2단 분할 레이아웃 */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         {/* [좌측 7컬럼] 등록된 코드 조회 */}
         <div className="xl:col-span-7">
@@ -152,46 +146,62 @@ export default function AdminCodesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
-                  {filteredCodeList.map((c) => {
-                    const isSelected = selectedCodeId === c.code;
-                    return (
-                      <tr
-                        key={c.code}
-                        className={`cursor-pointer transition-colors ${
-                          isSelected
-                            ? "bg-blue-50/80 dark:bg-blue-950/40 font-medium"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                        }`}
-                        onClick={() => handleSelectCode(c)}
-                      >
-                        <td className="px-3.5 py-3 font-mono font-bold text-blue-600 dark:text-blue-400">
-                          {c.code}
-                        </td>
-                        <td className="px-3.5 py-3">
-                          <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                            {c.name}
-                          </div>
-                          <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                            {c.nameEn} · [{c.group}]
-                          </div>
-                        </td>
-                        <td className="px-3.5 py-3 text-slate-500 dark:text-slate-400 font-mono">
-                          {c.sort}
-                        </td>
-                        <td className="px-3.5 py-3">
-                          <span
-                            className={`text-xs font-bold ${
-                              c.useYn === "Y"
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-slate-400 dark:text-slate-600"
-                            }`}
-                          >
-                            {c.useYn === "Y" ? "사용" : "미사용"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredCodeList.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-3.5 py-12 text-center text-slate-400 dark:text-slate-500">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <span className="text-2xl">⚙️</span>
+                          <p className="font-semibold text-xs text-slate-700 dark:text-slate-300">
+                            등록된 공통코드가 없습니다.
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            우측 등록 폼에서 새로운 시스템 코드를 등록해주세요.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredCodeList.map((c) => {
+                      const isSelected = selectedCodeId === c.code;
+                      return (
+                        <tr
+                          key={c.code}
+                          className={`cursor-pointer transition-colors ${
+                            isSelected
+                              ? "bg-blue-50/80 dark:bg-blue-950/40 font-medium"
+                              : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                          }`}
+                          onClick={() => handleSelectCode(c)}
+                        >
+                          <td className="px-3.5 py-3 font-mono font-bold text-blue-600 dark:text-blue-400">
+                            {c.code}
+                          </td>
+                          <td className="px-3.5 py-3">
+                            <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                              {c.name}
+                            </div>
+                            <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                              {c.nameEn} · [{c.group}]
+                            </div>
+                          </td>
+                          <td className="px-3.5 py-3 text-slate-500 dark:text-slate-400 font-mono">
+                            {c.sort}
+                          </td>
+                          <td className="px-3.5 py-3">
+                            <span
+                              className={`text-xs font-bold ${
+                                c.useYn === "Y"
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-slate-400 dark:text-slate-600"
+                              }`}
+                            >
+                              {c.useYn === "Y" ? "사용" : "미사용"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>

@@ -4,7 +4,6 @@
 import React, { useState } from "react";
 import { useAdmin } from "@/lib/context/AdminContext";
 import { MapItem } from "@/lib/types/admin";
-import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
 
@@ -19,16 +18,17 @@ export default function AdminMapsPage() {
     플래시포인트: true,
     밀기: true,
   });
-  const [selectedMapId, setSelectedMapId] = useState<string | null>("MAP-01");
+  const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
 
   const [mapForm, setMapForm] = useState({
-    nameKr: "왕의 길",
-    nameEn: "King's Row",
+    nameKr: "",
+    nameEn: "",
     mode: "혼합" as "혼합" | "호위" | "쟁탈" | "플래시포인트" | "밀기",
-    location: "영국 런던",
+    location: "",
     isActive: true,
-    desc: "좁은 골목길과 지하 거점이 특징인 전통적인 인기 하이브리드 전장.",
+    desc: "",
   });
+
 
   const filteredMapList = maps.filter((m) => {
     const matchSearch =
@@ -92,13 +92,7 @@ export default function AdminMapsPage() {
 
   return (
     <section className="space-y-6">
-      {/* 1) 메인 타이틀 & 부연 설명 */}
-      <AdminPageHeader
-        title="맵(전장) 등록"
-        description="오버워치 2 공식 전장(맵)과 게임 모드를 등록하고 공식 맵풀 운영 여부를 관리할 수 있습니다."
-      />
-
-      {/* 2) 2단 분할 레이아웃 */}
+      {/* 2단 분할 레이아웃 */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         {/* [좌측 7컬럼] 등록된 전장 조회 */}
         <div className="xl:col-span-7">
@@ -165,48 +159,64 @@ export default function AdminMapsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
-                  {filteredMapList.map((m) => {
-                    const isSelected = selectedMapId === m.id;
-                    return (
-                      <tr
-                        key={m.id}
-                        className={`cursor-pointer transition-colors ${
-                          isSelected
-                            ? "bg-blue-50/80 dark:bg-blue-950/40 font-medium"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                        }`}
-                        onClick={() => handleSelectMap(m)}
-                      >
-                        <td className="px-3.5 py-3">
-                          <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                            {m.nameKr}
-                          </div>
-                          <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                            {m.nameEn} · {m.id}
-                          </div>
-                        </td>
-                        <td className="px-3.5 py-3">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900">
-                            {m.mode}
-                          </span>
-                        </td>
-                        <td className="px-3.5 py-3 text-slate-600 dark:text-slate-300">
-                          {m.location}
-                        </td>
-                        <td className="px-3.5 py-3">
-                          <span
-                            className={`text-xs font-bold ${
-                              m.isActive
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-slate-400 dark:text-slate-600"
-                            }`}
-                          >
-                            {m.isActive ? "공식 승인" : "미지정"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredMapList.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-3.5 py-12 text-center text-slate-400 dark:text-slate-500">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <span className="text-2xl">🗺️</span>
+                          <p className="font-semibold text-xs text-slate-700 dark:text-slate-300">
+                            등록된 전장(맵)이 없습니다.
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            우측 등록 폼에서 새로운 전장을 등록해주세요.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredMapList.map((m) => {
+                      const isSelected = selectedMapId === m.id;
+                      return (
+                        <tr
+                          key={m.id}
+                          className={`cursor-pointer transition-colors ${
+                            isSelected
+                              ? "bg-blue-50/80 dark:bg-blue-950/40 font-medium"
+                              : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                          }`}
+                          onClick={() => handleSelectMap(m)}
+                        >
+                          <td className="px-3.5 py-3">
+                            <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                              {m.nameKr}
+                            </div>
+                            <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                              {m.nameEn} · {m.id}
+                            </div>
+                          </td>
+                          <td className="px-3.5 py-3">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900">
+                              {m.mode}
+                            </span>
+                          </td>
+                          <td className="px-3.5 py-3 text-slate-600 dark:text-slate-300">
+                            {m.location}
+                          </td>
+                          <td className="px-3.5 py-3">
+                            <span
+                              className={`text-xs font-bold ${
+                                m.isActive
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-slate-400 dark:text-slate-600"
+                              }`}
+                            >
+                              {m.isActive ? "공식 승인" : "미지정"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>

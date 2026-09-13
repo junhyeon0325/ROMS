@@ -21,6 +21,7 @@ export default function AdminSidebar() {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     tournaments: true,
     common: true,
+    developer: true,
   });
 
   const toggleGroup = (groupId: string) => {
@@ -142,6 +143,19 @@ export default function AdminSidebar() {
                           <path d="M10 14.66V17c0 .55-.45 1-1 1H7" />
                           <path d="M14 14.66V17c0 .55.45 1 1 1h2" />
                           <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                        </svg>
+                      ) : item.id === "developer" ? (
+                        <svg
+                          className="w-4 h-4 text-sky-500 dark:text-sky-400 shrink-0"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="16 18 22 12 16 6" />
+                          <polyline points="8 6 2 12 8 18" />
                         </svg>
                       ) : (
                         <svg

@@ -1,4 +1,4 @@
-# ROMS (Runner's Overwatch Match System) 메뉴구성도 (IA & Screen List)
+# ROMS (Runner-league Overwatch Management System) 메뉴구성도 (IA & Screen List)
 
 > **문서 버전**: v1.7 (게임 흐름 기반 매치 관리/상세 기록 입력 구조화 및 경기 결과 조회 메뉴 독립)  
 > **작성일**: 2026-07-30  

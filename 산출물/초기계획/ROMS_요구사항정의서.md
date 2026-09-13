@@ -1,4 +1,4 @@
-# ROMS (Runner's Overwatch Match System) 요구사항정의서
+# ROMS (Runner-league Overwatch Management System) 요구사항정의서
 
 > **문서 버전**: v1.11 (게임 흐름 기반 매치 선행 등록/상세 스탯 순차 입력 및 경기 결과 통합 조회 독립 메뉴 신설)  
 > **작성일**: 2026-07-30  
@@ -11,7 +11,7 @@
 
 ### 1.1 작성 목적
 
-본 요구사항정의서는 **ROMS (Runner's Overwatch Match System)** 프로젝트의 사용자 서비스 및 관리자 서비스 구축을 위해 구현되어야 하는 모든 기능적·비기능적 요구사항을 명확히 정의하고 표준화하는 문서입니다.
+본 요구사항정의서는 **ROMS (Runner-league Overwatch Management System)** 프로젝트의 사용자 서비스 및 관리자 서비스 구축을 위해 구현되어야 하는 모든 기능적·비기능적 요구사항을 명확히 정의하고 표준화하는 문서입니다.
 
 ### 1.2 시스템 개요
 

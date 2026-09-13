@@ -75,6 +75,13 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
                 href: "/admin/heroes",
                 description: "오버워치 영웅(돌격, 공격, 지원) 데이터 및 활성화/밴픽 상태 관리",
             },
+        ],
+    },
+    {
+        id: "developer",
+        label: "개발자 메뉴",
+        icon: "code",
+        children: [
             {
                 id: "code",
                 label: "공통코드 관리",

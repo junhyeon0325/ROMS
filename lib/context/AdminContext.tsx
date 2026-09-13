@@ -2,12 +2,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { MemberItem, TournamentItem, MapItem, CodeItem, TournamentParticipant } from "@/lib/types/admin";
+import { MemberItem, TournamentItem, MapItem, CodeGroupItem, CodeItem, TournamentParticipant } from "@/lib/types/admin";
 import {
   initialMembers,
   initialTournaments,
   initialParticipants,
   initialMaps,
+  initialCodeGroups,
   initialCodes,
 } from "@/lib/mock/adminData";
 
@@ -21,6 +22,8 @@ interface AdminContextType {
   setParticipants: React.Dispatch<React.SetStateAction<TournamentParticipant[]>>;
   maps: MapItem[];
   setMaps: React.Dispatch<React.SetStateAction<MapItem[]>>;
+  codeGroups: CodeGroupItem[];
+  setCodeGroups: React.Dispatch<React.SetStateAction<CodeGroupItem[]>>;
   codes: CodeItem[];
   setCodes: React.Dispatch<React.SetStateAction<CodeItem[]>>;
   toastMessage: string | null;
@@ -38,6 +41,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [tournaments, setTournaments] = useState<TournamentItem[]>(initialTournaments);
   const [participants, setParticipants] = useState<TournamentParticipant[]>(initialParticipants);
   const [maps, setMaps] = useState<MapItem[]>(initialMaps);
+  const [codeGroups, setCodeGroups] = useState<CodeGroupItem[]>(initialCodeGroups);
   const [codes, setCodes] = useState<CodeItem[]>(initialCodes);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -107,6 +111,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         setParticipants,
         maps,
         setMaps,
+        codeGroups,
+        setCodeGroups,
         codes,
         setCodes,
         toastMessage,

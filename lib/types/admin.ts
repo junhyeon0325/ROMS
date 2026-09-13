@@ -47,6 +47,15 @@ export interface MapItem {
   desc?: string;
 }
 
+export interface CodeGroupItem {
+  groupCode: string;
+  groupName: string;
+  description?: string;
+  sortOrder: number;
+  isUse: boolean;
+  createdAt?: string;
+}
+
 export interface CodeItem {
   group: string;
   code: string;
@@ -56,3 +65,4 @@ export interface CodeItem {
   useYn: "Y" | "N";
   desc?: string;
 }
+

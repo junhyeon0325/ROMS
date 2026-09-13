@@ -68,7 +68,7 @@ export default function UserDashboard() {
       <div className="max-w-6xl mx-auto px-6 md:px-12 pt-10 pb-10 relative overflow-hidden">
         <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-slate-800/10 border border-amber-500/20 dark:border-amber-500/20 rounded-3xl p-8 md:p-12 relative overflow-hidden">
           <div className="font-mono text-xs tracking-widest uppercase text-[#f99e1a] dark:text-amber-400 font-bold mb-3">
-            ROMS · Runner Overwatch Match System
+            ROMS · Runner-league Overwatch Management System
           </div>
           <h1 className="font-black text-2xl md:text-4xl text-slate-900 dark:text-white mb-3 tracking-tight">
             새로운 시즌 경기를 준비하고 있습니다

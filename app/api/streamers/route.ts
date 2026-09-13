@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { STREAMER_REG_CODES } from "@/lib/constants/codes";
 
 // BigInt 및 필드 직렬화 헬퍼 함수
 function formatStreamer(s: any) {
@@ -26,7 +27,7 @@ function formatStreamer(s: any) {
     profileImg: s.profileImageUrl || "",
     channelUrl: channelUrl,
     channelId: channelId,
-    type: channelUrl ? "치지직 연동" : "일반 등록",
+    type: channelUrl ? STREAMER_REG_CODES.CHZZK : STREAMER_REG_CODES.STANDARD,
     followers: channelUrl ? "연동됨" : "—",
     registeredDate: s.createdAt ? new Date(s.createdAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
     memo: s.remarks || "",
@@ -74,7 +75,10 @@ export async function POST(request: NextRequest) {
       data: {
         name: name.trim(),
         profileImageUrl: profileImg?.trim() || null,
-        chzzkChannelUrl: regType === "치지직 연동" ? channelUrl?.trim() || null : null,
+        chzzkChannelUrl:
+          (regType === STREAMER_REG_CODES.CHZZK || regType === "치지직 연동")
+            ? channelUrl?.trim() || null
+            : null,
         remarks: memo?.trim() || null,
         position: "DAMAGE",
       },
@@ -124,7 +128,10 @@ export async function PUT(request: NextRequest) {
       data: {
         name: name.trim(),
         profileImageUrl: profileImg?.trim() || null,
-        chzzkChannelUrl: regType === "치지직 연동" ? channelUrl?.trim() || null : null,
+        chzzkChannelUrl:
+          (regType === STREAMER_REG_CODES.CHZZK || regType === "치지직 연동")
+            ? channelUrl?.trim() || null
+            : null,
         remarks: memo?.trim() || null,
       },
     });

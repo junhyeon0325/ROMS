@@ -6,11 +6,16 @@
  */
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useAdmin } from "@/lib/context/AdminContext";
-import { MemberItem } from "@/lib/types/admin";
+import { MemberItem, CodeItem } from "@/lib/types/admin";
+import { CODE_GROUPS, STREAMER_REG_CODES, CHZZK_BASE_URL } from "@/lib/constants/codes";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
+import AdminAvatar, { MemberAvatar } from "@/components/admin/AdminAvatar";
+import AdminFilterTabs from "@/components/admin/AdminFilterTabs";
+import AdminSearchInput from "@/components/admin/AdminSearchInput";
+import { useCommonCodes } from "@/lib/hooks/useCommonCodes";
 
 // 치지직 후보 스트리머 인터페이스
 interface ChzzkCandidate {
@@ -24,50 +29,24 @@ interface ChzzkCandidate {
   verifiedMark?: boolean;
 }
 
-// MemberAvatar 컴포넌트: 이미지 로드 실패(onError) 또는 미등록 시 이름 첫 글자 이니셜 아바타 표시
-function MemberAvatar({
-  name,
-  profileImg,
-  size = "w-8 h-8 text-xs",
-}: {
-  name: string;
-  profileImg?: string;
-  size?: string;
-}) {
-  const [hasError, setHasError] = useState(false);
-
-  // profileImg가 바뀌면 에러 상태 리셋
-  useEffect(() => {
-    setHasError(false);
-  }, [profileImg]);
-
-  if (!profileImg || hasError) {
-    return (
-      <div
-        className={`${size} rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold flex items-center justify-center shrink-0 shadow-xs select-none`}
-      >
-        {(name || "?").trim().slice(0, 1)}
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={profileImg}
-      alt={name}
-      className={`${size} rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700 shadow-2xs`}
-      onError={() => setHasError(true)}
-    />
-  );
-}
-
 export default function AdminMembersPage() {
   const { members, setMembers, showFeedback, refreshMembers } = useAdmin();
 
-  // 검색 & 구분 필터 상태 (조건별 분리)
+  // 1. 공통코드: 스트리머 등록 방식 그룹 전용 비동기 로드 (공통 훅 사용)
+  const { codes: regTypeCodes } = useCommonCodes(CODE_GROUPS.STREAMER_REGISTRATION);
+
+  // 2. 구분 필터 탭 옵션 (UI 전용 상수 '전체(ALL)' + 공통코드 동적 매핑)
+  const filterTabs = useMemo(() => {
+    return [
+      { code: "ALL", name: "전체" },
+      ...regTypeCodes.map((c: CodeItem) => ({ code: c.code, name: c.name })),
+    ];
+  }, [regTypeCodes]);
+
+  // 검색 & 구분 필터 상태 (기본값: UI 상수 'ALL')
   const [nameSearch, setNameSearch] = useState("");
   const [memoSearch, setMemoSearch] = useState("");
-  const [memberTypeFilter, setMemberTypeFilter] = useState<"전체" | "치지직 연동" | "일반 등록">("전체");
+  const [memberTypeFilter, setMemberTypeFilter] = useState<string>("ALL");
 
   // 선택된 인원 ID (우측 폼 바인딩용)
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -81,20 +60,43 @@ export default function AdminMembersPage() {
   const [modalLoading, setModalLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // 우측 등록 폼 상태 (역할 입력 필드는 대회 구성 관리로 이전됨)
+  // 공통코드 중 치지직 연동에 해당하는 세부코드 동적 탐색 (코드값 기준)
+  const chzzkCodeItem = useMemo(() => {
+    return regTypeCodes.find((c) => c.code === STREAMER_REG_CODES.CHZZK);
+  }, [regTypeCodes]);
+
+  // 치지직 기본 코드값 (공통코드에서 동적으로 추출, 미로드 시 빈값)
+  const defaultChzzkCode = chzzkCodeItem?.code || "";
+
+  // 우측 등록 폼 상태
   const [memberForm, setMemberForm] = useState<{
-    regType: "치지직 연동" | "일반 등록";
+    regType: string;
     channelUrl: string;
     name: string;
     profileImg: string;
     memo: string;
   }>({
-    regType: "치지직 연동",
+    regType: "",
     channelUrl: "",
     name: "",
     profileImg: "",
     memo: "",
   });
+
+  // 공통코드가 로드되었을 때 아직 regType이 비어있으면 치지직 우선 또는 첫 번째 코드로 자동 지정
+  useEffect(() => {
+    if (!memberForm.regType && regTypeCodes.length > 0) {
+      setMemberForm((prev) => ({
+        ...prev,
+        regType: defaultChzzkCode || regTypeCodes[0].code,
+      }));
+    }
+  }, [regTypeCodes, memberForm.regType, defaultChzzkCode]);
+
+  // 치지직 연동 방식 여부 헬퍼 (공통코드 동적 매칭, 공통코드 미로드 시 비활성화)
+  const isChzzkType = Boolean(
+    chzzkCodeItem && memberForm.regType === chzzkCodeItem.code
+  );
 
   // 인원 필터링 (이름/채널, 메모, 등록 구분 조건별 분리)
   const filteredMemberList = members.filter((m) => {
@@ -107,8 +109,11 @@ export default function AdminMembersPage() {
       !memoSearch.trim() ||
       (m.memo && m.memo.toLowerCase().includes(memoSearch.toLowerCase()));
 
+    const selectedFilterObj = regTypeCodes.find((c) => c.code === memberTypeFilter);
     const matchType =
-      memberTypeFilter === "전체" || m.type === memberTypeFilter;
+      memberTypeFilter === "ALL" ||
+      m.type === memberTypeFilter ||
+      (selectedFilterObj && (m.type === selectedFilterObj.code || m.type === selectedFilterObj.name));
 
     return matchName && matchMemo && matchType;
   });
@@ -116,9 +121,13 @@ export default function AdminMembersPage() {
   // 목록 항목 클릭 시 우측 폼에 바인딩
   const handleSelectMember = (m: MemberItem) => {
     setSelectedMemberId(m.id);
+    const matched = regTypeCodes.find(
+      (c) => c.code === m.type || c.name === m.type
+    );
+
     setMemberForm({
-      regType: m.type === "치지직 연동" ? "치지직 연동" : "일반 등록",
-      channelUrl: m.channelId ? (m.channelId.startsWith("http") ? m.channelId : `https://chzzk.naver.com/${m.channelId}`) : "",
+      regType: matched?.code || m.type || "",
+      channelUrl: m.channelId ? (m.channelId.startsWith("http") ? m.channelId : `${CHZZK_BASE_URL}/${m.channelId}`) : "",
       name: m.name,
       profileImg: m.profileImg || "",
       memo: m.memo || "",
@@ -129,7 +138,7 @@ export default function AdminMembersPage() {
   const handleNewMember = () => {
     setSelectedMemberId(null);
     setMemberForm({
-      regType: "치지직 연동",
+      regType: defaultChzzkCode || regTypeCodes[0]?.code || "",
       channelUrl: "",
       name: "",
       profileImg: "",
@@ -142,8 +151,8 @@ export default function AdminMembersPage() {
   const applySelectedCandidate = (candidate: ChzzkCandidate) => {
     setMemberForm((prev) => ({
       ...prev,
-      regType: "치지직 연동",
-      channelUrl: `https://chzzk.naver.com/${candidate.channelId}`,
+      regType: defaultChzzkCode || prev.regType,
+      channelUrl: `${CHZZK_BASE_URL}/${candidate.channelId}`,
       name: candidate.channelName,
       profileImg: candidate.channelImageUrl || prev.profileImg,
       memo: prev.memo || candidate.channelDescription || "",
@@ -207,7 +216,7 @@ export default function AdminMembersPage() {
             id: selectedMemberId,
             name: memberForm.name,
             regType: memberForm.regType,
-            channelUrl: memberForm.regType === "치지직 연동" ? memberForm.channelUrl : "",
+            channelUrl: isChzzkType ? memberForm.channelUrl : "",
             profileImg: memberForm.profileImg,
             memo: memberForm.memo,
           }),
@@ -229,7 +238,7 @@ export default function AdminMembersPage() {
           body: JSON.stringify({
             name: memberForm.name,
             regType: memberForm.regType,
-            channelUrl: memberForm.regType === "치지직 연동" ? memberForm.channelUrl : "",
+            channelUrl: isChzzkType ? memberForm.channelUrl : "",
             profileImg: memberForm.profileImg,
             memo: memberForm.memo,
           }),
@@ -288,11 +297,11 @@ export default function AdminMembersPage() {
             actions={
               <button
                 type="button"
-                disabled={!nameSearch && !memoSearch && memberTypeFilter === "전체"}
+                disabled={!nameSearch && !memoSearch && memberTypeFilter === "ALL"}
                 onClick={() => {
                   setNameSearch("");
                   setMemoSearch("");
-                  setMemberTypeFilter("전체");
+                  setMemberTypeFilter("ALL");
                 }}
                 className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs hover:scale-[1.02] active:scale-[0.98]"
                 title="검색 조건 초기화"
@@ -309,89 +318,33 @@ export default function AdminMembersPage() {
               {/* 한 라인 4분할(1/4 크기) 그리드 - 향후 검색 조건 확장 지원 */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                 {/* 1. 이름 / 채널 검색 (1/4) */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                      이름 / 채널 검색
-                    </label>
-                    {nameSearch && (
-                      <button
-                        type="button"
-                        onClick={() => setNameSearch("")}
-                        className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                      >
-                        지우기
-                      </button>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className="w-full pl-3 pr-8 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
-                      placeholder="이름 또는 채널 ID..."
-                      value={nameSearch}
-                      onChange={(e) => setNameSearch(e.target.value)}
-                    />
-                    <svg className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                </div>
+                <AdminSearchInput
+                  label="이름 / 채널 검색"
+                  placeholder="이름 또는 채널 ID..."
+                  value={nameSearch}
+                  onChange={setNameSearch}
+                />
 
                 {/* 2. 메모 / 특이사항 검색 (1/4) */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                      메모 / 특이사항 검색
-                    </label>
-                    {memoSearch && (
-                      <button
-                        type="button"
-                        onClick={() => setMemoSearch("")}
-                        className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                      >
-                        지우기
-                      </button>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className="w-full pl-3 pr-8 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
-                      placeholder="메모 내용 검색..."
-                      value={memoSearch}
-                      onChange={(e) => setMemoSearch(e.target.value)}
-                    />
-                    <svg className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <AdminSearchInput
+                  label="메모 / 특이사항 검색"
+                  placeholder="메모 내용 검색..."
+                  value={memoSearch}
+                  onChange={setMemoSearch}
+                  icon={
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                     </svg>
-                  </div>
-                </div>
+                  }
+                />
 
-                {/* 3. 구분 필터 (1/4 - 직관적인 탭 버튼 형태) */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                      구분
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 h-[30px]">
-                    {(["전체", "치지직 연동", "일반 등록"] as const).map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setMemberTypeFilter(type)}
-                        className={`flex-1 h-full px-1 text-[11px] font-semibold rounded-md transition-all flex items-center justify-center cursor-pointer whitespace-nowrap ${
-                          memberTypeFilter === type
-                            ? "bg-[#f99e1a] text-slate-950 font-bold shadow-xs"
-                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        }`}
-                      >
-                        {type}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {/* 3. 구분 필터 (1/4 - 직관적인 탭 버튼 형태: 상수로 정의된 전체 + 공통코드) */}
+                <AdminFilterTabs
+                  label="구분"
+                  tabs={filterTabs}
+                  activeTab={memberTypeFilter}
+                  onChange={setMemberTypeFilter}
+                />
 
                 {/* 4. 향후 추가 검색 조건 확장용 슬롯 (1/4 빈 영역) */}
                 <div className="hidden lg:block">
@@ -406,7 +359,7 @@ export default function AdminMembersPage() {
                 <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#151c2e] shadow-2xs">
                   <tr className="text-slate-600 dark:text-slate-300 font-semibold">
                     <th className="px-3.5 py-2.5 bg-slate-100 dark:bg-[#151c2e]">이름 / 채널</th>
-                    <th className="px-3.5 py-2.5 w-24 bg-slate-100 dark:bg-[#151c2e]">구분</th>
+                    <th className="px-3.5 py-2.5 w-28 whitespace-nowrap bg-slate-100 dark:bg-[#151c2e]">구분</th>
                     <th className="px-3.5 py-2.5 bg-slate-100 dark:bg-[#151c2e]">메모 / 특이사항</th>
                   </tr>
                 </thead>
@@ -439,7 +392,7 @@ export default function AdminMembersPage() {
                           key={m.id}
                           className={`cursor-pointer transition-colors ${
                             isSelected
-                              ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium border-l-2 border-[#f99e1a]"
+                              ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium"
                               : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                           }`}
                           onClick={() => handleSelectMember(m)}
@@ -453,7 +406,7 @@ export default function AdminMembersPage() {
                                 </div>
                                 {m.channelId && (
                                   <a
-                                    href={m.channelId.startsWith("http") ? m.channelId : `https://chzzk.naver.com/${m.channelId}`}
+                                    href={m.channelId.startsWith("http") ? m.channelId : `${CHZZK_BASE_URL}/${m.channelId}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono hover:underline flex items-center gap-0.5"
@@ -467,16 +420,33 @@ export default function AdminMembersPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-3.5 py-3">
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                                m.type === "치지직 연동"
-                                  ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-                              }`}
-                            >
-                              {m.type === "치지직 연동" ? "치지직" : "일반"}
-                            </span>
+                          <td className="px-3.5 py-3 whitespace-nowrap">
+                            {(() => {
+                              const matchedCode = regTypeCodes.find(
+                                (c) => c.code === m.type || c.name === m.type
+                              );
+                              const isChzzk = Boolean(
+                                chzzkCodeItem && (matchedCode?.code === chzzkCodeItem.code || m.type === STREAMER_REG_CODES.CHZZK)
+                              );
+                              const displayName =
+                                matchedCode?.name ||
+                                (m.type === STREAMER_REG_CODES.CHZZK
+                                  ? "치지직 연동"
+                                  : m.type === STREAMER_REG_CODES.STANDARD
+                                  ? "일반 등록"
+                                  : m.type || "—");
+                              return (
+                                <span
+                                  className={`inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${
+                                    isChzzk
+                                      ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                                  }`}
+                                >
+                                  {displayName}
+                                </span>
+                              );
+                            })()}
                           </td>
                           <td className="px-3.5 py-3 text-slate-500 dark:text-slate-400">
                             <span className="line-clamp-1 text-[11px]">
@@ -509,53 +479,43 @@ export default function AdminMembersPage() {
             }
           >
             <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1.5 custom-scrollbar">
-              {/* 등록 방식 선택 */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  등록 방식
-                </label>
-                <div className="flex gap-2">
-                  <label
-                    className={`flex-1 text-center py-2 text-xs font-semibold rounded-xl border cursor-pointer transition-all ${
-                      memberForm.regType === "치지직 연동"
-                        ? "bg-[#f99e1a] text-slate-950 font-bold border-[#f99e1a] shadow-sm"
-                        : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="regType"
-                      className="hidden"
-                      checked={memberForm.regType === "치지직 연동"}
-                      onChange={() =>
-                        setMemberForm((p) => ({ ...p, regType: "치지직 연동" }))
-                      }
-                    />
-                    치지직 채널 연동
+              {/* 등록 방식 선택 (공통코드 동적 매핑, 미로드 시 미노출) */}
+              {regTypeCodes.length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    등록 방식
                   </label>
-                  <label
-                    className={`flex-1 text-center py-2 text-xs font-semibold rounded-xl border cursor-pointer transition-all ${
-                      memberForm.regType === "일반 등록"
-                        ? "bg-[#f99e1a] text-slate-950 font-bold border-[#f99e1a] shadow-sm"
-                        : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="regType"
-                      className="hidden"
-                      checked={memberForm.regType === "일반 등록"}
-                      onChange={() =>
-                        setMemberForm((p) => ({ ...p, regType: "일반 등록" }))
-                      }
-                    />
-                    일반 등록 (수동)
-                  </label>
+                  <div className="flex gap-2">
+                    {regTypeCodes.map((c) => {
+                      const isChecked = memberForm.regType === c.code;
+                      return (
+                        <label
+                          key={c.code}
+                          className={`flex-1 text-center py-2 text-xs font-semibold rounded-xl border cursor-pointer transition-all ${
+                            isChecked
+                              ? "bg-[#f99e1a] text-slate-950 font-bold border-[#f99e1a] shadow-sm"
+                              : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="regType"
+                            className="hidden"
+                            checked={isChecked}
+                            onChange={() =>
+                              setMemberForm((p) => ({ ...p, regType: c.code }))
+                            }
+                          />
+                          {c.name}
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* 치지직 연동 시 채널 주소 입력창 */}
-              {memberForm.regType === "치지직 연동" && (
+              {isChzzkType && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                     치지직 채널 주소 <span className="text-rose-500">*</span>
@@ -590,14 +550,14 @@ export default function AdminMembersPage() {
               {/* 이름 / 표시명 */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  {memberForm.regType === "치지직 연동" ? "표시 이름" : "이름"}{" "}
+                  {isChzzkType ? "표시 이름" : "이름"}{" "}
                   <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                   placeholder={
-                    memberForm.regType === "치지직 연동"
+                    isChzzkType
                       ? "조회 시 자동 입력됩니다 (수정 가능)"
                       : "선수 또는 스트리머 이름을 입력하세요"
                   }
@@ -824,7 +784,7 @@ export default function AdminMembersPage() {
                     {/* 우측 버튼 영역 */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       <a
-                        href={`https://chzzk.naver.com/${cand.channelId}`}
+                        href={`${CHZZK_BASE_URL}/${cand.channelId}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}

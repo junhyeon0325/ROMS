@@ -239,6 +239,8 @@ model CommonCodeGroup {
   groupCode   String   @unique @map("group_code")
   groupName   String   @map("group_name")
   description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isUse       Boolean  @default(true) @map("is_use")
 
   createdBy   String?  @map("created_by")
   createdAt   DateTime @default(now()) @map("created_at")

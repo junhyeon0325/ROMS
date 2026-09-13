@@ -60,7 +60,6 @@ export interface CodeItem {
   group: string;
   code: string;
   name: string;
-  nameEn: string;
   sort: number;
   useYn: "Y" | "N";
   desc?: string;

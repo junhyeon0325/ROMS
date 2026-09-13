@@ -6,14 +6,42 @@
  */
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { useAdmin } from "@/lib/context/AdminContext";
+import { CODE_GROUPS, STREAMER_REG_CODES } from "@/lib/constants/codes";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminKpiCard from "@/components/admin/AdminKpiCard";
 
 export default function AdminDashboardPage() {
-  const { members, tournaments, maps, codes, showFeedback } = useAdmin();
+  const { members, tournaments, maps, codeGroups, codes, showFeedback } = useAdmin();
+
+  // 스트리머 등록 방식 공통코드 동적 매핑
+  const regTypeCodes = useMemo(() => {
+    return codes.filter(
+      (c) => c.group === CODE_GROUPS.STREAMER_REGISTRATION && c.useYn === "Y"
+    );
+  }, [codes]);
+
+  const chzzkCodeItem = useMemo(() => {
+    return regTypeCodes.find((c) => c.code === STREAMER_REG_CODES.CHZZK);
+  }, [regTypeCodes]);
+
+  // 스트리머 KPI 메타 텍스트 (공통코드 기준 동적 카운트, 미로드 시 미표시)
+  const streamerMetaText = useMemo(() => {
+    if (regTypeCodes.length === 0) {
+      return members.length > 0 ? `총 ${members.length}명` : "—";
+    }
+
+    return regTypeCodes
+      .map((c) => {
+        const count = members.filter(
+          (m) => m.type === c.code || m.type === c.name
+        ).length;
+        return `${c.name} ${count}`;
+      })
+      .join(" · ");
+  }, [regTypeCodes, members]);
 
   return (
     <section className="space-y-6">
@@ -104,7 +132,7 @@ export default function AdminDashboardPage() {
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
           }
-          meta={`치지직 ${members.filter((m) => m.type === "치지직 연동").length} · 일반 ${members.filter((m) => m.type === "일반 등록").length}`}
+          meta={streamerMetaText}
           title="스트리머 관리 화면으로 이동"
         />
 
@@ -153,7 +181,7 @@ export default function AdminDashboardPage() {
               <polyline points="8 6 2 12 8 18" />
             </svg>
           }
-          meta="4대 표준 코드 그룹"
+          meta={`${codeGroups.length}개 코드 그룹`}
           title="공통코드 관리 화면으로 이동"
         />
 
@@ -235,15 +263,32 @@ export default function AdminDashboardPage() {
                       <div>
                         <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
                           <span>{m.name}</span>
-                          <span
-                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                              m.type === "치지직 연동"
-                                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-                            }`}
-                          >
-                            {m.type === "치지직 연동" ? "치지직" : "일반"}
-                          </span>
+                          {(() => {
+                            const matchedCode = regTypeCodes.find(
+                              (c) => c.code === m.type || c.name === m.type
+                            );
+                            const isChzzk = Boolean(
+                              chzzkCodeItem && (matchedCode?.code === chzzkCodeItem.code || m.type === STREAMER_REG_CODES.CHZZK)
+                            );
+                            const displayName =
+                              matchedCode?.name ||
+                              (m.type === STREAMER_REG_CODES.CHZZK
+                                ? "치지직 연동"
+                                : m.type === STREAMER_REG_CODES.STANDARD
+                                ? "일반 등록"
+                                : m.type || "—");
+                            return (
+                              <span
+                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                                  isChzzk
+                                    ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                                }`}
+                              >
+                                {displayName}
+                              </span>
+                            );
+                          })()}
                         </div>
                         <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
                           {m.id} {m.channelId ? `· @${m.channelId}` : ""}

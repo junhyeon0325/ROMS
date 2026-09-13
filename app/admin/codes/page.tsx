@@ -2,23 +2,67 @@
 /**
  * [공통 코드 관리 페이지 컴포넌트]
  * - 상하 5:5 분할 마스터-디테일 그리드 UI 구조
- * - 상단 그리드(50%): 공통코드 그룹 목록 조회, 인라인 신규 행 추가 등록, 수정, 삭제, 사용여부 인라인 토글
- * - 하단 그리드(50%): 선택된 코드그룹의 세부 공통코드 목록 조회, 인라인 신규 행 추가 등록, 수정, 삭제, 사용여부 인라인 토글
+ * - 상단 그리드(50%): 공통코드 그룹 목록 조회, 인라인 신규 행 추가 등록, 수정, 삭제
+ * - 하단 그리드(50%): 선택된 코드그룹의 세부 공통코드 목록 조회, 인라인 신규 행 추가 등록, 수정, 삭제
+ * - 공통 컴포넌트(AdminGridHeaderActions, AdminSearchInput, AdminEmptyState) 및 useInlineGridEdit 훅 적용 완료
  */
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useAdmin } from "@/lib/context/AdminContext";
 import { CodeGroupItem, CodeItem } from "@/lib/types/admin";
 import AdminCard from "@/components/admin/AdminCard";
+import AdminGridHeaderActions from "@/components/admin/AdminGridHeaderActions";
+import AdminSearchInput from "@/components/admin/AdminSearchInput";
+import AdminEmptyState from "@/components/admin/AdminEmptyState";
+import { useInlineGridEdit } from "@/lib/hooks/useInlineGridEdit";
+
+// 코드그룹 폼 인터페이스
+interface GroupAddForm {
+  groupCode: string;
+  groupName: string;
+  description: string;
+  sortOrder: number;
+  isUse: boolean;
+}
+
+interface GroupEditForm {
+  groupName: string;
+  description: string;
+  sortOrder: number;
+  isUse: boolean;
+}
+
+// 세부코드 폼 인터페이스
+interface CodeAddForm {
+  code: string;
+  name: string;
+  sort: number;
+  useYn: "Y" | "N";
+  desc: string;
+}
+
+interface CodeEditForm {
+  name: string;
+  sort: number;
+  useYn: "Y" | "N";
+  desc: string;
+}
 
 export default function AdminCodesPage() {
-  const { codeGroups, setCodeGroups, codes, setCodes, showFeedback } = useAdmin();
+  const { codeGroups, codes, refreshCodes, showFeedback } = useAdmin();
 
   // 1. 상태: 선택된 코드 그룹 (기본값: 첫 번째 그룹)
   const [selectedGroupCode, setSelectedGroupCode] = useState<string>(
-    codeGroups.length > 0 ? codeGroups[0].groupCode : "MEMBER_ROLE"
+    codeGroups.length > 0 ? codeGroups[0].groupCode : ""
   );
+
+  // DB 로드 후 선택된 그룹이 비어있으면 첫 번째 그룹으로 자동 선택
+  useEffect(() => {
+    if (!selectedGroupCode && codeGroups.length > 0) {
+      setSelectedGroupCode(codeGroups[0].groupCode);
+    }
+  }, [codeGroups, selectedGroupCode]);
 
   // 2. 상태: 하단 그리드에서 선택된 세부 코드 ID (수정/삭제 바인딩용)
   const [selectedDetailCode, setSelectedDetailCode] = useState<string | null>(null);
@@ -27,69 +71,39 @@ export default function AdminCodesPage() {
   const [groupSearch, setGroupSearch] = useState("");
   const [codeSearch, setCodeSearch] = useState("");
 
-  // 4. 인라인 행 추가 상태: 코드그룹
-  const [isAddingGroup, setIsAddingGroup] = useState(false);
-  const [inlineGroupForm, setInlineGroupForm] = useState<{
-    groupCode: string;
-    groupName: string;
-    description: string;
-    sortOrder: number;
-    isUse: boolean;
-  }>({
-    groupCode: "",
-    groupName: "",
-    description: "",
-    sortOrder: 1,
-    isUse: true,
-  });
+  // 4. 인라인 그리드 편집 상태 훅: 코드그룹
+  const groupEdit = useInlineGridEdit<GroupAddForm, GroupEditForm>(
+    {
+      groupCode: "",
+      groupName: "",
+      description: "",
+      sortOrder: 1,
+      isUse: true,
+    },
+    {
+      groupName: "",
+      description: "",
+      sortOrder: 1,
+      isUse: true,
+    }
+  );
 
-  // 5. 인라인 행 추가 상태: 세부 코드
-  const [isAddingCode, setIsAddingCode] = useState(false);
-  const [inlineCodeForm, setInlineCodeForm] = useState<{
-    code: string;
-    name: string;
-    nameEn: string;
-    sort: number;
-    useYn: "Y" | "N";
-    desc: string;
-  }>({
-    code: "",
-    name: "",
-    nameEn: "",
-    sort: 1,
-    useYn: "Y",
-    desc: "",
-  });
-
-  // 6. 인라인 행 수정 상태: 코드그룹
-  const [editingGroupCode, setEditingGroupCode] = useState<string | null>(null);
-  const [inlineEditGroupForm, setInlineEditGroupForm] = useState<{
-    groupName: string;
-    description: string;
-    sortOrder: number;
-    isUse: boolean;
-  }>({
-    groupName: "",
-    description: "",
-    sortOrder: 1,
-    isUse: true,
-  });
-
-  // 7. 인라인 행 수정 상태: 세부코드
-  const [editingCodeId, setEditingCodeId] = useState<string | null>(null);
-  const [inlineEditCodeForm, setInlineEditCodeForm] = useState<{
-    name: string;
-    nameEn: string;
-    sort: number;
-    useYn: "Y" | "N";
-    desc: string;
-  }>({
-    name: "",
-    nameEn: "",
-    sort: 1,
-    useYn: "Y",
-    desc: "",
-  });
+  // 5. 인라인 그리드 편집 상태 훅: 세부 코드
+  const codeEdit = useInlineGridEdit<CodeAddForm, CodeEditForm>(
+    {
+      code: "",
+      name: "",
+      sort: 1,
+      useYn: "Y",
+      desc: "",
+    },
+    {
+      name: "",
+      sort: 1,
+      useYn: "Y",
+      desc: "",
+    }
+  );
 
   // ==========================================
   // [데이터 필터링 및 통계 계산]
@@ -135,7 +149,6 @@ export default function AdminCodesPage() {
         return (
           c.code.toLowerCase().includes(query) ||
           c.name.toLowerCase().includes(query) ||
-          (c.nameEn && c.nameEn.toLowerCase().includes(query)) ||
           (c.desc && c.desc.toLowerCase().includes(query))
         );
       })
@@ -152,18 +165,17 @@ export default function AdminCodesPage() {
   const handleSelectGroup = (groupCode: string) => {
     setSelectedGroupCode(groupCode);
     setSelectedDetailCode(null);
-    setIsAddingCode(false);
+    codeEdit.reset();
   };
 
   // ==========================================
-  // [인라인 그룹 추가 핸들러]
+  // [인라인 그룹 추가 및 수정 핸들러 (DB 연동)]
   // ==========================================
 
   // 인라인 그룹 추가 행 시작
   const handleStartAddGroup = () => {
-    setEditingGroupCode(null);
-    setIsAddingGroup(true);
-    setInlineGroupForm({
+    codeEdit.reset();
+    groupEdit.startAdd({
       groupCode: "",
       groupName: "",
       description: "",
@@ -172,10 +184,10 @@ export default function AdminCodesPage() {
     });
   };
 
-  // 인라인 그룹 저장
-  const handleSaveInlineGroup = () => {
-    const groupCode = inlineGroupForm.groupCode.trim().toUpperCase();
-    const groupName = inlineGroupForm.groupName.trim();
+  // 인라인 그룹 저장 (DB POST)
+  const handleSaveInlineGroup = async () => {
+    const groupCode = groupEdit.addForm.groupCode.trim().toUpperCase();
+    const groupName = groupEdit.addForm.groupName.trim();
 
     if (!groupCode || !groupName) {
       showFeedback("그룹 코드와 그룹명을 모두 입력해주세요.");
@@ -187,33 +199,40 @@ export default function AdminCodesPage() {
       return;
     }
 
-    const newGroup: CodeGroupItem = {
-      groupCode,
-      groupName,
-      description: inlineGroupForm.description.trim(),
-      sortOrder: Number(inlineGroupForm.sortOrder) || 1,
-      isUse: inlineGroupForm.isUse,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
+    try {
+      const res = await fetch("/api/codes/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          groupCode,
+          groupName,
+          description: groupEdit.addForm.description.trim(),
+          sortOrder: Number(groupEdit.addForm.sortOrder) || 1,
+          isUse: groupEdit.addForm.isUse,
+        }),
+      });
 
-    setCodeGroups((prev) => [...prev, newGroup]);
-    setSelectedGroupCode(groupCode);
-    setSelectedDetailCode(null);
-    setIsAddingGroup(false);
-    showFeedback(`신규 그룹 [${groupCode}]이(가) 등록되었습니다.`);
-  };
+      const json = await res.json();
+      if (!json.success) {
+        showFeedback(json.message || "그룹 등록에 실패했습니다.");
+        return;
+      }
 
-  // 인라인 그룹 추가 취소
-  const handleCancelInlineGroup = () => {
-    setIsAddingGroup(false);
+      await refreshCodes();
+      setSelectedGroupCode(groupCode);
+      setSelectedDetailCode(null);
+      groupEdit.cancelAdd();
+      showFeedback(`신규 그룹 [${groupCode}]이(가) DB에 등록되었습니다.`);
+    } catch (e: any) {
+      showFeedback("그룹 등록 중 네트워크 오류가 발생했습니다.");
+    }
   };
 
   // 그룹 인라인 수정 시작
   const handleStartEditGroup = (group: CodeGroupItem, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setIsAddingGroup(false);
-    setEditingGroupCode(group.groupCode);
-    setInlineEditGroupForm({
+    codeEdit.reset();
+    groupEdit.startEdit(group.groupCode, {
       groupName: group.groupName,
       description: group.description || "",
       sortOrder: group.sortOrder,
@@ -221,74 +240,81 @@ export default function AdminCodesPage() {
     });
   };
 
-  // 그룹 인라인 수정 취소
-  const handleCancelEditGroup = () => {
-    setEditingGroupCode(null);
-  };
-
-  // 그룹 인라인 수정 저장
-  const handleSaveInlineEditGroup = () => {
-    if (!editingGroupCode) return;
-    const name = inlineEditGroupForm.groupName.trim();
+  // 그룹 인라인 수정 저장 (DB PUT)
+  const handleSaveInlineEditGroup = async () => {
+    if (!groupEdit.editingId) return;
+    const name = groupEdit.editForm.groupName.trim();
 
     if (!name) {
       showFeedback("그룹명을 입력해주세요.");
       return;
     }
 
-    setCodeGroups((prev) =>
-      prev.map((g) =>
-        g.groupCode === editingGroupCode
-          ? {
-              ...g,
-              groupName: name,
-              description: inlineEditGroupForm.description.trim(),
-              sortOrder: Number(inlineEditGroupForm.sortOrder) || 1,
-              isUse: inlineEditGroupForm.isUse,
-            }
-          : g
-      )
-    );
-    showFeedback(`그룹 [${editingGroupCode}] 정보가 수정되었습니다.`);
-    setEditingGroupCode(null);
+    try {
+      const res = await fetch("/api/codes/groups", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          groupCode: groupEdit.editingId,
+          groupName: name,
+          description: groupEdit.editForm.description.trim(),
+          sortOrder: Number(groupEdit.editForm.sortOrder) || 1,
+          isUse: groupEdit.editForm.isUse,
+        }),
+      });
+
+      const json = await res.json();
+      if (!json.success) {
+        showFeedback(json.message || "그룹 수정에 실패했습니다.");
+        return;
+      }
+
+      await refreshCodes();
+      showFeedback(`그룹 [${groupEdit.editingId}] 정보가 수정되었습니다.`);
+      groupEdit.cancelEdit();
+    } catch (e: any) {
+      showFeedback("그룹 수정 중 네트워크 오류가 발생했습니다.");
+    }
   };
 
-  // 그룹 사용여부 즉시 토글
-  const handleToggleGroupUse = (groupCode: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCodeGroups((prev) =>
-      prev.map((g) => (g.groupCode === groupCode ? { ...g, isUse: !g.isUse } : g))
-    );
-    showFeedback(`그룹 [${groupCode}] 사용 상태가 변경되었습니다.`);
-  };
-
-  // 그룹 삭제
-  const handleDeleteGroup = (group: CodeGroupItem, e?: React.MouseEvent) => {
+  // 그룹 삭제 (DB DELETE)
+  const handleDeleteGroup = async (group: CodeGroupItem, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     const count = groupCodeCountMap[group.groupCode] || 0;
     const confirmMsg =
       count > 0
-        ? `[${group.groupName}(${group.groupCode})] 그룹을 삭제하시겠습니까?\n소속된 세부 코드 ${count}건도 함께 삭제됩니다.`
+        ? `[${group.groupName}(${group.groupCode})] 그룹을 삭제하시겠습니까?\n소속된 세부 코드 ${count}건도 함께 DB에서 삭제됩니다.`
         : `[${group.groupName}(${group.groupCode})] 그룹을 삭제하시겠습니까?`;
 
     if (!window.confirm(confirmMsg)) return;
 
-    setCodeGroups((prev) => prev.filter((g) => g.groupCode !== group.groupCode));
-    setCodes((prev) => prev.filter((c) => c.group !== group.groupCode));
+    try {
+      const res = await fetch(
+        `/api/codes/groups?groupCode=${encodeURIComponent(group.groupCode)}`,
+        { method: "DELETE" }
+      );
 
-    if (selectedGroupCode === group.groupCode) {
-      const remaining = codeGroups.filter((g) => g.groupCode !== group.groupCode);
-      setSelectedGroupCode(remaining.length > 0 ? remaining[0].groupCode : "");
-      setSelectedDetailCode(null);
+      const json = await res.json();
+      if (!json.success) {
+        showFeedback(json.message || "그룹 삭제에 실패했습니다.");
+        return;
+      }
+
+      await refreshCodes();
+      if (selectedGroupCode === group.groupCode) {
+        const remaining = codeGroups.filter((g) => g.groupCode !== group.groupCode);
+        setSelectedGroupCode(remaining.length > 0 ? remaining[0].groupCode : "");
+        setSelectedDetailCode(null);
+      }
+      groupEdit.reset();
+      showFeedback(`그룹 [${group.groupCode}]이(가) 삭제되었습니다.`);
+    } catch (e: any) {
+      showFeedback("그룹 삭제 중 네트워크 오류가 발생했습니다.");
     }
-    if (editingGroupCode === group.groupCode) {
-      setEditingGroupCode(null);
-    }
-    showFeedback(`그룹 [${group.groupCode}]이(가) 삭제되었습니다.`);
   };
 
   // ==========================================
-  // [인라인 세부 코드 추가 및 수정 핸들러]
+  // [인라인 세부 코드 추가 및 수정 핸들러 (DB 연동)]
   // ==========================================
 
   // 인라인 세부 코드 추가 행 시작
@@ -297,23 +323,21 @@ export default function AdminCodesPage() {
       showFeedback("먼저 상단 그리드에서 코드 그룹을 선택해주세요.");
       return;
     }
-    setEditingCodeId(null);
-    setIsAddingCode(true);
-    setInlineCodeForm({
+    groupEdit.reset();
+    codeEdit.startAdd({
       code: "",
       name: "",
-      nameEn: "",
       sort: filteredCodes.length + 1,
       useYn: "Y",
       desc: "",
     });
   };
 
-  // 인라인 세부 코드 저장
-  const handleSaveInlineCode = () => {
+  // 인라인 세부 코드 저장 (DB POST)
+  const handleSaveInlineCode = async () => {
     if (!selectedGroupCode) return;
-    const code = inlineCodeForm.code.trim().toUpperCase();
-    const name = inlineCodeForm.name.trim();
+    const code = codeEdit.addForm.code.trim().toUpperCase();
+    const name = codeEdit.addForm.name.trim();
 
     if (!code || !name) {
       showFeedback("코드 ID와 코드명을 모두 입력해주세요.");
@@ -328,102 +352,111 @@ export default function AdminCodesPage() {
       return;
     }
 
-    const newCode: CodeItem = {
-      group: selectedGroupCode,
-      code,
-      name,
-      nameEn: inlineCodeForm.nameEn.trim(),
-      sort: Number(inlineCodeForm.sort) || 1,
-      useYn: inlineCodeForm.useYn,
-      desc: inlineCodeForm.desc.trim(),
-    };
+    try {
+      const res = await fetch("/api/codes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          group: selectedGroupCode,
+          code,
+          name,
+          sort: Number(codeEdit.addForm.sort) || 1,
+          useYn: codeEdit.addForm.useYn,
+          desc: codeEdit.addForm.desc.trim(),
+        }),
+      });
 
-    setCodes((prev) => [...prev, newCode]);
-    setSelectedDetailCode(code);
-    setIsAddingCode(false);
-    showFeedback(`신규 코드 [${code}]이(가) 등록되었습니다.`);
-  };
+      const json = await res.json();
+      if (!json.success) {
+        showFeedback(json.message || "코드 등록에 실패했습니다.");
+        return;
+      }
 
-  // 인라인 세부 코드 추가 취소
-  const handleCancelInlineCode = () => {
-    setIsAddingCode(false);
+      await refreshCodes();
+      setSelectedDetailCode(code);
+      codeEdit.cancelAdd();
+      showFeedback(`신규 코드 [${code}]이(가) DB에 등록되었습니다.`);
+    } catch (e: any) {
+      showFeedback("코드 등록 중 네트워크 오류가 발생했습니다.");
+    }
   };
 
   // 코드 인라인 수정 시작
   const handleStartEditCode = (codeItem: CodeItem) => {
-    setIsAddingCode(false);
-    setEditingCodeId(codeItem.code);
-    setInlineEditCodeForm({
+    groupEdit.reset();
+    codeEdit.startEdit(codeItem.code, {
       name: codeItem.name,
-      nameEn: codeItem.nameEn || "",
       sort: codeItem.sort,
       useYn: codeItem.useYn,
       desc: codeItem.desc || "",
     });
   };
 
-  // 코드 인라인 수정 취소
-  const handleCancelEditCode = () => {
-    setEditingCodeId(null);
-  };
-
-  // 코드 인라인 수정 저장
-  const handleSaveInlineEditCode = () => {
-    if (!editingCodeId || !selectedGroupCode) return;
-    const name = inlineEditCodeForm.name.trim();
+  // 코드 인라인 수정 저장 (DB PUT)
+  const handleSaveInlineEditCode = async () => {
+    if (!codeEdit.editingId || !selectedGroupCode) return;
+    const name = codeEdit.editForm.name.trim();
 
     if (!name) {
       showFeedback("코드명을 입력해주세요.");
       return;
     }
 
-    setCodes((prev) =>
-      prev.map((c) =>
-        c.group === selectedGroupCode && c.code === editingCodeId
-          ? {
-              ...c,
-              name,
-              nameEn: inlineEditCodeForm.nameEn.trim(),
-              sort: Number(inlineEditCodeForm.sort) || 1,
-              useYn: inlineEditCodeForm.useYn,
-              desc: inlineEditCodeForm.desc.trim(),
-            }
-          : c
-      )
-    );
-    showFeedback(`코드 [${editingCodeId}] 정보가 수정되었습니다.`);
-    setEditingCodeId(null);
+    try {
+      const res = await fetch("/api/codes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          group: selectedGroupCode,
+          code: codeEdit.editingId,
+          name,
+          sort: Number(codeEdit.editForm.sort) || 1,
+          useYn: codeEdit.editForm.useYn,
+          desc: codeEdit.editForm.desc.trim(),
+        }),
+      });
+
+      const json = await res.json();
+      if (!json.success) {
+        showFeedback(json.message || "코드 수정에 실패했습니다.");
+        return;
+      }
+
+      await refreshCodes();
+      showFeedback(`코드 [${codeEdit.editingId}] 정보가 수정되었습니다.`);
+      codeEdit.cancelEdit();
+    } catch (e: any) {
+      showFeedback("코드 수정 중 네트워크 오류가 발생했습니다.");
+    }
   };
 
-  // 코드 사용여부 즉시 토글
-  const handleToggleCodeUse = (codeItem: CodeItem, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const nextUseYn = codeItem.useYn === "Y" ? "N" : "Y";
-    setCodes((prev) =>
-      prev.map((c) =>
-        c.group === codeItem.group && c.code === codeItem.code
-          ? { ...c, useYn: nextUseYn }
-          : c
-      )
-    );
-    showFeedback(`코드 [${codeItem.code}] 사용여부가 [${nextUseYn}]으로 변경되었습니다.`);
-  };
-
-  // 코드 삭제
-  const handleDeleteCode = (codeItem: CodeItem) => {
+  // 코드 삭제 (DB DELETE)
+  const handleDeleteCode = async (codeItem: CodeItem) => {
     if (!window.confirm(`[${codeItem.name}(${codeItem.code})] 코드를 삭제하시겠습니까?`)) {
       return;
     }
-    setCodes((prev) =>
-      prev.filter((c) => !(c.group === codeItem.group && c.code === codeItem.code))
-    );
-    if (selectedDetailCode === codeItem.code) {
-      setSelectedDetailCode(null);
+
+    try {
+      const res = await fetch(
+        `/api/codes?group=${encodeURIComponent(codeItem.group)}&code=${encodeURIComponent(codeItem.code)}`,
+        { method: "DELETE" }
+      );
+
+      const json = await res.json();
+      if (!json.success) {
+        showFeedback(json.message || "코드 삭제에 실패했습니다.");
+        return;
+      }
+
+      await refreshCodes();
+      if (selectedDetailCode === codeItem.code) {
+        setSelectedDetailCode(null);
+      }
+      codeEdit.reset();
+      showFeedback(`코드 [${codeItem.code}]이(가) 삭제되었습니다.`);
+    } catch (e: any) {
+      showFeedback("코드 삭제 중 네트워크 오류가 발생했습니다.");
     }
-    if (editingCodeId === codeItem.code) {
-      setEditingCodeId(null);
-    }
-    showFeedback(`코드 [${codeItem.code}]이(가) 삭제되었습니다.`);
   };
 
   return (
@@ -437,122 +470,32 @@ export default function AdminCodesPage() {
           countBadge={`총 ${filteredGroups.length}개 그룹`}
           className="h-full flex flex-col !p-4 md:!p-5"
           actions={
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* 인라인 그룹 수정 진행 중일 때: 상단 취소/저장 버튼 */}
-              {editingGroupCode ? (
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={handleCancelEditGroup}
-                    className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <span>취소</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveInlineEditGroup}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-[#f99e1a] text-slate-950 hover:bg-[#e08a10] active:scale-95 transition-all shadow-xs cursor-pointer"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>저장</span>
-                  </button>
-                </div>
-              ) : isAddingGroup ? (
-                /* 인라인 그룹 추가 진행 중일 때: 상단 취소/저장 버튼 */
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={handleCancelInlineGroup}
-                    className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <span>취소</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveInlineGroup}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-[#f99e1a] text-slate-950 hover:bg-[#e08a10] active:scale-95 transition-all shadow-xs cursor-pointer"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>저장</span>
-                  </button>
-                </div>
-              ) : (
-                <>
-                  {/* 그룹 수정 버튼 (누르면 그리드 내 해당 행이 수정 모드로 전환) */}
-                  <button
-                    type="button"
-                    disabled={!currentSelectedGroup}
-                    onClick={() => currentSelectedGroup && handleStartEditGroup(currentSelectedGroup)}
-                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-750 active:scale-95 transition-all shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
-                  >
-                    <svg className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                    <span>수정</span>
-                  </button>
-
-                  {/* 그룹 삭제 버튼 */}
-                  <button
-                    type="button"
-                    disabled={!currentSelectedGroup}
-                    onClick={() => currentSelectedGroup && handleDeleteGroup(currentSelectedGroup)}
-                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 active:scale-95 transition-all shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    <span>삭제</span>
-                  </button>
-
-                  {/* 그룹 추가 버튼 (누르면 그리드 최상단에 행 추가) */}
-                  <button
-                    type="button"
-                    onClick={handleStartAddGroup}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-[#f99e1a] text-slate-950 hover:bg-[#e08a10] active:scale-95 transition-all shadow-xs cursor-pointer"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span>그룹 추가</span>
-                  </button>
-                </>
-              )}
-            </div>
+            <AdminGridHeaderActions
+              isBusy={groupEdit.isBusy}
+              hasSelection={!!currentSelectedGroup}
+              onAdd={handleStartAddGroup}
+              onEdit={() => currentSelectedGroup && handleStartEditGroup(currentSelectedGroup)}
+              onDelete={() => currentSelectedGroup && handleDeleteGroup(currentSelectedGroup)}
+              onCancel={() => (groupEdit.isAdding ? groupEdit.cancelAdd() : groupEdit.cancelEdit())}
+              onSave={() => (groupEdit.isAdding ? handleSaveInlineGroup() : handleSaveInlineEditGroup())}
+              addLabel="그룹 추가"
+            />
           }
         >
           {/* 상단 툴바: 검색 영역 */}
           <div className="flex items-center justify-between gap-3 mb-2.5 shrink-0">
-            <div className="relative w-full max-w-xs sm:max-w-sm">
-              <input
-                type="text"
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
+            <div className="w-full max-w-xs sm:max-w-sm">
+              <AdminSearchInput
                 placeholder="그룹 코드 또는 그룹명 검색..."
                 value={groupSearch}
-                onChange={(e) => setGroupSearch(e.target.value)}
+                onChange={setGroupSearch}
               />
-              <svg
-                className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
             </div>
 
             <div className="text-[11px] text-slate-400 dark:text-slate-500 hidden sm:block">
-              {editingGroupCode
+              {groupEdit.editingId
                 ? "행 정보를 수정한 후 저장 또는 Enter를 누르세요."
-                : isAddingGroup
+                : groupEdit.isAdding
                 ? "신규 행에 정보를 입력 후 저장 또는 Enter를 누르세요."
                 : "행 클릭 시 선택되어 수정/삭제할 수 있습니다."}
             </div>
@@ -563,7 +506,9 @@ export default function AdminCodesPage() {
             <table className="w-full text-left text-xs divide-y divide-slate-200 dark:divide-slate-800">
               <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#151c2e] shadow-2xs">
                 <tr className="text-slate-600 dark:text-slate-300 font-semibold">
-                  <th className="px-2 py-2 w-16 min-w-[64px] text-center whitespace-nowrap bg-slate-100 dark:bg-[#151c2e]">순번</th>
+                  <th className="px-2 py-2 w-16 min-w-[64px] text-center whitespace-nowrap bg-slate-100 dark:bg-[#151c2e]">
+                    순번
+                  </th>
                   <th className="px-3.5 py-2 w-48 bg-slate-100 dark:bg-[#151c2e]">그룹 코드</th>
                   <th className="px-3.5 py-2 w-56 bg-slate-100 dark:bg-[#151c2e]">그룹명</th>
                   <th className="px-3 py-2 w-24 text-center bg-slate-100 dark:bg-[#151c2e]">코드 수</th>
@@ -573,8 +518,8 @@ export default function AdminCodesPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
                 {/* [인라인 신규 그룹 추가 행] */}
-                {isAddingGroup && (
-                  <tr className="bg-amber-500/10 dark:bg-amber-500/15 border-l-4 border-[#f99e1a] animate-in fade-in duration-150">
+                {groupEdit.isAdding && (
+                  <tr className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150">
                     <td className="px-2 py-2 text-center whitespace-nowrap">
                       <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
                         NEW
@@ -586,13 +531,13 @@ export default function AdminCodesPage() {
                         autoFocus
                         placeholder="예: MEMBER_ROLE"
                         className="w-full px-2 py-1 text-xs font-mono font-bold uppercase rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-[#f99e1a] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/30 shadow-2xs"
-                        value={inlineGroupForm.groupCode}
+                        value={groupEdit.addForm.groupCode}
                         onChange={(e) =>
-                          setInlineGroupForm((p) => ({ ...p, groupCode: e.target.value.toUpperCase() }))
+                          groupEdit.updateAddForm({ groupCode: e.target.value.toUpperCase() })
                         }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") handleSaveInlineGroup();
-                          if (e.key === "Escape") handleCancelInlineGroup();
+                          if (e.key === "Escape") groupEdit.cancelAdd();
                         }}
                       />
                     </td>
@@ -601,13 +546,13 @@ export default function AdminCodesPage() {
                         type="text"
                         placeholder="예: 참가자 역할 구분"
                         className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a] focus:ring-1 focus:ring-[#f99e1a]"
-                        value={inlineGroupForm.groupName}
+                        value={groupEdit.addForm.groupName}
                         onChange={(e) =>
-                          setInlineGroupForm((p) => ({ ...p, groupName: e.target.value }))
+                          groupEdit.updateAddForm({ groupName: e.target.value })
                         }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") handleSaveInlineGroup();
-                          if (e.key === "Escape") handleCancelInlineGroup();
+                          if (e.key === "Escape") groupEdit.cancelAdd();
                         }}
                       />
                     </td>
@@ -617,9 +562,9 @@ export default function AdminCodesPage() {
                     <td className="px-2 py-1.5 text-center">
                       <select
                         className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
-                        value={inlineGroupForm.isUse ? "Y" : "N"}
+                        value={groupEdit.addForm.isUse ? "Y" : "N"}
                         onChange={(e) =>
-                          setInlineGroupForm((p) => ({ ...p, isUse: e.target.value === "Y" }))
+                          groupEdit.updateAddForm({ isUse: e.target.value === "Y" })
                         }
                       >
                         <option value="Y">사용</option>
@@ -627,54 +572,34 @@ export default function AdminCodesPage() {
                       </select>
                     </td>
                     <td className="px-2 py-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="text"
-                          placeholder="코드그룹 용도 및 정의를 기술하세요..."
-                          className="flex-1 px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                          value={inlineGroupForm.description}
-                          onChange={(e) =>
-                            setInlineGroupForm((p) => ({ ...p, description: e.target.value }))
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleSaveInlineGroup();
-                            if (e.key === "Escape") handleCancelInlineGroup();
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={handleSaveInlineGroup}
-                          className="px-2.5 py-1 rounded bg-[#f99e1a] text-slate-950 font-bold text-xs hover:bg-[#e08a10] active:scale-95 cursor-pointer shadow-xs shrink-0"
-                        >
-                          저장
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCancelInlineGroup}
-                          className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300 font-semibold text-xs hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 cursor-pointer shrink-0"
-                        >
-                          취소
-                        </button>
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="코드그룹 용도 및 정의를 기술하세요..."
+                        className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
+                        value={groupEdit.addForm.description}
+                        onChange={(e) =>
+                          groupEdit.updateAddForm({ description: e.target.value })
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveInlineGroup();
+                          if (e.key === "Escape") groupEdit.cancelAdd();
+                        }}
+                      />
                     </td>
                   </tr>
                 )}
 
-                {filteredGroups.length === 0 && !isAddingGroup ? (
-                  <tr>
-                    <td colSpan={6} className="px-3.5 py-10 text-center text-slate-400">
-                      <div className="flex flex-col items-center justify-center gap-1.5">
-                        <span className="text-2xl">📁</span>
-                        <p className="font-semibold text-xs text-slate-600 dark:text-slate-400">
-                          검색된 코드그룹이 없습니다.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
+                {/* 빈 상태 안내 */}
+                {filteredGroups.length === 0 && !groupEdit.isAdding ? (
+                  <AdminEmptyState
+                    colSpan={6}
+                    icon="📁"
+                    title="검색된 코드그룹이 없습니다."
+                  />
                 ) : (
                   filteredGroups.map((g, idx) => {
                     const isSelected = selectedGroupCode === g.groupCode;
-                    const isEditing = editingGroupCode === g.groupCode;
+                    const isEditing = groupEdit.isEditing(g.groupCode);
                     const codeCount = groupCodeCountMap[g.groupCode] || 0;
 
                     // [인라인 그룹 수정 행]
@@ -682,7 +607,7 @@ export default function AdminCodesPage() {
                       return (
                         <tr
                           key={g.groupCode}
-                          className="bg-amber-500/10 dark:bg-amber-500/15 border-l-4 border-[#f99e1a] animate-in fade-in duration-150"
+                          className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150"
                         >
                           <td className="px-2 py-2 text-center whitespace-nowrap">
                             <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
@@ -698,13 +623,13 @@ export default function AdminCodesPage() {
                               autoFocus
                               placeholder="그룹명 입력"
                               className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#f99e1a]"
-                              value={inlineEditGroupForm.groupName}
+                              value={groupEdit.editForm.groupName}
                               onChange={(e) =>
-                                setInlineEditGroupForm((p) => ({ ...p, groupName: e.target.value }))
+                                groupEdit.updateEditForm({ groupName: e.target.value })
                               }
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") handleSaveInlineEditGroup();
-                                if (e.key === "Escape") handleCancelEditGroup();
+                                if (e.key === "Escape") groupEdit.cancelEdit();
                               }}
                             />
                           </td>
@@ -716,9 +641,9 @@ export default function AdminCodesPage() {
                           <td className="px-2 py-1.5 text-center">
                             <select
                               className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
-                              value={inlineEditGroupForm.isUse ? "Y" : "N"}
+                              value={groupEdit.editForm.isUse ? "Y" : "N"}
                               onChange={(e) =>
-                                setInlineEditGroupForm((p) => ({ ...p, isUse: e.target.value === "Y" }))
+                                groupEdit.updateEditForm({ isUse: e.target.value === "Y" })
                               }
                             >
                               <option value="Y">사용</option>
@@ -726,35 +651,19 @@ export default function AdminCodesPage() {
                             </select>
                           </td>
                           <td className="px-2 py-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="text"
-                                placeholder="설명 / 비고"
-                                className="flex-1 px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                                value={inlineEditGroupForm.description}
-                                onChange={(e) =>
-                                  setInlineEditGroupForm((p) => ({ ...p, description: e.target.value }))
-                                }
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") handleSaveInlineEditGroup();
-                                  if (e.key === "Escape") handleCancelEditGroup();
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={handleSaveInlineEditGroup}
-                                className="px-2.5 py-1 rounded bg-[#f99e1a] text-slate-950 font-bold text-xs hover:bg-[#e08a10] active:scale-95 cursor-pointer shadow-xs shrink-0"
-                              >
-                                저장
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleCancelEditGroup}
-                                className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300 font-semibold text-xs hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 cursor-pointer shrink-0"
-                              >
-                                취소
-                              </button>
-                            </div>
+                            <input
+                              type="text"
+                              placeholder="설명 / 비고"
+                              className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
+                              value={groupEdit.editForm.description}
+                              onChange={(e) =>
+                                groupEdit.updateEditForm({ description: e.target.value })
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveInlineEditGroup();
+                                if (e.key === "Escape") groupEdit.cancelEdit();
+                              }}
+                            />
                           </td>
                         </tr>
                       );
@@ -765,7 +674,7 @@ export default function AdminCodesPage() {
                         key={g.groupCode}
                         className={`cursor-pointer transition-colors ${
                           isSelected
-                            ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium border-l-4 border-[#f99e1a]"
+                            ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium"
                             : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                         }`}
                         onClick={() => handleSelectGroup(g.groupCode)}
@@ -785,17 +694,15 @@ export default function AdminCodesPage() {
                           </span>
                         </td>
                         <td className="px-3 py-2 text-center">
-                          <button
-                            type="button"
-                            onClick={(e) => handleToggleGroupUse(g.groupCode, e)}
-                            className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
                               g.isUse
                                 ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
                                 : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700"
                             }`}
                           >
                             {g.isUse ? "사용" : "미사용"}
-                          </button>
+                          </span>
                         </td>
                         <td className="px-3.5 py-2 text-slate-500 dark:text-slate-400 truncate max-w-xs" title={g.description}>
                           {g.description || "—"}
@@ -815,18 +722,7 @@ export default function AdminCodesPage() {
       {/* ========================================================================= */}
       <div className="flex-1 min-h-[300px] lg:min-h-0 flex flex-col">
         <AdminCard
-          title={
-            <div className="flex items-center gap-2">
-              <span>세부 코드 관리</span>
-              {currentSelectedGroup && (
-                <span className="hidden sm:inline-flex items-center gap-1 text-xs font-normal text-slate-500 dark:text-slate-400">
-                  (<span className="text-[#f99e1a] font-mono font-bold">{currentSelectedGroup.groupCode}</span>
-                  <span>·</span>
-                  <span>{currentSelectedGroup.groupName}</span>)
-                </span>
-              )}
-            </div>
-          }
+          title="세부 코드 관리"
           countBadge={
             currentSelectedGroup
               ? `등록 ${filteredCodes.length}건`
@@ -834,158 +730,55 @@ export default function AdminCodesPage() {
           }
           className="h-full flex flex-col !p-4 md:!p-5"
           actions={
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* 인라인 코드 수정 진행 중일 때: 상단 취소/저장 버튼 */}
-              {editingCodeId ? (
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={handleCancelEditCode}
-                    className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <span>취소</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveInlineEditCode}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-[#f99e1a] text-slate-950 hover:bg-[#e08a10] active:scale-95 transition-all shadow-xs cursor-pointer"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>저장</span>
-                  </button>
-                </div>
-              ) : isAddingCode ? (
-                /* 인라인 코드 추가 진행 중일 때: 상단 취소/저장 버튼 */
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={handleCancelInlineCode}
-                    className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <span>취소</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveInlineCode}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-[#f99e1a] text-slate-950 hover:bg-[#e08a10] active:scale-95 transition-all shadow-xs cursor-pointer"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>저장</span>
-                  </button>
-                </div>
-              ) : (
-                <>
-                  {/* 코드 수정 버튼 (누르면 그리드 내 해당 행이 수정 모드로 전환) */}
-                  <button
-                    type="button"
-                    disabled={!currentSelectedCode}
-                    onClick={() => currentSelectedCode && handleStartEditCode(currentSelectedCode)}
-                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-750 active:scale-95 transition-all shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
-                  >
-                    <svg className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                    <span>수정</span>
-                  </button>
-
-                  {/* 코드 삭제 버튼 */}
-                  <button
-                    type="button"
-                    disabled={!currentSelectedCode}
-                    onClick={() => currentSelectedCode && handleDeleteCode(currentSelectedCode)}
-                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 active:scale-95 transition-all shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    <span>삭제</span>
-                  </button>
-
-                  {/* 코드 등록 버튼 (누르면 그리드 최상단에 행 추가) */}
-                  <button
-                    type="button"
-                    disabled={!selectedGroupCode}
-                    onClick={handleStartAddCode}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all shadow-xs cursor-pointer ${
-                      selectedGroupCode
-                        ? "bg-[#f99e1a] text-slate-950 hover:bg-[#e08a10] active:scale-95"
-                        : "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
-                    }`}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span>코드 등록</span>
-                  </button>
-                </>
-              )}
-            </div>
+            <AdminGridHeaderActions
+              isBusy={codeEdit.isBusy}
+              hasSelection={!!currentSelectedCode}
+              onAdd={handleStartAddCode}
+              onEdit={() => currentSelectedCode && handleStartEditCode(currentSelectedCode)}
+              onDelete={() => currentSelectedCode && handleDeleteCode(currentSelectedCode)}
+              onCancel={() => (codeEdit.isAdding ? codeEdit.cancelAdd() : codeEdit.cancelEdit())}
+              onSave={() => (codeEdit.isAdding ? handleSaveInlineCode() : handleSaveInlineEditCode())}
+              addLabel="코드 등록"
+            />
           }
         >
           {/* 하단 툴바: 검색 영역 */}
           <div className="flex items-center justify-between gap-3 mb-2.5 shrink-0">
-            <div className="relative w-full max-w-xs sm:max-w-sm">
-              <input
-                type="text"
-                disabled={!selectedGroupCode}
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all disabled:opacity-50"
+            <div className="w-full max-w-xs sm:max-w-sm">
+              <AdminSearchInput
                 placeholder="코드 ID 또는 코드명 검색..."
                 value={codeSearch}
-                onChange={(e) => setCodeSearch(e.target.value)}
+                onChange={setCodeSearch}
               />
-              <svg
-                className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
             </div>
 
-            {currentSelectedGroup && (
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-[11px] text-slate-400 dark:text-slate-500 hidden sm:inline mr-2">
-                  {editingCodeId
-                    ? "행 정보를 수정한 후 저장 또는 Enter를 누르세요."
-                    : isAddingCode
-                    ? "신규 행에 정보를 입력 후 저장 또는 Enter를 누르세요."
-                    : "행 클릭 시 선택되어 수정/삭제할 수 있습니다."}
-                </span>
-                <span className="text-slate-400 dark:text-slate-500 hidden sm:inline">대상 그룹:</span>
-                <span className="px-2 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-[#f99e1a] font-mono font-bold text-[11px]">
-                  {currentSelectedGroup.groupCode}
-                </span>
-              </div>
-            )}
+            <div className="text-[11px] text-slate-400 dark:text-slate-500 hidden sm:block">
+              {codeEdit.editingId
+                ? "행 정보를 수정한 후 저장 또는 Enter를 누르세요."
+                : codeEdit.isAdding
+                ? "신규 행에 정보를 입력 후 저장 또는 Enter를 누르세요."
+                : "행 클릭 시 선택되어 수정/삭제할 수 있습니다."}
+            </div>
           </div>
 
-          {/* 세부 코드 테이블 그리드 */}
+          {/* 세부코드 테이블 그리드 */}
           <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 custom-scrollbar relative">
             <table className="w-full text-left text-xs divide-y divide-slate-200 dark:divide-slate-800">
               <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#151c2e] shadow-2xs">
                 <tr className="text-slate-600 dark:text-slate-300 font-semibold">
-                  <th className="px-2 py-2 w-16 min-w-[64px] text-center whitespace-nowrap bg-slate-100 dark:bg-[#151c2e]">순번</th>
-                  <th className="px-3.5 py-2 w-40 bg-slate-100 dark:bg-[#151c2e]">코드 ID</th>
-                  <th className="px-3.5 py-2 w-52 bg-slate-100 dark:bg-[#151c2e]">코드명 (국문)</th>
-                  <th className="px-3.5 py-2 w-48 bg-slate-100 dark:bg-[#151c2e]">코드명 (영문)</th>
+                  <th className="px-2 py-2 w-16 min-w-[64px] text-center whitespace-nowrap bg-slate-100 dark:bg-[#151c2e]">
+                    순번
+                  </th>
+                  <th className="px-3.5 py-2 w-48 bg-slate-100 dark:bg-[#151c2e]">코드 ID</th>
+                  <th className="px-3.5 py-2 w-64 bg-slate-100 dark:bg-[#151c2e]">코드명</th>
                   <th className="px-3 py-2 w-24 text-center bg-slate-100 dark:bg-[#151c2e]">사용여부</th>
-                  <th className="px-3.5 py-2 bg-slate-100 dark:bg-[#151c2e]">설명 / 비고</th>
+                  <th className="px-3.5 py-2 bg-slate-100 dark:bg-[#151c2e]">코드 설명</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
-                {/* [인라인 신규 세부 코드 추가 행] */}
-                {isAddingCode && (
-                  <tr className="bg-amber-500/10 dark:bg-amber-500/15 border-l-4 border-[#f99e1a] animate-in fade-in duration-150">
+                {/* [인라인 세부 코드 추가 행] */}
+                {codeEdit.isAdding && (
+                  <tr className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150">
                     <td className="px-2 py-2 text-center whitespace-nowrap">
                       <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
                         NEW
@@ -995,54 +788,39 @@ export default function AdminCodesPage() {
                       <input
                         type="text"
                         autoFocus
-                        placeholder="예: COACH"
+                        placeholder="예: ROLE_DPS"
                         className="w-full px-2 py-1 text-xs font-mono font-bold uppercase rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-[#f99e1a] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/30 shadow-2xs"
-                        value={inlineCodeForm.code}
+                        value={codeEdit.addForm.code}
                         onChange={(e) =>
-                          setInlineCodeForm((p) => ({ ...p, code: e.target.value.toUpperCase() }))
+                          codeEdit.updateAddForm({ code: e.target.value.toUpperCase() })
                         }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") handleSaveInlineCode();
-                          if (e.key === "Escape") handleCancelInlineCode();
+                          if (e.key === "Escape") codeEdit.cancelAdd();
                         }}
                       />
                     </td>
                     <td className="px-2 py-1.5">
                       <input
                         type="text"
-                        placeholder="예: 감독"
+                        placeholder="예: 딜러 (공격군)"
                         className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a] focus:ring-1 focus:ring-[#f99e1a]"
-                        value={inlineCodeForm.name}
+                        value={codeEdit.addForm.name}
                         onChange={(e) =>
-                          setInlineCodeForm((p) => ({ ...p, name: e.target.value }))
+                          codeEdit.updateAddForm({ name: e.target.value })
                         }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") handleSaveInlineCode();
-                          if (e.key === "Escape") handleCancelInlineCode();
-                        }}
-                      />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input
-                        type="text"
-                        placeholder="예: Coach"
-                        className="w-full px-2 py-1 text-xs font-mono rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                        value={inlineCodeForm.nameEn}
-                        onChange={(e) =>
-                          setInlineCodeForm((p) => ({ ...p, nameEn: e.target.value }))
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveInlineCode();
-                          if (e.key === "Escape") handleCancelInlineCode();
+                          if (e.key === "Escape") codeEdit.cancelAdd();
                         }}
                       />
                     </td>
                     <td className="px-2 py-1.5 text-center">
                       <select
                         className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
-                        value={inlineCodeForm.useYn}
+                        value={codeEdit.addForm.useYn}
                         onChange={(e) =>
-                          setInlineCodeForm((p) => ({ ...p, useYn: e.target.value as "Y" | "N" }))
+                          codeEdit.updateAddForm({ useYn: e.target.value as "Y" | "N" })
                         }
                       >
                         <option value="Y">사용</option>
@@ -1050,75 +828,48 @@ export default function AdminCodesPage() {
                       </select>
                     </td>
                     <td className="px-2 py-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="text"
-                          placeholder="코드 설명 / 비고..."
-                          className="flex-1 px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                          value={inlineCodeForm.desc}
-                          onChange={(e) =>
-                            setInlineCodeForm((p) => ({ ...p, desc: e.target.value }))
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleSaveInlineCode();
-                            if (e.key === "Escape") handleCancelInlineCode();
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={handleSaveInlineCode}
-                          className="px-2.5 py-1 rounded bg-[#f99e1a] text-slate-950 font-bold text-xs hover:bg-[#e08a10] active:scale-95 cursor-pointer shadow-xs shrink-0"
-                        >
-                          저장
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCancelInlineCode}
-                          className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300 font-semibold text-xs hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 cursor-pointer shrink-0"
-                        >
-                          취소
-                        </button>
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="코드 설명 및 용도 입력..."
+                        className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
+                        value={codeEdit.addForm.desc}
+                        onChange={(e) =>
+                          codeEdit.updateAddForm({ desc: e.target.value })
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveInlineCode();
+                          if (e.key === "Escape") codeEdit.cancelAdd();
+                        }}
+                      />
                     </td>
                   </tr>
                 )}
 
+                {/* 빈 상태 안내 */}
                 {!selectedGroupCode ? (
-                  <tr>
-                    <td colSpan={6} className="px-3.5 py-12 text-center text-slate-400">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <span className="text-3xl">👆</span>
-                        <p className="font-bold text-xs text-slate-700 dark:text-slate-300">
-                          상단 그리드에서 코드 그룹을 먼저 선택해주세요.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : filteredCodes.length === 0 && !isAddingCode ? (
-                  <tr>
-                    <td colSpan={6} className="px-3.5 py-12 text-center text-slate-400">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <span className="text-2xl">⚙️</span>
-                        <p className="font-bold text-xs text-slate-700 dark:text-slate-300">
-                          등록된 세부 코드가 없습니다.
-                        </p>
-                        <p className="text-[11px] text-slate-400">
-                          우측 상단의 '+ 코드 등록' 버튼을 눌러 새로운 코드를 등록해주세요.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
+                  <AdminEmptyState
+                    colSpan={5}
+                    icon="👆"
+                    title="상단 그리드에서 코드 그룹을 먼저 선택해주세요."
+                  />
+                ) : filteredCodes.length === 0 && !codeEdit.isAdding ? (
+                  <AdminEmptyState
+                    colSpan={5}
+                    icon="⚙️"
+                    title="등록된 세부 코드가 없습니다."
+                    description="우측 상단의 '+ 코드 등록' 버튼을 눌러 새로운 코드를 등록해주세요."
+                  />
                 ) : (
                   filteredCodes.map((c, idx) => {
                     const isSelectedCode = selectedDetailCode === c.code;
-                    const isEditingCode = editingCodeId === c.code;
+                    const isEditingCode = codeEdit.isEditing(c.code);
 
                     // [인라인 세부 코드 수정 행]
                     if (isEditingCode) {
                       return (
                         <tr
                           key={c.code}
-                          className="bg-amber-500/10 dark:bg-amber-500/15 border-l-4 border-[#f99e1a] animate-in fade-in duration-150"
+                          className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150"
                         >
                           <td className="px-2 py-2 text-center whitespace-nowrap">
                             <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
@@ -1132,39 +883,24 @@ export default function AdminCodesPage() {
                             <input
                               type="text"
                               autoFocus
-                              placeholder="코드명 (국문)"
+                              placeholder="코드명"
                               className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#f99e1a]"
-                              value={inlineEditCodeForm.name}
+                              value={codeEdit.editForm.name}
                               onChange={(e) =>
-                                setInlineEditCodeForm((p) => ({ ...p, name: e.target.value }))
+                                codeEdit.updateEditForm({ name: e.target.value })
                               }
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") handleSaveInlineEditCode();
-                                if (e.key === "Escape") handleCancelEditCode();
-                              }}
-                            />
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input
-                              type="text"
-                              placeholder="코드명 (영문)"
-                              className="w-full px-2 py-1 text-xs font-mono rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                              value={inlineEditCodeForm.nameEn}
-                              onChange={(e) =>
-                                setInlineEditCodeForm((p) => ({ ...p, nameEn: e.target.value }))
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSaveInlineEditCode();
-                                if (e.key === "Escape") handleCancelEditCode();
+                                if (e.key === "Escape") codeEdit.cancelEdit();
                               }}
                             />
                           </td>
                           <td className="px-2 py-1.5 text-center">
                             <select
                               className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
-                              value={inlineEditCodeForm.useYn}
+                              value={codeEdit.editForm.useYn}
                               onChange={(e) =>
-                                setInlineEditCodeForm((p) => ({ ...p, useYn: e.target.value as "Y" | "N" }))
+                                codeEdit.updateEditForm({ useYn: e.target.value as "Y" | "N" })
                               }
                             >
                               <option value="Y">사용</option>
@@ -1172,35 +908,19 @@ export default function AdminCodesPage() {
                             </select>
                           </td>
                           <td className="px-2 py-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="text"
-                                placeholder="코드 설명 / 비고..."
-                                className="flex-1 px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                                value={inlineEditCodeForm.desc}
-                                onChange={(e) =>
-                                  setInlineEditCodeForm((p) => ({ ...p, desc: e.target.value }))
-                                }
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") handleSaveInlineEditCode();
-                                  if (e.key === "Escape") handleCancelEditCode();
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={handleSaveInlineEditCode}
-                                className="px-2.5 py-1 rounded bg-[#f99e1a] text-slate-950 font-bold text-xs hover:bg-[#e08a10] active:scale-95 cursor-pointer shadow-xs shrink-0"
-                              >
-                                저장
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleCancelEditCode}
-                                className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300 font-semibold text-xs hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 cursor-pointer shrink-0"
-                              >
-                                취소
-                              </button>
-                            </div>
+                            <input
+                              type="text"
+                              placeholder="코드 설명 / 비고..."
+                              className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
+                              value={codeEdit.editForm.desc}
+                              onChange={(e) =>
+                                codeEdit.updateEditForm({ desc: e.target.value })
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveInlineEditCode();
+                                if (e.key === "Escape") codeEdit.cancelEdit();
+                              }}
+                            />
                           </td>
                         </tr>
                       );
@@ -1211,7 +931,7 @@ export default function AdminCodesPage() {
                         key={c.code}
                         className={`cursor-pointer transition-colors ${
                           isSelectedCode
-                            ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium border-l-4 border-[#f99e1a]"
+                            ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium"
                             : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                         }`}
                         onClick={() => setSelectedDetailCode(c.code)}
@@ -1225,21 +945,16 @@ export default function AdminCodesPage() {
                         <td className="px-3.5 py-2.5 font-semibold text-slate-900 dark:text-slate-100">
                           {c.name}
                         </td>
-                        <td className="px-3.5 py-2.5 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
-                          {c.nameEn || "—"}
-                        </td>
                         <td className="px-3.5 py-2.5 text-center">
-                          <button
-                            type="button"
-                            onClick={(e) => handleToggleCodeUse(c, e)}
-                            className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
                               c.useYn === "Y"
                                 ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
                                 : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700"
                             }`}
                           >
                             {c.useYn === "Y" ? "사용" : "미사용"}
-                          </button>
+                          </span>
                         </td>
                         <td className="px-3.5 py-2.5 text-slate-500 dark:text-slate-400 truncate max-w-xs" title={c.desc}>
                           {c.desc || "—"}
@@ -1256,7 +971,3 @@ export default function AdminCodesPage() {
     </section>
   );
 }
-
-
-
-

@@ -6,7 +6,7 @@
  */
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ADMIN_NAV_ITEMS } from "@/lib/constants/navigation";
@@ -17,12 +17,61 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const { menuSearchQuery, setMenuSearchQuery, isDarkMode, toggleDarkMode } = useAdmin();
 
-  // 대메뉴 접기/펼치기 상태 관리 (기본적으로 모두 펼침)
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    tournaments: true,
-    common: true,
-    developer: true,
+  // 메뉴 활성화(선택) 여부 판정
+  const isItemActive = (href?: string) => {
+    if (!href) return false;
+    if (pathname === href) return true;
+    const hasExactMatchOther = ADMIN_NAV_ITEMS.some((g) =>
+      g.children?.some((c) => c.href === pathname)
+    );
+    if (hasExactMatchOther) return false;
+    return href !== "/admin" && pathname.startsWith(href + "/");
+  };
+
+  // 현재 pathname이 속한 상위 그룹 ID 찾기
+  const getParentGroupId = (path: string) => {
+    for (const item of ADMIN_NAV_ITEMS) {
+      if (item.children) {
+        const hasActiveChild = item.children.some((sub) => {
+          if (!sub.href) return false;
+          if (path === sub.href) return true;
+          const hasExactMatchOther = ADMIN_NAV_ITEMS.some((g) =>
+            g.children?.some((c) => c.href === path)
+          );
+          if (hasExactMatchOther) return false;
+          return sub.href !== "/admin" && path.startsWith(sub.href + "/");
+        });
+        if (hasActiveChild) return item.id;
+      }
+    }
+    return null;
+  };
+
+  // 대메뉴 접기/펼치기 상태 관리 (현재 접속 중인 메뉴의 상위 그룹은 기본적으로 열림)
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    const activeGroup = getParentGroupId(pathname);
+    ADMIN_NAV_ITEMS.forEach((item) => {
+      if (item.children) {
+        initial[item.id] = item.id === activeGroup;
+      }
+    });
+    return initial;
   });
+
+  // URL(pathname) 변경 시 현재 메뉴의 상위 그룹 자동 펼침
+  useEffect(() => {
+    const activeGroup = getParentGroupId(pathname);
+    if (activeGroup) {
+      setOpenGroups((prev) => {
+        if (prev[activeGroup]) return prev;
+        return {
+          ...prev,
+          [activeGroup]: true,
+        };
+      });
+    }
+  }, [pathname]);
 
   const toggleGroup = (groupId: string) => {
     setOpenGroups((prev) => ({
@@ -116,7 +165,7 @@ export default function AdminSidebar() {
             // 하위 메뉴가 있는 대메뉴 그룹인 경우
             if (item.children && item.children.length > 0) {
               const hasMatchingChild = item.children.some((sub) => isMatchSearch(sub.label));
-              const isOpen = (menuSearchQuery.trim() && hasMatchingChild) ? true : (openGroups[item.id] ?? true);
+              const isOpen = (menuSearchQuery.trim() && hasMatchingChild) ? true : (openGroups[item.id] ?? false);
 
               return (
                 <div key={item.id} className="space-y-1">
@@ -188,7 +237,7 @@ export default function AdminSidebar() {
                     <div className="pl-4 space-y-0.5">
                       {item.children.map((sub) => {
                         const isSearched = isMatchSearch(sub.label);
-                        const isActive = pathname === sub.href;
+                        const isActive = isItemActive(sub.href);
 
                         return (
                           <Link

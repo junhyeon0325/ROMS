@@ -26,6 +26,7 @@ interface AdminContextType {
   setCodeGroups: React.Dispatch<React.SetStateAction<CodeGroupItem[]>>;
   codes: CodeItem[];
   setCodes: React.Dispatch<React.SetStateAction<CodeItem[]>>;
+  refreshCodes: () => Promise<void>;
   toastMessage: string | null;
   showFeedback: (msg: string) => void;
   menuSearchQuery: string;
@@ -61,8 +62,30 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // DB에서 공통코드 그룹 및 세부코드 실시간 동기화
+  const refreshCodes = async () => {
+    try {
+      const [groupsRes, codesRes] = await Promise.all([
+        fetch("/api/codes/groups"),
+        fetch("/api/codes"),
+      ]);
+      const groupsJson = await groupsRes.json();
+      const codesJson = await codesRes.json();
+
+      if (groupsJson.success && Array.isArray(groupsJson.data)) {
+        setCodeGroups(groupsJson.data);
+      }
+      if (codesJson.success && Array.isArray(codesJson.data)) {
+        setCodes(codesJson.data);
+      }
+    } catch (e) {
+      console.error("Failed to load codes from DB:", e);
+    }
+  };
+
   useEffect(() => {
     refreshMembers();
+    refreshCodes();
   }, []);
 
   // 마운트 시 현재 <html> 태그의 dark 클래스 상태 동기화
@@ -115,6 +138,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         setCodeGroups,
         codes,
         setCodes,
+        refreshCodes,
         toastMessage,
         showFeedback,
         menuSearchQuery,

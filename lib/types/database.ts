@@ -20,10 +20,9 @@ export interface Team {
 export interface Streamer {
   id: number;
   name: string;
-  nickname?: string;
   profile_image_url?: string;
-  chzzk_channel_url?: string;
-  youtube_channel_url?: string;
+  chzzk_channel_id?: string;
+  is_use?: boolean;
   remarks?: string;
 }
 

@@ -21,14 +21,14 @@ import { useInlineGridEdit } from "@/lib/hooks/useInlineGridEdit";
 interface GroupAddForm {
   groupCode: string;
   groupName: string;
-  description: string;
+  remarks: string;
   sortOrder: number;
   isUse: boolean;
 }
 
 interface GroupEditForm {
   groupName: string;
-  description: string;
+  remarks: string;
   sortOrder: number;
   isUse: boolean;
 }
@@ -37,20 +37,20 @@ interface GroupEditForm {
 interface CodeAddForm {
   code: string;
   name: string;
-  sort: number;
-  useYn: "Y" | "N";
-  desc: string;
+  sortOrder: number;
+  isUse: boolean;
+  remarks: string;
 }
 
 interface CodeEditForm {
   name: string;
-  sort: number;
-  useYn: "Y" | "N";
-  desc: string;
+  sortOrder: number;
+  isUse: boolean;
+  remarks: string;
 }
 
 export default function AdminCodesPage() {
-  const { codeGroups, codes, refreshCodes, showFeedback } = useAdmin();
+  const { codeGroups, codes, refreshCodes, showFeedback, isCodesLoading } = useAdmin();
 
   // 1. 상태: 선택된 코드 그룹 (기본값: 첫 번째 그룹)
   const [selectedGroupCode, setSelectedGroupCode] = useState<string>(
@@ -76,13 +76,13 @@ export default function AdminCodesPage() {
     {
       groupCode: "",
       groupName: "",
-      description: "",
+      remarks: "",
       sortOrder: 1,
       isUse: true,
     },
     {
       groupName: "",
-      description: "",
+      remarks: "",
       sortOrder: 1,
       isUse: true,
     }
@@ -93,15 +93,15 @@ export default function AdminCodesPage() {
     {
       code: "",
       name: "",
-      sort: 1,
-      useYn: "Y",
-      desc: "",
+      sortOrder: 1,
+      isUse: true,
+      remarks: "",
     },
     {
       name: "",
-      sort: 1,
-      useYn: "Y",
-      desc: "",
+      sortOrder: 1,
+      isUse: true,
+      remarks: "",
     }
   );
 
@@ -113,7 +113,10 @@ export default function AdminCodesPage() {
   const groupCodeCountMap = useMemo(() => {
     const map: Record<string, number> = {};
     codes.forEach((c) => {
-      map[c.group] = (map[c.group] || 0) + 1;
+      const gCode = c.groupCode || c.group;
+      if (gCode) {
+        map[gCode] = (map[gCode] || 0) + 1;
+      }
     });
     return map;
   }, [codes]);
@@ -127,7 +130,7 @@ export default function AdminCodesPage() {
         return (
           g.groupCode.toLowerCase().includes(query) ||
           g.groupName.toLowerCase().includes(query) ||
-          (g.description && g.description.toLowerCase().includes(query))
+          (g.remarks && g.remarks.toLowerCase().includes(query))
         );
       })
       .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -142,17 +145,18 @@ export default function AdminCodesPage() {
   const filteredCodes = useMemo(() => {
     if (!selectedGroupCode) return [];
     return codes
-      .filter((c) => c.group === selectedGroupCode)
+      .filter((c) => (c.groupCode || c.group) === selectedGroupCode)
       .filter((c) => {
         const query = codeSearch.toLowerCase().trim();
         if (!query) return true;
+        const remarksVal = c.remarks || c.desc || "";
         return (
           c.code.toLowerCase().includes(query) ||
           c.name.toLowerCase().includes(query) ||
-          (c.desc && c.desc.toLowerCase().includes(query))
+          remarksVal.toLowerCase().includes(query)
         );
       })
-      .sort((a, b) => a.sort - b.sort);
+      .sort((a, b) => (a.sortOrder ?? a.sort ?? 0) - (b.sortOrder ?? b.sort ?? 0));
   }, [codes, selectedGroupCode, codeSearch]);
 
   // 현재 선택된 세부 코드 객체
@@ -178,7 +182,7 @@ export default function AdminCodesPage() {
     groupEdit.startAdd({
       groupCode: "",
       groupName: "",
-      description: "",
+      remarks: "",
       sortOrder: codeGroups.length + 1,
       isUse: true,
     });
@@ -206,7 +210,7 @@ export default function AdminCodesPage() {
         body: JSON.stringify({
           groupCode,
           groupName,
-          description: groupEdit.addForm.description.trim(),
+          remarks: groupEdit.addForm.remarks.trim(),
           sortOrder: Number(groupEdit.addForm.sortOrder) || 1,
           isUse: groupEdit.addForm.isUse,
         }),
@@ -234,7 +238,7 @@ export default function AdminCodesPage() {
     codeEdit.reset();
     groupEdit.startEdit(group.groupCode, {
       groupName: group.groupName,
-      description: group.description || "",
+      remarks: group.remarks || "",
       sortOrder: group.sortOrder,
       isUse: group.isUse,
     });
@@ -257,7 +261,7 @@ export default function AdminCodesPage() {
         body: JSON.stringify({
           groupCode: groupEdit.editingId,
           groupName: name,
-          description: groupEdit.editForm.description.trim(),
+          remarks: groupEdit.editForm.remarks.trim(),
           sortOrder: Number(groupEdit.editForm.sortOrder) || 1,
           isUse: groupEdit.editForm.isUse,
         }),
@@ -327,9 +331,9 @@ export default function AdminCodesPage() {
     codeEdit.startAdd({
       code: "",
       name: "",
-      sort: filteredCodes.length + 1,
-      useYn: "Y",
-      desc: "",
+      sortOrder: filteredCodes.length + 1,
+      isUse: true,
+      remarks: "",
     });
   };
 
@@ -345,7 +349,7 @@ export default function AdminCodesPage() {
     }
 
     const isDuplicate = codes.some(
-      (c) => c.group === selectedGroupCode && c.code === code
+      (c) => (c.groupCode || c.group) === selectedGroupCode && c.code === code
     );
     if (isDuplicate) {
       showFeedback(`해당 그룹에 이미 동일한 코드 [${code}]가 존재합니다.`);
@@ -357,12 +361,12 @@ export default function AdminCodesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          group: selectedGroupCode,
+          groupCode: selectedGroupCode,
           code,
           name,
-          sort: Number(codeEdit.addForm.sort) || 1,
-          useYn: codeEdit.addForm.useYn,
-          desc: codeEdit.addForm.desc.trim(),
+          sortOrder: Number(codeEdit.addForm.sortOrder) || 1,
+          isUse: codeEdit.addForm.isUse,
+          remarks: codeEdit.addForm.remarks.trim(),
         }),
       });
 
@@ -386,9 +390,9 @@ export default function AdminCodesPage() {
     groupEdit.reset();
     codeEdit.startEdit(codeItem.code, {
       name: codeItem.name,
-      sort: codeItem.sort,
-      useYn: codeItem.useYn,
-      desc: codeItem.desc || "",
+      sortOrder: codeItem.sortOrder ?? codeItem.sort ?? 1,
+      isUse: codeItem.isUse ?? (codeItem.useYn === "Y"),
+      remarks: codeItem.remarks || codeItem.desc || "",
     });
   };
 
@@ -407,12 +411,12 @@ export default function AdminCodesPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          group: selectedGroupCode,
+          groupCode: selectedGroupCode,
           code: codeEdit.editingId,
           name,
-          sort: Number(codeEdit.editForm.sort) || 1,
-          useYn: codeEdit.editForm.useYn,
-          desc: codeEdit.editForm.desc.trim(),
+          sortOrder: Number(codeEdit.editForm.sortOrder) || 1,
+          isUse: codeEdit.editForm.isUse,
+          remarks: codeEdit.editForm.remarks.trim(),
         }),
       });
 
@@ -437,8 +441,9 @@ export default function AdminCodesPage() {
     }
 
     try {
+      const groupCode = codeItem.groupCode || codeItem.group || selectedGroupCode;
       const res = await fetch(
-        `/api/codes?group=${encodeURIComponent(codeItem.group)}&code=${encodeURIComponent(codeItem.code)}`,
+        `/api/codes?groupCode=${encodeURIComponent(groupCode)}&code=${encodeURIComponent(codeItem.code)}`,
         { method: "DELETE" }
       );
 
@@ -576,9 +581,9 @@ export default function AdminCodesPage() {
                         type="text"
                         placeholder="코드그룹 용도 및 정의를 기술하세요..."
                         className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                        value={groupEdit.addForm.description}
+                        value={groupEdit.addForm.remarks}
                         onChange={(e) =>
-                          groupEdit.updateAddForm({ description: e.target.value })
+                          groupEdit.updateAddForm({ remarks: e.target.value })
                         }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") handleSaveInlineGroup();
@@ -589,8 +594,19 @@ export default function AdminCodesPage() {
                   </tr>
                 )}
 
-                {/* 빈 상태 안내 */}
-                {filteredGroups.length === 0 && !groupEdit.isAdding ? (
+                {/* 로딩 상태 또는 빈 상태 안내 */}
+                {isCodesLoading ? (
+                  <tr>
+                    <td colSpan={6} className="px-3.5 py-12 text-center text-slate-400 dark:text-slate-500">
+                      <div className="flex flex-col items-center justify-center gap-2.5">
+                        <div className="w-5 h-5 border-2 border-[#f99e1a] border-t-transparent rounded-full animate-spin" />
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                          코드그룹 목록을 불러오는 중입니다...
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredGroups.length === 0 && !groupEdit.isAdding ? (
                   <AdminEmptyState
                     colSpan={6}
                     icon="📁"
@@ -655,9 +671,9 @@ export default function AdminCodesPage() {
                               type="text"
                               placeholder="설명 / 비고"
                               className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                              value={groupEdit.editForm.description}
+                              value={groupEdit.editForm.remarks}
                               onChange={(e) =>
-                                groupEdit.updateEditForm({ description: e.target.value })
+                                groupEdit.updateEditForm({ remarks: e.target.value })
                               }
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") handleSaveInlineEditGroup();
@@ -704,8 +720,8 @@ export default function AdminCodesPage() {
                             {g.isUse ? "사용" : "미사용"}
                           </span>
                         </td>
-                        <td className="px-3.5 py-2 text-slate-500 dark:text-slate-400 truncate max-w-xs" title={g.description}>
-                          {g.description || "—"}
+                        <td className="px-3.5 py-2 text-slate-500 dark:text-slate-400 truncate max-w-xs" title={g.remarks}>
+                          {g.remarks || "—"}
                         </td>
                       </tr>
                     );
@@ -818,9 +834,9 @@ export default function AdminCodesPage() {
                     <td className="px-2 py-1.5 text-center">
                       <select
                         className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
-                        value={codeEdit.addForm.useYn}
+                        value={codeEdit.addForm.isUse ? "Y" : "N"}
                         onChange={(e) =>
-                          codeEdit.updateAddForm({ useYn: e.target.value as "Y" | "N" })
+                          codeEdit.updateAddForm({ isUse: e.target.value === "Y" })
                         }
                       >
                         <option value="Y">사용</option>
@@ -830,11 +846,11 @@ export default function AdminCodesPage() {
                     <td className="px-2 py-1.5">
                       <input
                         type="text"
-                        placeholder="코드 설명 및 용도 입력..."
+                        placeholder="코드 설명 및 비고 입력..."
                         className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                        value={codeEdit.addForm.desc}
+                        value={codeEdit.addForm.remarks}
                         onChange={(e) =>
-                          codeEdit.updateAddForm({ desc: e.target.value })
+                          codeEdit.updateAddForm({ remarks: e.target.value })
                         }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") handleSaveInlineCode();
@@ -845,8 +861,19 @@ export default function AdminCodesPage() {
                   </tr>
                 )}
 
-                {/* 빈 상태 안내 */}
-                {!selectedGroupCode ? (
+                {/* 로딩 상태 또는 빈 상태 안내 */}
+                {isCodesLoading ? (
+                  <tr>
+                    <td colSpan={5} className="px-3.5 py-12 text-center text-slate-400 dark:text-slate-500">
+                      <div className="flex flex-col items-center justify-center gap-2.5">
+                        <div className="w-5 h-5 border-2 border-[#f99e1a] border-t-transparent rounded-full animate-spin" />
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                          세부 코드를 불러오는 중입니다...
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : !selectedGroupCode ? (
                   <AdminEmptyState
                     colSpan={5}
                     icon="👆"
@@ -863,6 +890,8 @@ export default function AdminCodesPage() {
                   filteredCodes.map((c, idx) => {
                     const isSelectedCode = selectedDetailCode === c.code;
                     const isEditingCode = codeEdit.isEditing(c.code);
+                    const isUseActive = c.isUse ?? (c.useYn === "Y");
+                    const remarksText = c.remarks || c.desc || "—";
 
                     // [인라인 세부 코드 수정 행]
                     if (isEditingCode) {
@@ -898,9 +927,9 @@ export default function AdminCodesPage() {
                           <td className="px-2 py-1.5 text-center">
                             <select
                               className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
-                              value={codeEdit.editForm.useYn}
+                              value={codeEdit.editForm.isUse ? "Y" : "N"}
                               onChange={(e) =>
-                                codeEdit.updateEditForm({ useYn: e.target.value as "Y" | "N" })
+                                codeEdit.updateEditForm({ isUse: e.target.value === "Y" })
                               }
                             >
                               <option value="Y">사용</option>
@@ -912,9 +941,9 @@ export default function AdminCodesPage() {
                               type="text"
                               placeholder="코드 설명 / 비고..."
                               className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                              value={codeEdit.editForm.desc}
+                              value={codeEdit.editForm.remarks}
                               onChange={(e) =>
-                                codeEdit.updateEditForm({ desc: e.target.value })
+                                codeEdit.updateEditForm({ remarks: e.target.value })
                               }
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") handleSaveInlineEditCode();
@@ -948,16 +977,16 @@ export default function AdminCodesPage() {
                         <td className="px-3.5 py-2.5 text-center">
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
-                              c.useYn === "Y"
+                              isUseActive
                                 ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
                                 : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700"
                             }`}
                           >
-                            {c.useYn === "Y" ? "사용" : "미사용"}
+                            {isUseActive ? "사용" : "미사용"}
                           </span>
                         </td>
-                        <td className="px-3.5 py-2.5 text-slate-500 dark:text-slate-400 truncate max-w-xs" title={c.desc}>
-                          {c.desc || "—"}
+                        <td className="px-3.5 py-2.5 text-slate-500 dark:text-slate-400 truncate max-w-xs" title={remarksText}>
+                          {remarksText}
                         </td>
                       </tr>
                     );

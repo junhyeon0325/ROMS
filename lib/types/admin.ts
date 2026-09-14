@@ -11,6 +11,7 @@ export interface MemberItem {
   registeredDate: string;
   profileImg?: string;
   memo?: string;
+  isUse?: boolean;
 }
 
 export interface TournamentParticipant {
@@ -50,18 +51,23 @@ export interface MapItem {
 export interface CodeGroupItem {
   groupCode: string;
   groupName: string;
-  description?: string;
+  remarks?: string;
   sortOrder: number;
   isUse: boolean;
   createdAt?: string;
 }
 
 export interface CodeItem {
-  group: string;
+  groupCode: string;
   code: string;
   name: string;
-  sort: number;
-  useYn: "Y" | "N";
+  sortOrder: number;
+  isUse: boolean;
+  remarks?: string;
+  // 하위 호환성 지원 필드
+  group?: string;
+  sort?: number;
+  useYn?: "Y" | "N";
   desc?: string;
 }
 

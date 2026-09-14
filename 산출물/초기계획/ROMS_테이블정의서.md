@@ -95,16 +95,14 @@
 | :---: | :--- | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
 | 1 | `id` | 스트리머 아이디 | `BIGINT` | **PK** | - | N | `autoincrement()` | 선수 고유 식별자 |
 | 2 | `name` | 선수 본명/활동명 | `TEXT` | - | - | N | - | 선수 대표 이름 (`US-001`, `AD-004`) |
-| 3 | `nickname` | 방송 닉네임 | `TEXT` | - | - | Y | `NULL` | 개인 방송 닉네임 (`AD-004`) |
-| 4 | `position` | 대표 포지션 | `ENUM('Position')`| - | - | N | `'DAMAGE'` | `'TANK'`, `'DAMAGE'`, `'HEALER'` (`AD-004`) |
-| 5 | `profile_image_url`| 프로필 이미지 URL | `TEXT` | - | - | Y | `NULL` | Supabase Storage 프로필 이미지 URL (`AD-004`) |
-| 6 | `chzzk_channel_url`| 치지직 채널 URL | `TEXT` | - | - | Y | `NULL` | 네이버 치지직 방송 채널 링크 (`AD-004`) |
-| 7 | `youtube_channel_url`| 유튜브 채널 URL | `TEXT` | - | - | Y | `NULL` | 유튜브 채널 링크 (`AD-004`) |
-| 8 | `created_by` | 생성자 | `TEXT` | - | - | Y | `NULL` | 생성자 식별자 |
-| 9 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
-| 10 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
-| 11 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
-| 12 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
+| 3 | `profile_image_url`| 프로필 이미지 URL | `TEXT` | - | - | Y | `NULL` | Supabase Storage 프로필 이미지 URL (`AD-004`) |
+| 4 | `chzzk_channel_id` | 치지직 채널 고유 ID | `TEXT` | - | - | Y | `NULL` | `UNIQUE` 네이버 치지직 32자리 고유 식별자 (`AD-004`) |
+| 5 | `is_use` | 사용 여부 | `BOOLEAN` | - | - | N | `true` | 스트리머 활성화/사용 여부 (소프트 딜리트 지원) |
+| 6 | `created_by` | 생성자 | `TEXT` | - | - | Y | `NULL` | 생성자 식별자 |
+| 7 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
+| 8 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
+| 9 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 10 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
 
 
 ---
@@ -256,12 +254,13 @@
 | 1 | `id` | 코드 그룹 아이디 | `BIGINT` | **PK** | - | N | `autoincrement()` | 공통 코드 그룹 고유 식별자 |
 | 2 | `group_code` | 그룹 코드 | `VARCHAR(50)` | - | - | N | - | `UNIQUE` 그룹 코드 키 (예: `POSITION`) |
 | 3 | `group_name` | 그룹 명 | `TEXT` | - | - | N | - | 그룹 명칭 (예: 포지션 구분) |
-| 4 | `description` | 설명 | `TEXT` | - | - | Y | `NULL` | 코드 그룹 상세 설명 |
-| 5 | `created_by` | 생성자 | `TEXT` | - | - | Y | `NULL` | 생성자 식별자 |
-| 6 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
-| 7 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
-| 8 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
-| 9 | `remarks` | 비고 | `TEXT` | - | - | Y | `NULL` | 비고 / 기타 참고사항 |
+| 4 | `sort_order` | 정렬 순서 | `INTEGER` | - | - | N | `0` | 화면 노출 정렬 순서 |
+| 5 | `is_use` | 사용 여부 | `BOOLEAN` | - | - | N | `true` | 코드 그룹 활성화/사용 여부 |
+| 6 | `created_by` | 생성자 | `TEXT` | - | - | Y | `NULL` | 생성자 식별자 |
+| 7 | `created_at` | 생성일시 | `TIMESTAMP(3)` | - | - | N | `CURRENT_TIMESTAMP` | 생성 일시 |
+| 8 | `updated_by` | 수정자 | `TEXT` | - | - | Y | `NULL` | 수정자 식별자 |
+| 9 | `updated_at` | 수정일시 | `TIMESTAMP(3)` | - | - | N | `auto_update` | 수정 일시 (`@updatedAt`) |
+| 10 | `remarks` | 비고 / 설명 | `TEXT` | - | - | Y | `NULL` | 코드 그룹 상세 설명 및 비고 (기존 description에서 remarks로 일원화) |
 
 ---
 

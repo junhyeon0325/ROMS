@@ -72,13 +72,11 @@ model Team {
 }
 
 model Streamer {
-  id                BigInt   @id @default(autoincrement())
-  name              String
-  nickname          String?
-  position          Position @default(DAMAGE)
-  profileImageUrl   String?  @map("profile_image_url")
-  chzzkChannelUrl   String?  @map("chzzk_channel_url")
-  youtubeChannelUrl String?  @map("youtube_channel_url")
+  id              BigInt   @id @default(autoincrement())
+  name            String
+  profileImageUrl String?  @map("profile_image_url")
+  chzzkChannelId  String?  @unique @map("chzzk_channel_id")
+  isUse           Boolean  @default(true) @map("is_use")
 
   createdBy String?  @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
@@ -89,6 +87,8 @@ model Streamer {
   teamMembers    SeasonTeamMember[]
   playerSetStats PlayerSetStat[]
 
+  @@index([name])
+  @@index([createdAt(sort: Desc)])
   @@map("streamers")
 }
 
@@ -238,7 +238,6 @@ model CommonCodeGroup {
   id          BigInt   @id @default(autoincrement())
   groupCode   String   @unique @map("group_code")
   groupName   String   @map("group_name")
-  description String?
   sortOrder   Int      @default(0) @map("sort_order")
   isUse       Boolean  @default(true) @map("is_use")
 

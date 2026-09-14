@@ -15,6 +15,7 @@ import AdminFormActions from "@/components/admin/AdminFormActions";
 import AdminAvatar, { MemberAvatar } from "@/components/admin/AdminAvatar";
 import AdminFilterTabs from "@/components/admin/AdminFilterTabs";
 import AdminSearchInput from "@/components/admin/AdminSearchInput";
+import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
 import { useCommonCodes } from "@/lib/hooks/useCommonCodes";
 
 // 치지직 후보 스트리머 인터페이스
@@ -30,7 +31,7 @@ interface ChzzkCandidate {
 }
 
 export default function AdminMembersPage() {
-  const { members, setMembers, showFeedback, refreshMembers } = useAdmin();
+  const { members, setMembers, showFeedback, refreshMembers, isMembersLoading } = useAdmin();
 
   // 1. 공통코드: 스트리머 등록 방식 그룹 전용 비동기 로드 (공통 훅 사용)
   const { codes: regTypeCodes } = useCommonCodes(CODE_GROUPS.STREAMER_REGISTRATION);
@@ -75,12 +76,14 @@ export default function AdminMembersPage() {
     name: string;
     profileImg: string;
     memo: string;
+    isUse: boolean;
   }>({
     regType: "",
     channelUrl: "",
     name: "",
     profileImg: "",
     memo: "",
+    isUse: true,
   });
 
   // 공통코드가 로드되었을 때 아직 regType이 비어있으면 치지직 우선 또는 첫 번째 코드로 자동 지정
@@ -118,6 +121,92 @@ export default function AdminMembersPage() {
     return matchName && matchMemo && matchType;
   });
 
+  // 스트리머 목록 테이블 컬럼 정의 (공통 AdminTable 적용)
+  const streamerColumns: AdminTableColumn<MemberItem>[] = useMemo(() => [
+    {
+      key: "name",
+      header: "이름 / 채널",
+      render: (m) => (
+        <div className="flex items-center gap-2.5">
+          <MemberAvatar name={m.name} profileImg={m.profileImg} />
+          <div>
+            <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+              {m.name}
+            </div>
+            {m.channelId && (
+              <a
+                href={m.channelId.startsWith("http") ? m.channelId : `${CHZZK_BASE_URL}/${m.channelId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 mt-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors"
+                onClick={(e) => e.stopPropagation()}
+                title={`치지직 채널 바로가기 (${m.channelId})`}
+              >
+                치지직 바로가기
+                <span className="text-[9px] leading-none">↗</span>
+              </a>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "type",
+      header: "구분",
+      width: "w-24 whitespace-nowrap",
+      cellClassName: "whitespace-nowrap",
+      render: (m) => {
+        const matchedCode = regTypeCodes.find(
+          (c) => c.code === m.type || c.name === m.type
+        );
+        const isChzzk = Boolean(
+          chzzkCodeItem && (matchedCode?.code === chzzkCodeItem.code || m.type === STREAMER_REG_CODES.CHZZK)
+        );
+        const displayName = matchedCode?.name || m.type || "—";
+        return (
+          <span
+            className={`inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${
+              isChzzk
+                ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+            }`}
+          >
+            {displayName}
+          </span>
+        );
+      },
+    },
+    {
+      key: "isUse",
+      header: "상태",
+      width: "w-20 whitespace-nowrap",
+      cellClassName: "whitespace-nowrap text-center",
+      render: (m) => {
+        const active = m.isUse !== false;
+        return (
+          <span
+            className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${
+              active
+                ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700"
+            }`}
+          >
+            {active ? "사용" : "미사용"}
+          </span>
+        );
+      },
+    },
+    {
+      key: "memo",
+      header: "메모 / 특이사항",
+      render: (m) => (
+        <span className="line-clamp-1 text-[11px] text-slate-500 dark:text-slate-400">
+          {m.memo || "—"}
+        </span>
+      ),
+    },
+  ], [regTypeCodes, chzzkCodeItem]);
+
   // 목록 항목 클릭 시 우측 폼에 바인딩
   const handleSelectMember = (m: MemberItem) => {
     setSelectedMemberId(m.id);
@@ -131,6 +220,7 @@ export default function AdminMembersPage() {
       name: m.name,
       profileImg: m.profileImg || "",
       memo: m.memo || "",
+      isUse: m.isUse !== false,
     });
   };
 
@@ -143,6 +233,7 @@ export default function AdminMembersPage() {
       name: "",
       profileImg: "",
       memo: "",
+      isUse: true,
     });
     showFeedback("신규 스트리머 등록 모드로 전환되었습니다.");
   };
@@ -205,6 +296,11 @@ export default function AdminMembersPage() {
       return;
     }
 
+    if (isChzzkType && !memberForm.channelUrl.trim()) {
+      showFeedback("치지직 채널 주소 또는 채널 ID를 입력해주세요.");
+      return;
+    }
+
     setIsSaving(true);
     try {
       if (selectedMemberId) {
@@ -219,6 +315,7 @@ export default function AdminMembersPage() {
             channelUrl: isChzzkType ? memberForm.channelUrl : "",
             profileImg: memberForm.profileImg,
             memo: memberForm.memo,
+            isUse: memberForm.isUse,
           }),
         });
         const result = await res.json();
@@ -241,6 +338,7 @@ export default function AdminMembersPage() {
             channelUrl: isChzzkType ? memberForm.channelUrl : "",
             profileImg: memberForm.profileImg,
             memo: memberForm.memo,
+            isUse: memberForm.isUse,
           }),
         });
         const result = await res.json();
@@ -259,11 +357,15 @@ export default function AdminMembersPage() {
     }
   };
 
-  // 스트리머 Supabase DB 삭제 (DELETE)
+  // 스트리머 Supabase DB 비활성화 (소프트 딜리트)
   const handleDeleteMember = async () => {
     if (!selectedMemberId) return;
     const target = members.find((m) => m.id === selectedMemberId);
-    if (!confirm(`[${target?.name || "스트리머"}] 정말 DB에서 삭제하시겠습니까?`)) {
+    if (
+      !confirm(
+        `[${target?.name || "스트리머"}] 스트리머를 비활성화(미사용 처리)하시겠습니까?\n과거 대회 전적 및 경기 기록은 안전하게 보존됩니다.`
+      )
+    ) {
       return;
     }
 
@@ -273,14 +375,18 @@ export default function AdminMembersPage() {
       });
       const result = await res.json();
       if (result.success) {
-        setMembers((prev) => prev.filter((m) => m.id !== selectedMemberId));
-        handleNewMember();
-        showFeedback(`[${target?.name || "항목"}] DB에서 삭제되었습니다.`);
+        setMembers((prev) =>
+          prev.map((m) =>
+            m.id === selectedMemberId ? { ...m, isUse: false } : m
+          )
+        );
+        setMemberForm((prev) => ({ ...prev, isUse: false }));
+        showFeedback(`[${target?.name || "스트리머"}] 비활성화되었습니다.`);
       } else {
-        showFeedback(result.message || "삭제에 실패했습니다.");
+        showFeedback(result.message || "비활성화 처리에 실패했습니다.");
       }
     } catch (e) {
-      showFeedback("삭제 중 오류가 발생했습니다.");
+      showFeedback("비활성화 처리 중 오류가 발생했습니다.");
     }
   };
 
@@ -353,113 +459,32 @@ export default function AdminMembersPage() {
               </div>
             </div>
 
-            {/* 인원 리스트 테이블 (그리드 내부 스크롤) */}
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 custom-scrollbar relative">
-              <table className="w-full text-left text-xs divide-y divide-slate-200 dark:divide-slate-800">
-                <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#151c2e] shadow-2xs">
-                  <tr className="text-slate-600 dark:text-slate-300 font-semibold">
-                    <th className="px-3.5 py-2.5 bg-slate-100 dark:bg-[#151c2e]">이름 / 채널</th>
-                    <th className="px-3.5 py-2.5 w-28 whitespace-nowrap bg-slate-100 dark:bg-[#151c2e]">구분</th>
-                    <th className="px-3.5 py-2.5 bg-slate-100 dark:bg-[#151c2e]">메모 / 특이사항</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
-                  {filteredMemberList.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="px-3.5 py-16 text-center text-slate-400 dark:text-slate-500">
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <span className="text-3xl">
-                            {members.length === 0 ? "👤" : "🔍"}
-                          </span>
-                          <p className="font-semibold text-xs text-slate-700 dark:text-slate-300">
-                            {members.length === 0
-                              ? "등록된 스트리머가 없습니다."
-                              : "검색 조건에 일치하는 스트리머가 없습니다."}
-                          </p>
-                          <p className="text-[11px] text-slate-400">
-                            {members.length === 0
-                              ? "우측 등록 폼에서 새로운 스트리머를 등록해주세요."
-                              : "이름 또는 메모 검색 조건, 구분 필터를 변경해보세요."}
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredMemberList.map((m) => {
-                      const isSelected = selectedMemberId === m.id;
-                      return (
-                        <tr
-                          key={m.id}
-                          className={`cursor-pointer transition-colors ${
-                            isSelected
-                              ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium"
-                              : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                          }`}
-                          onClick={() => handleSelectMember(m)}
-                        >
-                          <td className="px-3.5 py-3">
-                            <div className="flex items-center gap-2.5">
-                              <MemberAvatar name={m.name} profileImg={m.profileImg} />
-                              <div>
-                                <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                                  {m.name}
-                                </div>
-                                {m.channelId && (
-                                  <a
-                                    href={m.channelId.startsWith("http") ? m.channelId : `${CHZZK_BASE_URL}/${m.channelId}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono hover:underline flex items-center gap-0.5"
-                                    onClick={(e) => e.stopPropagation()}
-                                    title={`치지직 채널 바로가기: ${m.channelId}`}
-                                  >
-                                    @{m.channelId.length > 12 ? `${m.channelId.slice(0, 10)}...` : m.channelId}
-                                    <span className="text-[9px]">↗</span>
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-3.5 py-3 whitespace-nowrap">
-                            {(() => {
-                              const matchedCode = regTypeCodes.find(
-                                (c) => c.code === m.type || c.name === m.type
-                              );
-                              const isChzzk = Boolean(
-                                chzzkCodeItem && (matchedCode?.code === chzzkCodeItem.code || m.type === STREAMER_REG_CODES.CHZZK)
-                              );
-                              const displayName =
-                                matchedCode?.name ||
-                                (m.type === STREAMER_REG_CODES.CHZZK
-                                  ? "치지직 연동"
-                                  : m.type === STREAMER_REG_CODES.STANDARD
-                                  ? "일반 등록"
-                                  : m.type || "—");
-                              return (
-                                <span
-                                  className={`inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${
-                                    isChzzk
-                                      ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-                                  }`}
-                                >
-                                  {displayName}
-                                </span>
-                              );
-                            })()}
-                          </td>
-                          <td className="px-3.5 py-3 text-slate-500 dark:text-slate-400">
-                            <span className="line-clamp-1 text-[11px]">
-                              {m.memo || "—"}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+            {/* 스트리머 목록 테이블 (공통 AdminTable 컴포넌트) */}
+            <AdminTable<MemberItem>
+              columns={streamerColumns}
+              data={filteredMemberList}
+              keyField="id"
+              selectedId={selectedMemberId}
+              onRowClick={handleSelectMember}
+              isLoading={isMembersLoading}
+              renderEmpty={() => (
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <span className="text-3xl">
+                    {members.length === 0 ? "👤" : "🔍"}
+                  </span>
+                  <p className="font-semibold text-xs text-slate-700 dark:text-slate-300">
+                    {members.length === 0
+                      ? "등록된 스트리머가 없습니다."
+                      : "검색 조건에 일치하는 스트리머가 없습니다."}
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    {members.length === 0
+                      ? "우측 등록 폼에서 새로운 스트리머를 등록해주세요."
+                      : "이름 또는 메모 검색 조건, 구분 필터를 변경해보세요."}
+                  </p>
+                </div>
+              )}
+            />
           </AdminCard>
         </div>
 
@@ -471,10 +496,11 @@ export default function AdminMembersPage() {
             actions={
               <AdminFormActions
                 onSave={handleSaveMember}
-                onDelete={selectedMemberId ? handleDeleteMember : undefined}
+                onDelete={selectedMemberId && memberForm.isUse ? handleDeleteMember : undefined}
                 onNew={handleNewMember}
                 isEditing={!!selectedMemberId}
                 saveLabel={isSaving ? "저장중..." : "저장"}
+                deleteLabel="비활성화"
               />
             }
           >
@@ -605,6 +631,52 @@ export default function AdminMembersPage() {
                     setMemberForm((p) => ({ ...p, memo: e.target.value }))
                   }
                 />
+              </div>
+
+              {/* 사용 여부 (소프트 딜리트 / 활성화 토글) */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  사용 여부
+                </label>
+                <div className="flex gap-2">
+                  <label
+                    className={`flex-1 text-center py-2 text-xs font-semibold rounded-xl border cursor-pointer transition-all ${
+                      memberForm.isUse
+                        ? "bg-emerald-500 text-white font-bold border-emerald-500 shadow-2xs"
+                        : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="isUse"
+                      className="hidden"
+                      checked={memberForm.isUse}
+                      onChange={() => setMemberForm((p) => ({ ...p, isUse: true }))}
+                    />
+                    사용 (활성)
+                  </label>
+                  <label
+                    className={`flex-1 text-center py-2 text-xs font-semibold rounded-xl border cursor-pointer transition-all ${
+                      !memberForm.isUse
+                        ? "bg-slate-600 text-white font-bold border-slate-600 shadow-2xs"
+                        : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="isUse"
+                      className="hidden"
+                      checked={!memberForm.isUse}
+                      onChange={() => setMemberForm((p) => ({ ...p, isUse: false }))}
+                    />
+                    미사용 (비활성)
+                  </label>
+                </div>
+                {!memberForm.isUse && (
+                  <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400">
+                    💡 미사용 스트리머는 신규 대회 팀 배정 시 추천에서 제외되며, 과거 대회 전적 및 경기 기록은 안전하게 보존됩니다.
+                  </p>
+                )}
               </div>
             </div>
           </AdminCard>

@@ -6,31 +6,36 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { STREAMER_REG_CODES } from "@/lib/constants/codes";
+import { STREAMER_REG_CODES, CHZZK_BASE_URL } from "@/lib/constants/codes";
+
+// 치지직 채널 ID 추출 헬퍼 (URL 또는 단독 ID 문자열 모두 안전하게 처리)
+function extractChzzkChannelId(input?: string | null): string | null {
+  if (!input || !input.trim()) return null;
+  const cleaned = input.trim();
+  const parsed = cleaned
+    .replace(/^https?:\/\/(www\.)?(m\.)?chzzk\.naver\.com\/(live\/)?/i, "")
+    .split("?")[0]
+    .replace(/\/$/, "")
+    .trim();
+  return parsed || null;
+}
 
 // BigInt 및 필드 직렬화 헬퍼 함수
 function formatStreamer(s: any) {
-  const channelUrl = s.chzzkChannelUrl || "";
-  let channelId = "";
-  if (channelUrl) {
-    channelId = channelUrl
-      .replace(/^https?:\/\/(www\.)?chzzk\.naver\.com\/(live\/)?/i, "")
-      .split("?")[0]
-      .replace(/\/$/, "");
-  }
+  const channelId = s.chzzkChannelId || "";
+  const channelUrl = channelId ? `${CHZZK_BASE_URL}/${channelId}` : "";
 
   return {
     id: s.id.toString(),
     name: s.name,
-    nickname: s.nickname || "",
-    position: s.position,
     profileImg: s.profileImageUrl || "",
     channelUrl: channelUrl,
     channelId: channelId,
-    type: channelUrl ? STREAMER_REG_CODES.CHZZK : STREAMER_REG_CODES.STANDARD,
-    followers: channelUrl ? "연동됨" : "—",
+    type: channelId ? STREAMER_REG_CODES.CHZZK : STREAMER_REG_CODES.STANDARD,
+    followers: channelId ? "연동됨" : "—",
     registeredDate: s.createdAt ? new Date(s.createdAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
     memo: s.remarks || "",
+    isUse: s.isUse ?? true,
   };
 }
 
@@ -62,7 +67,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, regType, channelUrl, profileImg, memo } = body;
+    const { name, regType, channelUrl, channelId, profileImg, memo, isUse } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json(
@@ -71,16 +76,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const isChzzk = regType === STREAMER_REG_CODES.CHZZK || regType === "치지직 연동";
+    const chzzkChannelId = isChzzk ? extractChzzkChannelId(channelId || channelUrl) : null;
+
+    // 치지직 연동 선택 시 채널 주소/ID 필수 검증
+    if (isChzzk && !chzzkChannelId) {
+      return NextResponse.json(
+        { success: false, message: "치지직 연동 등록 시 치지직 채널 주소 또는 채널 ID를 반드시 입력해야 합니다." },
+        { status: 400 }
+      );
+    }
+
+    // 치지직 채널 ID 중복 검사
+    if (chzzkChannelId) {
+      const existing = await prisma.streamer.findFirst({
+        where: { chzzkChannelId },
+      });
+      if (existing) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `이미 등록된 치지직 채널입니다. (현재 등록 스트리머: ${existing.name})`,
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     const created = await prisma.streamer.create({
       data: {
         name: name.trim(),
         profileImageUrl: profileImg?.trim() || null,
-        chzzkChannelUrl:
-          (regType === STREAMER_REG_CODES.CHZZK || regType === "치지직 연동")
-            ? channelUrl?.trim() || null
-            : null,
+        chzzkChannelId: chzzkChannelId,
+        isUse: isUse !== false,
         remarks: memo?.trim() || null,
-        position: "DAMAGE",
       },
     });
 
@@ -91,6 +120,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("POST /api/streamers error:", error);
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { success: false, message: "이미 등록된 치지직 채널 ID입니다." },
+        { status: 409 }
+      );
+    }
     return NextResponse.json(
       {
         success: false,
@@ -106,7 +141,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, regType, channelUrl, profileImg, memo } = body;
+    const { id, name, regType, channelUrl, channelId, profileImg, memo, isUse } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -121,6 +156,33 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    const isChzzk = regType === STREAMER_REG_CODES.CHZZK || regType === "치지직 연동";
+    const chzzkChannelId = isChzzk ? extractChzzkChannelId(channelId || channelUrl) : null;
+
+    // 치지직 연동 선택 시 채널 주소/ID 필수 검증
+    if (isChzzk && !chzzkChannelId) {
+      return NextResponse.json(
+        { success: false, message: "치지직 연동 등록 시 치지직 채널 주소 또는 채널 ID를 반드시 입력해야 합니다." },
+        { status: 400 }
+      );
+    }
+
+    // 치지직 채널 ID 다른 스트리머와의 중복 검사
+    if (chzzkChannelId) {
+      const existing = await prisma.streamer.findFirst({
+        where: { chzzkChannelId },
+      });
+      if (existing && existing.id.toString() !== id.toString()) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `이미 다른 스트리머에게 등록된 치지직 채널입니다. (등록된 스트리머: ${existing.name})`,
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     const updated = await prisma.streamer.update({
       where: {
         id: BigInt(id),
@@ -128,10 +190,8 @@ export async function PUT(request: NextRequest) {
       data: {
         name: name.trim(),
         profileImageUrl: profileImg?.trim() || null,
-        chzzkChannelUrl:
-          (regType === STREAMER_REG_CODES.CHZZK || regType === "치지직 연동")
-            ? channelUrl?.trim() || null
-            : null,
+        chzzkChannelId: chzzkChannelId,
+        ...(isUse !== undefined ? { isUse: Boolean(isUse) } : {}),
         remarks: memo?.trim() || null,
       },
     });
@@ -143,6 +203,12 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("PUT /api/streamers error:", error);
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { success: false, message: "이미 다른 스트리머에게 등록된 치지직 채널 ID입니다." },
+        { status: 409 }
+      );
+    }
     return NextResponse.json(
       {
         success: false,
@@ -154,7 +220,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// 4. 스트리머 삭제 (DELETE)
+// 4. 스트리머 삭제 (소프트 딜리트 기본 적용)
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -172,22 +238,38 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await prisma.streamer.delete({
+    const isHard = searchParams.get("hard") === "true";
+    if (isHard) {
+      await prisma.streamer.delete({
+        where: { id: BigInt(id) },
+      });
+      return NextResponse.json({
+        success: true,
+        message: "스트리머가 데이터베이스에서 영구 삭제되었습니다.",
+      });
+    }
+
+    // 기본 동작: 소프트 딜리트 (isUse = false)
+    const updated = await prisma.streamer.update({
       where: {
         id: BigInt(id),
+      },
+      data: {
+        isUse: false,
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: "스트리머가 데이터베이스에서 삭제되었습니다.",
+      message: `[${updated.name}] 스트리머가 비활성화(미사용 처리)되었습니다. 과거 대회 전적은 안전하게 보존됩니다.`,
+      data: formatStreamer(updated),
     });
   } catch (error: any) {
     console.error("DELETE /api/streamers error:", error);
     return NextResponse.json(
       {
         success: false,
-        message: "스트리머 삭제 중 데이터베이스 오류가 발생했습니다.",
+        message: "스트리머 삭제(비활성화) 중 데이터베이스 오류가 발생했습니다.",
         error: error.message,
       },
       { status: 500 }

@@ -71,11 +71,9 @@ erDiagram
     "스트리머 (Streamer)" {
         BigInt 스트리머_아이디 PK
         String 선수명
-        String 방송_닉네임
-        Enum 대표포지션 "TANK | DAMAGE | HEALER"
         String 프로필_이미지_URL "Supabase Storage URL"
-        String 치지직_채널_URL
-        String 유튜브_채널_URL
+        String 치지직_채널_고유ID UK "네이버 치지직 32자리 ID"
+        Boolean 사용여부 "소프트 딜리트 지원"
         String 생성자
         DateTime 생성일시
         String 수정자
@@ -183,12 +181,13 @@ erDiagram
         BigInt 코드_그룹_아이디 PK
         String 그룹_코드 UK "예: POSITION"
         String 그룹명 "예: 포지션 구분"
-        String 설명
+        Int 정렬순서
+        Boolean 사용여부
         String 생성자
         DateTime 생성일시
         String 수정자
         DateTime 수정일시
-        String 비고
+        String 비고_설명
     }
 
     "공통 코드 (CommonCode)" {
@@ -272,11 +271,9 @@ erDiagram
     streamers {
         bigint id PK
         text name
-        text nickname
-        enum position "TANK | DAMAGE | HEALER"
         text profile_image_url
-        text chzzk_channel_url
-        text youtube_channel_url
+        text chzzk_channel_id UK
+        boolean is_use
         text created_by
         timestamp created_at
         text updated_by
@@ -385,7 +382,8 @@ erDiagram
         bigint id PK
         varchar group_code UK
         text group_name
-        text description
+        integer sort_order
+        boolean is_use
         text created_by
         timestamp created_at
         text updated_by

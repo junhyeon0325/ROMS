@@ -19,7 +19,7 @@ export default function AdminDashboardPage() {
   // 스트리머 등록 방식 공통코드 동적 매핑
   const regTypeCodes = useMemo(() => {
     return codes.filter(
-      (c) => c.group === CODE_GROUPS.STREAMER_REGISTRATION && c.useYn === "Y"
+      (c) => (c.groupCode || c.group) === CODE_GROUPS.STREAMER_REGISTRATION && (c.isUse ?? (c.useYn === "Y"))
     );
   }, [codes]);
 

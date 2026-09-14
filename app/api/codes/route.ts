@@ -10,9 +10,14 @@ import { prisma } from "@/lib/prisma";
 // 포맷 직렬화 헬퍼 함수
 function formatCode(c: any) {
   return {
-    group: c.groupCode,
+    groupCode: c.groupCode,
     code: c.code,
     name: c.codeName,
+    sortOrder: c.sortOrder ?? 0,
+    isUse: c.isUse ?? true,
+    remarks: c.remarks || "",
+    // 하위 호환성 지원 필드
+    group: c.groupCode,
     sort: c.sortOrder ?? 0,
     useYn: c.isUse ? "Y" : ("N" as "Y" | "N"),
     desc: c.remarks || "",
@@ -23,7 +28,7 @@ function formatCode(c: any) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const groupCode = searchParams.get("group");
+    const groupCode = searchParams.get("group") || searchParams.get("groupCode");
 
     const whereCondition = groupCode ? { groupCode: groupCode.trim().toUpperCase() } : {};
 
@@ -51,12 +56,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const group = (body.group || body.groupCode)?.trim().toUpperCase();
+    const group = (body.groupCode || body.group)?.trim().toUpperCase();
     const code = body.code?.trim().toUpperCase();
     const name = (body.name || body.codeName)?.trim();
-    const sort = body.sort ?? body.sortOrder ?? 1;
-    const useYn = body.useYn ?? "Y";
-    const desc = body.desc ?? body.remarks ?? "";
+    const sort = body.sortOrder ?? body.sort ?? 1;
+    const isUse = body.isUse !== undefined ? Boolean(body.isUse) : (body.useYn !== undefined ? body.useYn === "Y" : true);
+    const desc = body.remarks ?? body.desc ?? "";
 
     if (!group) {
       return NextResponse.json(
@@ -106,7 +111,7 @@ export async function POST(request: NextRequest) {
         code: code,
         codeName: name,
         sortOrder: Number(sort) || 0,
-        isUse: useYn === "Y",
+        isUse: isUse,
         remarks: desc?.trim() || null,
       },
     });
@@ -133,12 +138,12 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const group = (body.group || body.groupCode)?.trim().toUpperCase();
+    const group = (body.groupCode || body.group)?.trim().toUpperCase();
     const code = body.code?.trim().toUpperCase();
     const name = (body.name || body.codeName)?.trim();
-    const sort = body.sort ?? body.sortOrder ?? 1;
-    const useYn = body.useYn;
-    const desc = body.desc ?? body.remarks;
+    const sort = body.sortOrder ?? body.sort;
+    const isUse = body.isUse !== undefined ? Boolean(body.isUse) : (body.useYn !== undefined ? body.useYn === "Y" : undefined);
+    const desc = body.remarks ?? body.desc;
 
     if (!group || !code) {
       return NextResponse.json(
@@ -163,8 +168,8 @@ export async function PUT(request: NextRequest) {
       },
       data: {
         codeName: name,
-        sortOrder: Number(sort) || 0,
-        ...(useYn !== undefined ? { isUse: useYn === "Y" } : {}),
+        ...(sort !== undefined ? { sortOrder: Number(sort) || 0 } : {}),
+        ...(isUse !== undefined ? { isUse: isUse } : {}),
         remarks: desc !== undefined ? (desc?.trim() || null) : undefined,
       },
     });
@@ -191,7 +196,7 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    let group = searchParams.get("group");
+    let group = searchParams.get("groupCode") || searchParams.get("group");
     let code = searchParams.get("code");
 
     if (!group || !code) {

@@ -16,6 +16,7 @@ interface AdminContextType {
   members: MemberItem[];
   setMembers: React.Dispatch<React.SetStateAction<MemberItem[]>>;
   refreshMembers: () => Promise<void>;
+  isMembersLoading: boolean;
   tournaments: TournamentItem[];
   setTournaments: React.Dispatch<React.SetStateAction<TournamentItem[]>>;
   participants: TournamentParticipant[];
@@ -27,6 +28,7 @@ interface AdminContextType {
   codes: CodeItem[];
   setCodes: React.Dispatch<React.SetStateAction<CodeItem[]>>;
   refreshCodes: () => Promise<void>;
+  isCodesLoading: boolean;
   toastMessage: string | null;
   showFeedback: (msg: string) => void;
   menuSearchQuery: string;
@@ -45,6 +47,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [codeGroups, setCodeGroups] = useState<CodeGroupItem[]>(initialCodeGroups);
   const [codes, setCodes] = useState<CodeItem[]>(initialCodes);
 
+  const [isMembersLoading, setIsMembersLoading] = useState<boolean>(true);
+  const [isCodesLoading, setIsCodesLoading] = useState<boolean>(true);
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -52,6 +57,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   // DB에서 스트리머 목록 실시간 동기화
   const refreshMembers = async () => {
     try {
+      setIsMembersLoading(true);
       const res = await fetch("/api/streamers");
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
@@ -59,12 +65,15 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       }
     } catch (e) {
       console.error("Failed to load streamers from DB:", e);
+    } finally {
+      setIsMembersLoading(false);
     }
   };
 
   // DB에서 공통코드 그룹 및 세부코드 실시간 동기화
   const refreshCodes = async () => {
     try {
+      setIsCodesLoading(true);
       const [groupsRes, codesRes] = await Promise.all([
         fetch("/api/codes/groups"),
         fetch("/api/codes"),
@@ -80,6 +89,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       }
     } catch (e) {
       console.error("Failed to load codes from DB:", e);
+    } finally {
+      setIsCodesLoading(false);
     }
   };
 
@@ -128,6 +139,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         members,
         setMembers,
         refreshMembers,
+        isMembersLoading,
         tournaments,
         setTournaments,
         participants,
@@ -139,6 +151,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         codes,
         setCodes,
         refreshCodes,
+        isCodesLoading,
         toastMessage,
         showFeedback,
         menuSearchQuery,

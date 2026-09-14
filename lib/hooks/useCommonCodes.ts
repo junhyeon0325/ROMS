@@ -43,9 +43,9 @@ export function useCommonCodes(
       if (json.success && Array.isArray(json.data)) {
         let items: CodeItem[] = json.data;
         if (onlyActive) {
-          items = items.filter((c) => c.useYn === "Y");
+          items = items.filter((c) => c.isUse ?? (c.useYn === "Y"));
         }
-        items.sort((a, b) => a.sort - b.sort);
+        items.sort((a, b) => (a.sortOrder ?? a.sort ?? 0) - (b.sortOrder ?? b.sort ?? 0));
         setCodes(items);
       } else {
         setCodes([]);

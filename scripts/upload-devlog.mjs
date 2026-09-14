@@ -48,6 +48,7 @@ if (!fs.existsSync(devlogDir)) {
 
 const args = process.argv.slice(2);
 const isAll = args.includes('--all') || args.includes('-a');
+const isForce = args.includes('--force') || args.includes('-f');
 const specificTarget = args.find(a => !a.startsWith('-'));
 
 // 유효하지 않은 URL 링크 안전 제거 (http://, https:// 외 링크는 일반 텍스트로 처리)
@@ -122,8 +123,42 @@ function flattenDeepBlocks(blockList, depth = 0, maxDepth = 2) {
   return result;
 }
 
+// 기존 페이지 블록 내용 최신화(동기화) 함수
+async function updateExistingPageBlocks(pageId, pageTitle, blocks) {
+  console.log(`🔄 [기존 페이지 최신화] "${pageTitle}" 블록을 동기화합니다...`);
+
+  let existingBlockIds = [];
+  let cursor = undefined;
+  do {
+    const list = await notion.blocks.children.list({ block_id: pageId, start_cursor: cursor, page_size: 100 });
+    for (const b of list.results) {
+      existingBlockIds.push(b.id);
+    }
+    cursor = list.has_more ? list.next_cursor : undefined;
+  } while (cursor);
+
+  for (const bid of existingBlockIds) {
+    try {
+      await notion.blocks.delete({ block_id: bid });
+    } catch (_) {}
+  }
+
+  const CHUNK_SIZE = 100;
+  for (let i = 0; i < blocks.length; i += CHUNK_SIZE) {
+    await notion.blocks.children.append({
+      block_id: pageId,
+      children: blocks.slice(i, i + CHUNK_SIZE)
+    });
+  }
+
+  const pageUrl = `https://notion.so/${pageId.replace(/-/g, '')}`;
+  console.log(`✅ [최신화 완료] ${pageTitle}`);
+  console.log(`   🔗 ${pageUrl}`);
+  return { updated: true, pageTitle, url: pageUrl };
+}
+
 // 단일 파일 업로드 함수
-async function uploadSingleFile(fileName, parentConfig, titlePropertyKey, hasDevCategory, existingTitles = new Set()) {
+async function uploadSingleFile(fileName, parentConfig, titlePropertyKey, hasDevCategory, existingPages = new Map()) {
   const filePath = path.join(devlogDir, fileName);
   let fileContent = fs.readFileSync(filePath, 'utf-8');
 
@@ -140,12 +175,6 @@ async function uploadSingleFile(fileName, parentConfig, titlePropertyKey, hasDev
     bodyContent = fileContent.replace(/^#\s+.+$/m, '').trim();
   }
 
-  // 중복 체크
-  if (existingTitles.has(pageTitle)) {
-    console.log(`⏩ [이미 등록됨] "${pageTitle}" 건너뜁니다.`);
-    return { skipped: true, pageTitle };
-  }
-
   // 3. 마크다운을 노션 블록으로 변환 및 정제 (링크 소독, 깊은 중첩 평탄화)
   let blocks = [];
   try {
@@ -155,6 +184,19 @@ async function uploadSingleFile(fileName, parentConfig, titlePropertyKey, hasDev
   } catch (err) {
     console.error(`❌ [${fileName}] 마크다운 파싱 실패:`, err.message);
     return { failed: true, error: err.message };
+  }
+
+  // 중복 체크 및 마스터 인덱스/강제 최신화 처리
+  if (existingPages.has(pageTitle)) {
+    const existingPage = existingPages.get(pageTitle);
+    const isMasterIndex = fileName === 'ROMS_개발일지.md';
+
+    if (isMasterIndex || isForce) {
+      return await updateExistingPageBlocks(existingPage.id, pageTitle, blocks);
+    } else {
+      console.log(`⏩ [이미 등록됨] "${pageTitle}" 건너뜁니다.`);
+      return { skipped: true, pageTitle, url: existingPage.url };
+    }
   }
 
   // 100개 단위 분할
@@ -199,10 +241,10 @@ async function uploadSingleFile(fileName, parentConfig, titlePropertyKey, hasDev
   }
 
   const pageUrl = createdPage.url || `https://notion.so/${createdPage.id.replace(/-/g, '')}`;
-  console.log(`✅ [완료] ${pageTitle}`);
+  console.log(`✅ [신규 등록 완료] ${pageTitle}`);
   console.log(`   🔗 ${pageUrl}`);
   
-  existingTitles.add(pageTitle);
+  existingPages.set(pageTitle, { id: createdPage.id, url: pageUrl });
   return { success: true, pageTitle, url: pageUrl };
 }
 
@@ -212,7 +254,7 @@ async function main() {
   let parentConfig = null;
   let titlePropertyKey = 'title';
   let hasDevCategory = false;
-  let existingTitles = new Set();
+  let existingPages = new Map();
 
   let isPage = false;
   try {
@@ -248,17 +290,34 @@ async function main() {
 
       console.log(`✅ 노션 '데이터베이스' 확인 완료 (제목 필드: "${titlePropertyKey}")`);
 
-      if (dataSourceId && notion.dataSources) {
-        try {
-          const existingRes = await notion.dataSources.query({ data_source_id: dataSourceId, page_size: 100 });
-          for (const item of existingRes.results) {
-            const titleObj = item.properties[titlePropertyKey];
-            const titleText = titleObj?.title?.[0]?.plain_text;
-            if (titleText) existingTitles.add(titleText);
+      let cursor = undefined;
+      do {
+        let results = [];
+        if (dataSourceId && notion.dataSources) {
+          try {
+            const res = await notion.dataSources.query({ data_source_id: dataSourceId, start_cursor: cursor, page_size: 100 });
+            results = res.results;
+            cursor = res.has_more ? res.next_cursor : undefined;
+          } catch (_) {}
+        }
+        if (results.length === 0) {
+          try {
+            const res = await notion.databases.query({ database_id: targetParentId, start_cursor: cursor, page_size: 100 });
+            results = res.results;
+            cursor = res.has_more ? res.next_cursor : undefined;
+          } catch (_) {}
+        }
+
+        for (const item of results) {
+          const titleObj = item.properties[titlePropertyKey];
+          const titleText = titleObj?.title?.map(t => t.plain_text).join('').trim();
+          if (titleText) {
+            existingPages.set(titleText, { id: item.id, url: item.url });
           }
-          console.log(`📋 노션 DB 기존 등록 항목: ${existingTitles.size}건 확인`);
-        } catch (_) {}
-      }
+        }
+      } while (cursor);
+
+      console.log(`📋 노션 DB 기존 등록 항목: ${existingPages.size}건 확인`);
     } catch (err) {
       console.error('\n❌ [권한 또는 ID 오류] 노션 대상(페이지/데이터베이스)을 찾을 수 없습니다.');
       console.error(err.message);
@@ -270,7 +329,7 @@ async function main() {
 
   if (isAll) {
     const dateFiles = fs.readdirSync(devlogDir)
-      .filter(f => f.endsWith('.md') && f.includes('_'))
+      .filter(f => f.startsWith('ROMS_개발일지_') && f.endsWith('.md'))
       .sort();
 
     filesToUpload = [...dateFiles];
@@ -290,30 +349,31 @@ async function main() {
       }
     }
   } else {
+    // 인자가 없을 경우 전체 파일을 스캔하여 미등록된 일지 및 마스터 인덱스를 자동 처리
     const dateFiles = fs.readdirSync(devlogDir)
-      .filter(f => f.endsWith('.md') && f.includes('_'))
-      .sort()
-      .reverse();
+      .filter(f => f.startsWith('ROMS_개발일지_') && f.endsWith('.md'))
+      .sort();
 
-    if (dateFiles.length > 0) {
-      filesToUpload.push(dateFiles[0]);
-    } else {
-      const anyFile = fs.readdirSync(devlogDir).find(f => f.endsWith('.md'));
-      if (anyFile) filesToUpload.push(anyFile);
+    filesToUpload = [...dateFiles];
+
+    if (fs.existsSync(path.join(devlogDir, 'ROMS_개발일지.md'))) {
+      filesToUpload.push('ROMS_개발일지.md');
     }
   }
 
-  console.log(`\n📚 총 ${filesToUpload.length}개 파일 확인:\n${filesToUpload.map(f => ` - ${f}`).join('\n')}\n`);
+  console.log(`\n📚 총 ${filesToUpload.length}개 대상 일지 파일 확인:\n${filesToUpload.map(f => ` - ${f}`).join('\n')}\n`);
 
   let successCount = 0;
+  let updatedCount = 0;
   let skipCount = 0;
 
   for (let i = 0; i < filesToUpload.length; i++) {
     const fileName = filesToUpload[i];
     console.log(`\n[${i + 1}/${filesToUpload.length}] --------------------------------`);
     try {
-      const res = await uploadSingleFile(fileName, parentConfig, titlePropertyKey, hasDevCategory, existingTitles);
+      const res = await uploadSingleFile(fileName, parentConfig, titlePropertyKey, hasDevCategory, existingPages);
       if (res.skipped) skipCount++;
+      else if (res.updated) updatedCount++;
       else if (res.success) successCount++;
       await new Promise(r => setTimeout(r, 500));
     } catch (uploadErr) {
@@ -322,7 +382,7 @@ async function main() {
   }
 
   console.log('\n========================================');
-  console.log(`🎉 모든 작업 완료! (성공: ${successCount}건, 건너뜀: ${skipCount}건)`);
+  console.log(`🎉 모든 작업 완료! (신규 등록: ${successCount}건, 최신화: ${updatedCount}건, 건너뜀: ${skipCount}건)`);
   console.log('========================================\n');
 }
 

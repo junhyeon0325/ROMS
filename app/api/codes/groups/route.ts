@@ -12,7 +12,7 @@ function formatCodeGroup(g: any) {
   return {
     groupCode: g.groupCode,
     groupName: g.groupName,
-    description: g.description || "",
+    remarks: g.remarks || "",
     sortOrder: g.sortOrder ?? 0,
     isUse: g.isUse ?? true,
     createdAt: g.createdAt ? new Date(g.createdAt).toISOString().split("T")[0] : "",
@@ -45,10 +45,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { groupCode, groupName, description, sortOrder, isUse } = body;
+    const { groupCode, groupName, remarks, sortOrder, isUse } = body;
 
     const trimmedCode = groupCode?.trim().toUpperCase();
     const trimmedName = groupName?.trim();
+    const remarkVal = remarks?.trim() || null;
 
     if (!trimmedCode || !trimmedName) {
       return NextResponse.json(
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
       data: {
         groupCode: trimmedCode,
         groupName: trimmedName,
-        description: description?.trim() || null,
+        remarks: remarkVal,
         sortOrder: Number(sortOrder) || 0,
         isUse: isUse !== false,
       },
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { groupCode, groupName, description, sortOrder, isUse } = body;
+    const { groupCode, groupName, remarks, sortOrder, isUse } = body;
 
     const trimmedCode = groupCode?.trim().toUpperCase();
     const trimmedName = groupName?.trim();
@@ -124,7 +125,7 @@ export async function PUT(request: NextRequest) {
       where: { groupCode: trimmedCode },
       data: {
         groupName: trimmedName,
-        description: description?.trim() || null,
+        remarks: remarks !== undefined ? (remarks?.trim() || null) : undefined,
         sortOrder: Number(sortOrder) || 0,
         isUse: isUse !== false,
       },

@@ -15,6 +15,7 @@ import AdminCard from "@/components/admin/AdminCard";
 import AdminGridHeaderActions from "@/components/admin/AdminGridHeaderActions";
 import AdminSearchInput from "@/components/admin/AdminSearchInput";
 import AdminEmptyState from "@/components/admin/AdminEmptyState";
+import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
 import { useInlineGridEdit } from "@/lib/hooks/useInlineGridEdit";
 
 // 코드그룹 폼 인터페이스
@@ -171,6 +172,164 @@ export default function AdminCodesPage() {
     setSelectedDetailCode(null);
     codeEdit.reset();
   };
+
+  // ==========================================
+  // [AdminTable 컬럼 정의]
+  // ==========================================
+
+  // 상단 코드그룹 테이블 컬럼 정의
+  const groupColumns: AdminTableColumn<CodeGroupItem>[] = useMemo(
+    () => [
+      {
+        key: "index",
+        header: "순번",
+        width: "w-16 min-w-[64px]",
+        align: "center",
+        render: (_row, idx) => (
+          <span className="text-slate-400 dark:text-slate-500 font-mono whitespace-nowrap">
+            {idx + 1}
+          </span>
+        ),
+      },
+      {
+        key: "groupCode",
+        header: "그룹 코드",
+        width: "w-48",
+        render: (row) => (
+          <span className="font-mono font-bold text-[#f99e1a] dark:text-amber-400">
+            {row.groupCode}
+          </span>
+        ),
+      },
+      {
+        key: "groupName",
+        header: "그룹명",
+        width: "w-56",
+        render: (row) => (
+          <span className="font-semibold text-slate-900 dark:text-slate-100">
+            {row.groupName}
+          </span>
+        ),
+      },
+      {
+        key: "codeCount",
+        header: "코드 수",
+        width: "w-24",
+        align: "center",
+        render: (row) => {
+          const count = groupCodeCountMap[row.groupCode] || 0;
+          return (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+              {count}건
+            </span>
+          );
+        },
+      },
+      {
+        key: "isUse",
+        header: "사용여부",
+        width: "w-24",
+        align: "center",
+        render: (row) => (
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
+              row.isUse
+                ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700"
+            }`}
+          >
+            {row.isUse ? "사용" : "미사용"}
+          </span>
+        ),
+      },
+      {
+        key: "remarks",
+        header: "설명 / 비고",
+        render: (row) => (
+          <span
+            className="text-slate-500 dark:text-slate-400 truncate max-w-xs block"
+            title={row.remarks}
+          >
+            {row.remarks || "—"}
+          </span>
+        ),
+      },
+    ],
+    [groupCodeCountMap]
+  );
+
+  // 하단 세부코드 테이블 컬럼 정의
+  const codeColumns: AdminTableColumn<CodeItem>[] = useMemo(
+    () => [
+      {
+        key: "index",
+        header: "순번",
+        width: "w-16 min-w-[64px]",
+        align: "center",
+        render: (_row, idx) => (
+          <span className="text-slate-400 dark:text-slate-500 font-mono whitespace-nowrap">
+            {idx + 1}
+          </span>
+        ),
+      },
+      {
+        key: "code",
+        header: "코드 ID",
+        width: "w-48",
+        render: (row) => (
+          <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
+            {row.code}
+          </span>
+        ),
+      },
+      {
+        key: "name",
+        header: "코드명",
+        width: "w-64",
+        render: (row) => (
+          <span className="font-semibold text-slate-900 dark:text-slate-100">
+            {row.name}
+          </span>
+        ),
+      },
+      {
+        key: "isUse",
+        header: "사용여부",
+        width: "w-24",
+        align: "center",
+        render: (row) => {
+          const isUseActive = row.isUse ?? (row.useYn === "Y");
+          return (
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
+                isUseActive
+                  ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700"
+              }`}
+            >
+              {isUseActive ? "사용" : "미사용"}
+            </span>
+          );
+        },
+      },
+      {
+        key: "remarks",
+        header: "코드 설명",
+        render: (row) => {
+          const remarksText = row.remarks || row.desc || "—";
+          return (
+            <span
+              className="text-slate-500 dark:text-slate-400 truncate max-w-xs block"
+              title={remarksText}
+            >
+              {remarksText}
+            </span>
+          );
+        },
+      },
+    ],
+    []
+  );
 
   // ==========================================
   // [인라인 그룹 추가 및 수정 핸들러 (DB 연동)]
@@ -506,230 +665,155 @@ export default function AdminCodesPage() {
             </div>
           </div>
 
-          {/* 코드그룹 테이블 그리드 */}
-          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 custom-scrollbar relative">
-            <table className="w-full text-left text-xs divide-y divide-slate-200 dark:divide-slate-800">
-              <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#151c2e] shadow-2xs">
-                <tr className="text-slate-600 dark:text-slate-300 font-semibold">
-                  <th className="px-2 py-2 w-16 min-w-[64px] text-center whitespace-nowrap bg-slate-100 dark:bg-[#151c2e]">
-                    순번
-                  </th>
-                  <th className="px-3.5 py-2 w-48 bg-slate-100 dark:bg-[#151c2e]">그룹 코드</th>
-                  <th className="px-3.5 py-2 w-56 bg-slate-100 dark:bg-[#151c2e]">그룹명</th>
-                  <th className="px-3 py-2 w-24 text-center bg-slate-100 dark:bg-[#151c2e]">코드 수</th>
-                  <th className="px-3 py-2 w-24 text-center bg-slate-100 dark:bg-[#151c2e]">사용여부</th>
-                  <th className="px-3.5 py-2 bg-slate-100 dark:bg-[#151c2e]">설명 / 비고</th>
+          {/* 코드그룹 테이블 그리드 (공통 AdminTable 적용) */}
+          <AdminTable<CodeGroupItem>
+            columns={groupColumns}
+            data={filteredGroups}
+            keyField="groupCode"
+            selectedId={selectedGroupCode}
+            onRowClick={(row) => handleSelectGroup(row.groupCode)}
+            isLoading={isCodesLoading}
+            emptyTitle="검색된 코드그룹이 없습니다."
+            topRow={
+              groupEdit.isAdding ? (
+                <tr className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150">
+                  <td className="px-2 py-2 text-center whitespace-nowrap">
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
+                      NEW
+                    </span>
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="예: MEMBER_ROLE"
+                      className="w-full px-2 py-1 text-xs font-mono font-bold uppercase rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-[#f99e1a] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/30 shadow-2xs"
+                      value={groupEdit.addForm.groupCode}
+                      onChange={(e) =>
+                        groupEdit.updateAddForm({ groupCode: e.target.value.toUpperCase() })
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveInlineGroup();
+                        if (e.key === "Escape") groupEdit.cancelAdd();
+                      }}
+                    />
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="text"
+                      placeholder="예: 참가자 역할 구분"
+                      className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a] focus:ring-1 focus:ring-[#f99e1a]"
+                      value={groupEdit.addForm.groupName}
+                      onChange={(e) =>
+                        groupEdit.updateAddForm({ groupName: e.target.value })
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveInlineGroup();
+                        if (e.key === "Escape") groupEdit.cancelAdd();
+                      }}
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-center text-slate-400 dark:text-slate-500 font-mono text-[11px]">
+                    0건
+                  </td>
+                  <td className="px-2 py-1.5 text-center">
+                    <select
+                      className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
+                      value={groupEdit.addForm.isUse ? "Y" : "N"}
+                      onChange={(e) =>
+                        groupEdit.updateAddForm({ isUse: e.target.value === "Y" })
+                      }
+                    >
+                      <option value="Y">사용</option>
+                      <option value="N">미사용</option>
+                    </select>
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="text"
+                      placeholder="설명 / 비고 입력..."
+                      className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
+                      value={groupEdit.addForm.remarks}
+                      onChange={(e) =>
+                        groupEdit.updateAddForm({ remarks: e.target.value })
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveInlineGroup();
+                        if (e.key === "Escape") groupEdit.cancelAdd();
+                      }}
+                    />
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
-                {/* [인라인 신규 그룹 추가 행] */}
-                {groupEdit.isAdding && (
-                  <tr className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150">
-                    <td className="px-2 py-2 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
-                        NEW
-                      </span>
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input
-                        type="text"
-                        autoFocus
-                        placeholder="예: MEMBER_ROLE"
-                        className="w-full px-2 py-1 text-xs font-mono font-bold uppercase rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-[#f99e1a] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/30 shadow-2xs"
-                        value={groupEdit.addForm.groupCode}
-                        onChange={(e) =>
-                          groupEdit.updateAddForm({ groupCode: e.target.value.toUpperCase() })
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveInlineGroup();
-                          if (e.key === "Escape") groupEdit.cancelAdd();
-                        }}
-                      />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input
-                        type="text"
-                        placeholder="예: 참가자 역할 구분"
-                        className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a] focus:ring-1 focus:ring-[#f99e1a]"
-                        value={groupEdit.addForm.groupName}
-                        onChange={(e) =>
-                          groupEdit.updateAddForm({ groupName: e.target.value })
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveInlineGroup();
-                          if (e.key === "Escape") groupEdit.cancelAdd();
-                        }}
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-center text-slate-400 dark:text-slate-500 font-mono text-[11px]">
-                      0건
-                    </td>
-                    <td className="px-2 py-1.5 text-center">
-                      <select
-                        className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
-                        value={groupEdit.addForm.isUse ? "Y" : "N"}
-                        onChange={(e) =>
-                          groupEdit.updateAddForm({ isUse: e.target.value === "Y" })
-                        }
-                      >
-                        <option value="Y">사용</option>
-                        <option value="N">미사용</option>
-                      </select>
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input
-                        type="text"
-                        placeholder="코드그룹 용도 및 정의를 기술하세요..."
-                        className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                        value={groupEdit.addForm.remarks}
-                        onChange={(e) =>
-                          groupEdit.updateAddForm({ remarks: e.target.value })
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveInlineGroup();
-                          if (e.key === "Escape") groupEdit.cancelAdd();
-                        }}
-                      />
-                    </td>
-                  </tr>
-                )}
-
-                {/* 로딩 상태 또는 빈 상태 안내 */}
-                {isCodesLoading ? (
-                  <tr>
-                    <td colSpan={6} className="px-3.5 py-12 text-center text-slate-400 dark:text-slate-500">
-                      <div className="flex flex-col items-center justify-center gap-2.5">
-                        <div className="w-5 h-5 border-2 border-[#f99e1a] border-t-transparent rounded-full animate-spin" />
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                          코드그룹 목록을 불러오는 중입니다...
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : filteredGroups.length === 0 && !groupEdit.isAdding ? (
-                  <AdminEmptyState
-                    colSpan={6}
-                    icon="📁"
-                    title="검색된 코드그룹이 없습니다."
-                  />
-                ) : (
-                  filteredGroups.map((g, idx) => {
-                    const isSelected = selectedGroupCode === g.groupCode;
-                    const isEditing = groupEdit.isEditing(g.groupCode);
-                    const codeCount = groupCodeCountMap[g.groupCode] || 0;
-
-                    // [인라인 그룹 수정 행]
-                    if (isEditing) {
-                      return (
-                        <tr
-                          key={g.groupCode}
-                          className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150"
-                        >
-                          <td className="px-2 py-2 text-center whitespace-nowrap">
-                            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
-                              수정
-                            </span>
-                          </td>
-                          <td className="px-3.5 py-2 font-mono font-bold text-slate-400 dark:text-slate-500">
-                            {g.groupCode}
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input
-                              type="text"
-                              autoFocus
-                              placeholder="그룹명 입력"
-                              className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#f99e1a]"
-                              value={groupEdit.editForm.groupName}
-                              onChange={(e) =>
-                                groupEdit.updateEditForm({ groupName: e.target.value })
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSaveInlineEditGroup();
-                                if (e.key === "Escape") groupEdit.cancelEdit();
-                              }}
-                            />
-                          </td>
-                          <td className="px-3 py-2 text-center">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                              {codeCount}건
-                            </span>
-                          </td>
-                          <td className="px-2 py-1.5 text-center">
-                            <select
-                              className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
-                              value={groupEdit.editForm.isUse ? "Y" : "N"}
-                              onChange={(e) =>
-                                groupEdit.updateEditForm({ isUse: e.target.value === "Y" })
-                              }
-                            >
-                              <option value="Y">사용</option>
-                              <option value="N">미사용</option>
-                            </select>
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input
-                              type="text"
-                              placeholder="설명 / 비고"
-                              className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                              value={groupEdit.editForm.remarks}
-                              onChange={(e) =>
-                                groupEdit.updateEditForm({ remarks: e.target.value })
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSaveInlineEditGroup();
-                                if (e.key === "Escape") groupEdit.cancelEdit();
-                              }}
-                            />
-                          </td>
-                        </tr>
-                      );
-                    }
-
-                    return (
-                      <tr
-                        key={g.groupCode}
-                        className={`cursor-pointer transition-colors ${
-                          isSelected
-                            ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                        }`}
-                        onClick={() => handleSelectGroup(g.groupCode)}
-                      >
-                        <td className="px-2 py-2 text-center text-slate-400 dark:text-slate-500 font-mono whitespace-nowrap">
-                          {idx + 1}
-                        </td>
-                        <td className="px-3.5 py-2 font-mono font-bold text-[#f99e1a] dark:text-amber-400">
-                          {g.groupCode}
-                        </td>
-                        <td className="px-3.5 py-2 font-semibold text-slate-900 dark:text-slate-100">
-                          {g.groupName}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                            {codeCount}건
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
-                              g.isUse
-                                ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
-                                : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700"
-                            }`}
-                          >
-                            {g.isUse ? "사용" : "미사용"}
-                          </span>
-                        </td>
-                        <td className="px-3.5 py-2 text-slate-500 dark:text-slate-400 truncate max-w-xs" title={g.remarks}>
-                          {g.remarks || "—"}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+              ) : null
+            }
+            renderRow={(g) => {
+              if (!groupEdit.isEditing(g.groupCode)) return null;
+              const codeCount = groupCodeCountMap[g.groupCode] || 0;
+              return (
+                <tr
+                  key={g.groupCode}
+                  className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150"
+                >
+                  <td className="px-2 py-2 text-center whitespace-nowrap">
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
+                      수정
+                    </span>
+                  </td>
+                  <td className="px-3.5 py-2 font-mono font-bold text-slate-400 dark:text-slate-500">
+                    {g.groupCode}
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="그룹명 입력"
+                      className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#f99e1a]"
+                      value={groupEdit.editForm.groupName}
+                      onChange={(e) =>
+                        groupEdit.updateEditForm({ groupName: e.target.value })
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveInlineEditGroup();
+                        if (e.key === "Escape") groupEdit.cancelEdit();
+                      }}
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      {codeCount}건
+                    </span>
+                  </td>
+                  <td className="px-2 py-1.5 text-center">
+                    <select
+                      className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
+                      value={groupEdit.editForm.isUse ? "Y" : "N"}
+                      onChange={(e) =>
+                        groupEdit.updateEditForm({ isUse: e.target.value === "Y" })
+                      }
+                    >
+                      <option value="Y">사용</option>
+                      <option value="N">미사용</option>
+                    </select>
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="text"
+                      placeholder="설명 / 비고"
+                      className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
+                      value={groupEdit.editForm.remarks}
+                      onChange={(e) =>
+                        groupEdit.updateEditForm({ remarks: e.target.value })
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveInlineEditGroup();
+                        if (e.key === "Escape") groupEdit.cancelEdit();
+                      }}
+                    />
+                  </td>
+                </tr>
+              );
+            }}
+          />
         </AdminCard>
       </div>
 
@@ -777,224 +861,156 @@ export default function AdminCodesPage() {
             </div>
           </div>
 
-          {/* 세부코드 테이블 그리드 */}
-          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 custom-scrollbar relative">
-            <table className="w-full text-left text-xs divide-y divide-slate-200 dark:divide-slate-800">
-              <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-[#151c2e] shadow-2xs">
-                <tr className="text-slate-600 dark:text-slate-300 font-semibold">
-                  <th className="px-2 py-2 w-16 min-w-[64px] text-center whitespace-nowrap bg-slate-100 dark:bg-[#151c2e]">
-                    순번
-                  </th>
-                  <th className="px-3.5 py-2 w-48 bg-slate-100 dark:bg-[#151c2e]">코드 ID</th>
-                  <th className="px-3.5 py-2 w-64 bg-slate-100 dark:bg-[#151c2e]">코드명</th>
-                  <th className="px-3 py-2 w-24 text-center bg-slate-100 dark:bg-[#151c2e]">사용여부</th>
-                  <th className="px-3.5 py-2 bg-slate-100 dark:bg-[#151c2e]">코드 설명</th>
+          {/* 세부코드 테이블 그리드 (공통 AdminTable 적용) */}
+          <AdminTable<CodeItem>
+            columns={codeColumns}
+            data={filteredCodes}
+            keyField="code"
+            selectedId={selectedDetailCode}
+            onRowClick={(row) => setSelectedDetailCode(row.code)}
+            isLoading={isCodesLoading}
+            emptyIcon={!selectedGroupCode ? "👆" : "⚙️"}
+            emptyTitle={
+              !selectedGroupCode
+                ? "상단 그리드에서 코드 그룹을 먼저 선택해주세요."
+                : "등록된 세부 코드가 없습니다."
+            }
+            emptyDescription={
+              !selectedGroupCode
+                ? undefined
+                : "우측 상단의 '+ 코드 등록' 버튼을 눌러 새로운 코드를 등록해주세요."
+            }
+            topRow={
+              codeEdit.isAdding ? (
+                <tr className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150">
+                  <td className="px-2 py-2 text-center whitespace-nowrap">
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
+                      NEW
+                    </span>
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="예: ROLE_DPS"
+                      className="w-full px-2 py-1 text-xs font-mono font-bold uppercase rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-[#f99e1a] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/30 shadow-2xs"
+                      value={codeEdit.addForm.code}
+                      onChange={(e) =>
+                        codeEdit.updateAddForm({ code: e.target.value.toUpperCase() })
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveInlineCode();
+                        if (e.key === "Escape") codeEdit.cancelAdd();
+                      }}
+                    />
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="text"
+                      placeholder="예: 딜러 (공격군)"
+                      className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a] focus:ring-1 focus:ring-[#f99e1a]"
+                      value={codeEdit.addForm.name}
+                      onChange={(e) =>
+                        codeEdit.updateAddForm({ name: e.target.value })
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveInlineCode();
+                        if (e.key === "Escape") codeEdit.cancelAdd();
+                      }}
+                    />
+                  </td>
+                  <td className="px-2 py-1.5 text-center">
+                    <select
+                      className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
+                      value={codeEdit.addForm.isUse ? "Y" : "N"}
+                      onChange={(e) =>
+                        codeEdit.updateAddForm({ isUse: e.target.value === "Y" })
+                      }
+                    >
+                      <option value="Y">사용</option>
+                      <option value="N">미사용</option>
+                    </select>
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="text"
+                      placeholder="코드 설명 및 비고 입력..."
+                      className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
+                      value={codeEdit.addForm.remarks}
+                      onChange={(e) =>
+                        codeEdit.updateAddForm({ remarks: e.target.value })
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveInlineCode();
+                        if (e.key === "Escape") codeEdit.cancelAdd();
+                      }}
+                    />
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
-                {/* [인라인 세부 코드 추가 행] */}
-                {codeEdit.isAdding && (
-                  <tr className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150">
-                    <td className="px-2 py-2 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
-                        NEW
-                      </span>
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input
-                        type="text"
-                        autoFocus
-                        placeholder="예: ROLE_DPS"
-                        className="w-full px-2 py-1 text-xs font-mono font-bold uppercase rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-[#f99e1a] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/30 shadow-2xs"
-                        value={codeEdit.addForm.code}
-                        onChange={(e) =>
-                          codeEdit.updateAddForm({ code: e.target.value.toUpperCase() })
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveInlineCode();
-                          if (e.key === "Escape") codeEdit.cancelAdd();
-                        }}
-                      />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input
-                        type="text"
-                        placeholder="예: 딜러 (공격군)"
-                        className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a] focus:ring-1 focus:ring-[#f99e1a]"
-                        value={codeEdit.addForm.name}
-                        onChange={(e) =>
-                          codeEdit.updateAddForm({ name: e.target.value })
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveInlineCode();
-                          if (e.key === "Escape") codeEdit.cancelAdd();
-                        }}
-                      />
-                    </td>
-                    <td className="px-2 py-1.5 text-center">
-                      <select
-                        className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
-                        value={codeEdit.addForm.isUse ? "Y" : "N"}
-                        onChange={(e) =>
-                          codeEdit.updateAddForm({ isUse: e.target.value === "Y" })
-                        }
-                      >
-                        <option value="Y">사용</option>
-                        <option value="N">미사용</option>
-                      </select>
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input
-                        type="text"
-                        placeholder="코드 설명 및 비고 입력..."
-                        className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                        value={codeEdit.addForm.remarks}
-                        onChange={(e) =>
-                          codeEdit.updateAddForm({ remarks: e.target.value })
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveInlineCode();
-                          if (e.key === "Escape") codeEdit.cancelAdd();
-                        }}
-                      />
-                    </td>
-                  </tr>
-                )}
-
-                {/* 로딩 상태 또는 빈 상태 안내 */}
-                {isCodesLoading ? (
-                  <tr>
-                    <td colSpan={5} className="px-3.5 py-12 text-center text-slate-400 dark:text-slate-500">
-                      <div className="flex flex-col items-center justify-center gap-2.5">
-                        <div className="w-5 h-5 border-2 border-[#f99e1a] border-t-transparent rounded-full animate-spin" />
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                          세부 코드를 불러오는 중입니다...
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : !selectedGroupCode ? (
-                  <AdminEmptyState
-                    colSpan={5}
-                    icon="👆"
-                    title="상단 그리드에서 코드 그룹을 먼저 선택해주세요."
-                  />
-                ) : filteredCodes.length === 0 && !codeEdit.isAdding ? (
-                  <AdminEmptyState
-                    colSpan={5}
-                    icon="⚙️"
-                    title="등록된 세부 코드가 없습니다."
-                    description="우측 상단의 '+ 코드 등록' 버튼을 눌러 새로운 코드를 등록해주세요."
-                  />
-                ) : (
-                  filteredCodes.map((c, idx) => {
-                    const isSelectedCode = selectedDetailCode === c.code;
-                    const isEditingCode = codeEdit.isEditing(c.code);
-                    const isUseActive = c.isUse ?? (c.useYn === "Y");
-                    const remarksText = c.remarks || c.desc || "—";
-
-                    // [인라인 세부 코드 수정 행]
-                    if (isEditingCode) {
-                      return (
-                        <tr
-                          key={c.code}
-                          className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150"
-                        >
-                          <td className="px-2 py-2 text-center whitespace-nowrap">
-                            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
-                              수정
-                            </span>
-                          </td>
-                          <td className="px-3.5 py-2 font-mono font-bold text-slate-400 dark:text-slate-500">
-                            {c.code}
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input
-                              type="text"
-                              autoFocus
-                              placeholder="코드명"
-                              className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#f99e1a]"
-                              value={codeEdit.editForm.name}
-                              onChange={(e) =>
-                                codeEdit.updateEditForm({ name: e.target.value })
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSaveInlineEditCode();
-                                if (e.key === "Escape") codeEdit.cancelEdit();
-                              }}
-                            />
-                          </td>
-                          <td className="px-2 py-1.5 text-center">
-                            <select
-                              className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
-                              value={codeEdit.editForm.isUse ? "Y" : "N"}
-                              onChange={(e) =>
-                                codeEdit.updateEditForm({ isUse: e.target.value === "Y" })
-                              }
-                            >
-                              <option value="Y">사용</option>
-                              <option value="N">미사용</option>
-                            </select>
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input
-                              type="text"
-                              placeholder="코드 설명 / 비고..."
-                              className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                              value={codeEdit.editForm.remarks}
-                              onChange={(e) =>
-                                codeEdit.updateEditForm({ remarks: e.target.value })
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSaveInlineEditCode();
-                                if (e.key === "Escape") codeEdit.cancelEdit();
-                              }}
-                            />
-                          </td>
-                        </tr>
-                      );
-                    }
-
-                    return (
-                      <tr
-                        key={c.code}
-                        className={`cursor-pointer transition-colors ${
-                          isSelectedCode
-                            ? "bg-amber-500/10 dark:bg-amber-500/15 font-medium"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                        }`}
-                        onClick={() => setSelectedDetailCode(c.code)}
-                      >
-                        <td className="px-2 py-2.5 text-center text-slate-400 dark:text-slate-500 font-mono whitespace-nowrap">
-                          {idx + 1}
-                        </td>
-                        <td className="px-3.5 py-2.5 font-mono font-bold text-slate-900 dark:text-slate-100">
-                          {c.code}
-                        </td>
-                        <td className="px-3.5 py-2.5 font-semibold text-slate-900 dark:text-slate-100">
-                          {c.name}
-                        </td>
-                        <td className="px-3.5 py-2.5 text-center">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
-                              isUseActive
-                                ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
-                                : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700"
-                            }`}
-                          >
-                            {isUseActive ? "사용" : "미사용"}
-                          </span>
-                        </td>
-                        <td className="px-3.5 py-2.5 text-slate-500 dark:text-slate-400 truncate max-w-xs" title={remarksText}>
-                          {remarksText}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+              ) : null
+            }
+            renderRow={(c) => {
+              if (!codeEdit.isEditing(c.code)) return null;
+              return (
+                <tr
+                  key={c.code}
+                  className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150"
+                >
+                  <td className="px-2 py-2 text-center whitespace-nowrap">
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
+                      수정
+                    </span>
+                  </td>
+                  <td className="px-3.5 py-2 font-mono font-bold text-slate-400 dark:text-slate-500">
+                    {c.code}
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="코드명"
+                      className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#f99e1a]"
+                      value={codeEdit.editForm.name}
+                      onChange={(e) =>
+                        codeEdit.updateEditForm({ name: e.target.value })
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveInlineEditCode();
+                        if (e.key === "Escape") codeEdit.cancelEdit();
+                      }}
+                    />
+                  </td>
+                  <td className="px-2 py-1.5 text-center">
+                    <select
+                      className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
+                      value={codeEdit.editForm.isUse ? "Y" : "N"}
+                      onChange={(e) =>
+                        codeEdit.updateEditForm({ isUse: e.target.value === "Y" })
+                      }
+                    >
+                      <option value="Y">사용</option>
+                      <option value="N">미사용</option>
+                    </select>
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="text"
+                      placeholder="코드 설명 / 비고..."
+                      className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
+                      value={codeEdit.editForm.remarks}
+                      onChange={(e) =>
+                        codeEdit.updateEditForm({ remarks: e.target.value })
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveInlineEditCode();
+                        if (e.key === "Escape") codeEdit.cancelEdit();
+                      }}
+                    />
+                  </td>
+                </tr>
+              );
+            }}
+          />
         </AdminCard>
       </div>
     </section>

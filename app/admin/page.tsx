@@ -9,14 +9,14 @@
 import React, { useMemo } from "react";
 import Link from "next/link";
 import { useAdmin } from "@/lib/context/AdminContext";
-import { CODE_GROUPS, STREAMER_REG_CODES } from "@/lib/constants/codes";
+import { CODE_GROUPS } from "@/lib/constants/codes";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminKpiCard from "@/components/admin/AdminKpiCard";
 
 export default function AdminDashboardPage() {
   const { members, tournaments, maps, codeGroups, codes, showFeedback } = useAdmin();
 
-  // 스트리머 등록 방식 공통코드 동적 매핑
+  // 스트리머 등록 방식 공통코드 동적 매핑 (DB 기반)
   const regTypeCodes = useMemo(() => {
     return codes.filter(
       (c) => (c.groupCode || c.group) === CODE_GROUPS.STREAMER_REGISTRATION && (c.isUse ?? (c.useYn === "Y"))
@@ -24,24 +24,21 @@ export default function AdminDashboardPage() {
   }, [codes]);
 
   const chzzkCodeItem = useMemo(() => {
-    return regTypeCodes.find((c) => c.code === STREAMER_REG_CODES.CHZZK);
+    return regTypeCodes.find((c) => c.code.includes("CHZZK"));
   }, [regTypeCodes]);
 
-  // 스트리머 KPI 메타 텍스트 (공통코드 기준 동적 카운트, 미로드 시 미표시)
-  const streamerMetaText = useMemo(() => {
-    if (regTypeCodes.length === 0) {
-      return members.length > 0 ? `총 ${members.length}명` : "—";
-    }
+  const standardCodeItem = useMemo(() => {
+    return regTypeCodes.find((c) => !c.code.includes("CHZZK") || c.code.includes("STANDARD"));
+  }, [regTypeCodes]);
 
-    return regTypeCodes
-      .map((c) => {
-        const count = members.filter(
-          (m) => m.type === c.code || m.type === c.name
-        ).length;
-        return `${c.name} ${count}`;
-      })
-      .join(" · ");
-  }, [regTypeCodes, members]);
+  // 스트리머 KPI 메타 텍스트 (DB 공통코드 명칭 동적 반영)
+  const streamerMetaText = useMemo(() => {
+    if (members.length === 0) return "—";
+    if (!chzzkCodeItem || !standardCodeItem) return "—";
+    const chzzkCount = members.filter((m) => Boolean(m.channelId)).length;
+    const standardCount = members.length - chzzkCount;
+    return `${chzzkCodeItem.name} ${chzzkCount} · ${standardCodeItem.name} ${standardCount}`;
+  }, [members, chzzkCodeItem, standardCodeItem]);
 
   return (
     <section className="space-y-6">
@@ -263,32 +260,15 @@ export default function AdminDashboardPage() {
                       <div>
                         <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
                           <span>{m.name}</span>
-                          {(() => {
-                            const matchedCode = regTypeCodes.find(
-                              (c) => c.code === m.type || c.name === m.type
-                            );
-                            const isChzzk = Boolean(
-                              chzzkCodeItem && (matchedCode?.code === chzzkCodeItem.code || m.type === STREAMER_REG_CODES.CHZZK)
-                            );
-                            const displayName =
-                              matchedCode?.name ||
-                              (m.type === STREAMER_REG_CODES.CHZZK
-                                ? "치지직 연동"
-                                : m.type === STREAMER_REG_CODES.STANDARD
-                                ? "일반 등록"
-                                : m.type || "—");
-                            return (
-                              <span
-                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                                  isChzzk
-                                    ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-                                }`}
-                              >
-                                {displayName}
-                              </span>
-                            );
-                          })()}
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                              m.channelId
+                                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                            }`}
+                          >
+                            {(m.channelId ? chzzkCodeItem?.name : standardCodeItem?.name) || "—"}
+                          </span>
                         </div>
                         <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
                           {m.id} {m.channelId ? `· @${m.channelId}` : ""}

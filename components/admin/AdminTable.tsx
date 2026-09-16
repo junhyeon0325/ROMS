@@ -55,6 +55,12 @@ export interface AdminTableProps<T> {
   tableClassName?: string;
   /** 각 tr 태그에 동적 클래스를 부여하는 함수 */
   rowClassName?: (row: T, isSelected: boolean, index: number) => string;
+  /** 최상단에 렌더링할 행 슬롯 (예: 인라인 신규 등록 행 <tr>) */
+  topRow?: React.ReactNode;
+  /** 각 행을 커스텀 렌더링할 함수 (예: 인라인 수정 모드 tr 반환, null/undefined 반환 시 기본 행 렌더링) */
+  renderRow?: (row: T, index: number, isSelected: boolean) => React.ReactNode | null;
+  /** topRow가 존재할 때 데이터가 0건이어도 빈 상태 안내를 숨길지 여부 (기본값: true) */
+  hideEmptyOnTopRow?: boolean;
 }
 
 export default function AdminTable<T extends Record<string, any>>({
@@ -71,6 +77,9 @@ export default function AdminTable<T extends Record<string, any>>({
   containerClassName = "",
   tableClassName = "",
   rowClassName,
+  topRow,
+  renderRow,
+  hideEmptyOnTopRow = true,
 }: AdminTableProps<T>) {
   // 행 고유 키 추출
   const getRowKey = (row: T, index: number): string => {
@@ -113,6 +122,9 @@ export default function AdminTable<T extends Record<string, any>>({
 
         {/* 바디 */}
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-[#111726]">
+          {/* 상단 고정/신규 행 슬롯 (예: 인라인 신규 등록 행) */}
+          {topRow}
+
           {isLoading ? (
             <tr>
               <td
@@ -128,7 +140,7 @@ export default function AdminTable<T extends Record<string, any>>({
               </td>
             </tr>
           ) : data.length === 0 ? (
-            renderEmpty ? (
+            topRow && hideEmptyOnTopRow ? null : renderEmpty ? (
               <tr>
                 <td
                   colSpan={columns.length}
@@ -151,6 +163,14 @@ export default function AdminTable<T extends Record<string, any>>({
               const rowKey = getRowKey(row, index);
               const isSelected =
                 selectedId !== undefined && selectedId !== null && selectedId === rowKey;
+
+              // 커스텀 행 렌더러가 제공되고 유효한 ReactNode를 반환한 경우 (예: 인라인 수정 모드 행)
+              if (renderRow) {
+                const customRow = renderRow(row, index, isSelected);
+                if (customRow !== null && customRow !== undefined) {
+                  return customRow;
+                }
+              }
 
               const customRowClass = rowClassName
                 ? rowClassName(row, isSelected, index)

@@ -515,12 +515,12 @@ export default function AdminTournamentStructurePage() {
                               <td className="px-3.5 py-3">
                                 <span
                                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                                    p.memberType === "치지직 연동"
+                                    (p.channelId || p.memberType?.includes("CHZZK") || p.memberType?.includes("치지직"))
                                       ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
                                       : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                                   }`}
                                 >
-                                  {p.memberType === "치지직 연동" ? "치지직" : "일반"}
+                                  {(p.channelId || p.memberType?.includes("CHZZK") || p.memberType?.includes("치지직")) ? "연동" : "일반"}
                                 </span>
                               </td>
                               <td className="px-3.5 py-3">

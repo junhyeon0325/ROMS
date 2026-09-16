@@ -6,7 +6,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { STREAMER_REG_CODES, CHZZK_BASE_URL } from "@/lib/constants/codes";
+import { CHZZK_BASE_URL } from "@/lib/constants/codes";
 
 // 치지직 채널 ID 추출 헬퍼 (URL 또는 단독 ID 문자열 모두 안전하게 처리)
 function extractChzzkChannelId(input?: string | null): string | null {
@@ -31,7 +31,7 @@ function formatStreamer(s: any) {
     profileImg: s.profileImageUrl || "",
     channelUrl: channelUrl,
     channelId: channelId,
-    type: channelId ? STREAMER_REG_CODES.CHZZK : STREAMER_REG_CODES.STANDARD,
+    type: channelId ? "CONNECT_TO_CHZZK" : "STANDARD_REGISTRATION",
     followers: channelId ? "연동됨" : "—",
     registeredDate: s.createdAt ? new Date(s.createdAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
     memo: s.remarks || "",
@@ -76,7 +76,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isChzzk = regType === STREAMER_REG_CODES.CHZZK || regType === "치지직 연동";
+    const isChzzk = Boolean(
+      body.isChzzk ||
+      regType === "CHZZK" ||
+      regType === "CONNECT_TO_CHZZK" ||
+      regType?.includes("CHZZK")
+    );
     const chzzkChannelId = isChzzk ? extractChzzkChannelId(channelId || channelUrl) : null;
 
     // 치지직 연동 선택 시 채널 주소/ID 필수 검증
@@ -156,7 +161,12 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const isChzzk = regType === STREAMER_REG_CODES.CHZZK || regType === "치지직 연동";
+    const isChzzk = Boolean(
+      body.isChzzk ||
+      regType === "CHZZK" ||
+      regType === "CONNECT_TO_CHZZK" ||
+      regType?.includes("CHZZK")
+    );
     const chzzkChannelId = isChzzk ? extractChzzkChannelId(channelId || channelUrl) : null;
 
     // 치지직 연동 선택 시 채널 주소/ID 필수 검증

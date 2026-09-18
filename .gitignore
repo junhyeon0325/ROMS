@@ -54,6 +54,6 @@ Thumbs.db
 *.sln
 *.swp
 
-# Documentation / Logs
-산출물/개발일지/
+# Generated project deliverables and development journals are kept locally.
+산출물/
 

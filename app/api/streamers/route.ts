@@ -2,7 +2,7 @@
 /**
  * [스트리머(선수) Supabase DB CRUD API 엔드포인트]
  * - Prisma Client를 통해 Supabase PostgreSQL 데이터베이스와 직접 연동
- * - 스트리머 목록 조회(GET), 신규 등록(POST), 정보 수정(PUT), 삭제(DELETE) 처리
+ * - 스트리머 목록 조회(GET), 신규 등록(POST), 정보 수정 및 활성/비활성화(PUT) 처리
  */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -217,63 +217,6 @@ export async function PUT(request: NextRequest) {
       {
         success: false,
         message: "스트리머 수정 중 데이터베이스 오류가 발생했습니다.",
-        error: error.message,
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// 4. 스트리머 삭제 (소프트 딜리트 기본 적용)
-export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    let id = searchParams.get("id");
-
-    if (!id) {
-      const body = await request.json().catch(() => ({}));
-      id = body?.id;
-    }
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, message: "삭제할 스트리머 ID가 필요합니다." },
-        { status: 400 }
-      );
-    }
-
-    const isHard = searchParams.get("hard") === "true";
-    if (isHard) {
-      await prisma.streamer.delete({
-        where: { id: BigInt(id) },
-      });
-      return NextResponse.json({
-        success: true,
-        message: "스트리머가 데이터베이스에서 영구 삭제되었습니다.",
-      });
-    }
-
-    // 기본 동작: 소프트 딜리트 (isUse = false)
-    const updated = await prisma.streamer.update({
-      where: {
-        id: BigInt(id),
-      },
-      data: {
-        isUse: false,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: `[${updated.name}] 스트리머가 비활성화(미사용 처리)되었습니다. 과거 대회 전적은 안전하게 보존됩니다.`,
-      data: formatStreamer(updated),
-    });
-  } catch (error: any) {
-    console.error("DELETE /api/streamers error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "스트리머 삭제(비활성화) 중 데이터베이스 오류가 발생했습니다.",
         error: error.message,
       },
       { status: 500 }

@@ -11,10 +11,12 @@ import React, { useState, useMemo, useDeferredValue } from "react";
 import { useAdmin } from "@/lib/context/AdminContext";
 import { CodeGroupItem } from "@/lib/types/admin";
 import AdminCard from "@/components/admin/AdminCard";
+import AdminBadge from "@/components/admin/AdminBadge";
 import AdminGridHeaderActions from "@/components/admin/AdminGridHeaderActions";
 import AdminSearchInput from "@/components/admin/AdminSearchInput";
 import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
 import { useInlineGridEdit } from "@/lib/hooks/useInlineGridEdit";
+import { useAdminMutation } from "@/lib/hooks/useAdminMutation";
 
 // 코드그룹 폼 인터페이스
 interface GroupAddForm {
@@ -44,6 +46,9 @@ export default function CodeGroupSection({
   onGroupDeleted,
 }: CodeGroupSectionProps) {
   const { codeGroups, refreshCodes, showFeedback, isCodesLoading } = useAdmin();
+
+  // 저장/삭제 API 요청 훅 (중복 클릭 방지 및 피드백 캡슐화)
+  const { execute: mutateGroup, isPending: isSaving } = useAdminMutation();
 
   // 검색 상태 및 지연 평가(Deferred Value)
   const [groupSearch, setGroupSearch] = useState("");
@@ -135,18 +140,7 @@ export default function CodeGroupSection({
         key: "isUse",
         header: "사용여부",
         width: "w-24",
-        align: "center",
-        render: (row) => (
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
-              row.isUse
-                ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700"
-            }`}
-          >
-            {row.isUse ? "사용" : "미사용"}
-          </span>
-        ),
+        render: (row) => <AdminBadge status={row.isUse} />,
       },
       {
         key: "remarks",
@@ -179,7 +173,7 @@ export default function CodeGroupSection({
     });
   };
 
-  // 그룹 저장 (DB POST)
+  // 그룹 저장 (DB POST - useAdminMutation 적용)
   const handleSaveInlineGroup = async () => {
     const groupCode = groupEdit.addForm.groupCode.trim().toUpperCase();
     const groupName = groupEdit.addForm.groupName.trim();
@@ -202,32 +196,31 @@ export default function CodeGroupSection({
       return;
     }
 
-    try {
-      const res = await fetch("/api/codes/groups", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          groupCode,
-          groupName,
-          remarks: groupEdit.addForm.remarks.trim(),
-          sortOrder: Number(groupEdit.addForm.sortOrder) || 1,
-          isUse: groupEdit.addForm.isUse,
-        }),
-      });
-
-      const json = await res.json();
-      if (!json.success) {
-        showFeedback(json.message || "그룹 등록에 실패했습니다.");
-        return;
+    await mutateGroup(
+      async () => {
+        const res = await fetch("/api/codes/groups", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            groupCode,
+            groupName,
+            remarks: groupEdit.addForm.remarks.trim(),
+            sortOrder: Number(groupEdit.addForm.sortOrder) || 1,
+            isUse: groupEdit.addForm.isUse,
+          }),
+        });
+        return res.json();
+      },
+      {
+        successMessage: `신규 그룹 [${groupCode}]이(가) DB에 등록되었습니다.`,
+        errorMessage: "그룹 등록에 실패했습니다.",
+        onSuccess: async () => {
+          await refreshCodes();
+          onSelectGroup(groupCode);
+          groupEdit.cancelAdd();
+        },
       }
-
-      await refreshCodes();
-      onSelectGroup(groupCode);
-      groupEdit.cancelAdd();
-      showFeedback(`신규 그룹 [${groupCode}]이(가) DB에 등록되었습니다.`);
-    } catch (e: any) {
-      showFeedback("그룹 등록 중 네트워크 오류가 발생했습니다.");
-    }
+    );
   };
 
   // 그룹 수정 시작
@@ -241,7 +234,7 @@ export default function CodeGroupSection({
     });
   };
 
-  // 그룹 수정 저장 (DB PUT)
+  // 그룹 수정 저장 (DB PUT - useAdminMutation 적용)
   const handleSaveInlineEditGroup = async () => {
     if (!groupEdit.editingId) return;
     const name = groupEdit.editForm.groupName.trim();
@@ -251,34 +244,35 @@ export default function CodeGroupSection({
       return;
     }
 
-    try {
-      const res = await fetch("/api/codes/groups", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          groupCode: groupEdit.editingId,
-          groupName: name,
-          remarks: groupEdit.editForm.remarks.trim(),
-          sortOrder: Number(groupEdit.editForm.sortOrder) || 1,
-          isUse: groupEdit.editForm.isUse,
-        }),
-      });
+    const editingGroupCode = groupEdit.editingId;
 
-      const json = await res.json();
-      if (!json.success) {
-        showFeedback(json.message || "그룹 수정에 실패했습니다.");
-        return;
+    await mutateGroup(
+      async () => {
+        const res = await fetch("/api/codes/groups", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            groupCode: editingGroupCode,
+            groupName: name,
+            remarks: groupEdit.editForm.remarks.trim(),
+            sortOrder: Number(groupEdit.editForm.sortOrder) || 1,
+            isUse: groupEdit.editForm.isUse,
+          }),
+        });
+        return res.json();
+      },
+      {
+        successMessage: `그룹 [${editingGroupCode}] 정보가 수정되었습니다.`,
+        errorMessage: "그룹 수정에 실패했습니다.",
+        onSuccess: async () => {
+          await refreshCodes();
+          groupEdit.cancelEdit();
+        },
       }
-
-      await refreshCodes();
-      showFeedback(`그룹 [${groupEdit.editingId}] 정보가 수정되었습니다.`);
-      groupEdit.cancelEdit();
-    } catch (e: any) {
-      showFeedback("그룹 수정 중 네트워크 오류가 발생했습니다.");
-    }
+    );
   };
 
-  // 그룹 삭제 (DB DELETE)
+  // 그룹 삭제 (DB DELETE - useAdminMutation 적용)
   const handleDeleteGroup = async (group: CodeGroupItem, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (
@@ -289,27 +283,26 @@ export default function CodeGroupSection({
       return;
     }
 
-    try {
-      const res = await fetch(
-        `/api/codes/groups?groupCode=${encodeURIComponent(group.groupCode)}`,
-        { method: "DELETE" }
-      );
-
-      const json = await res.json();
-      if (!json.success) {
-        showFeedback(json.message || "그룹 삭제에 실패했습니다.");
-        return;
+    await mutateGroup(
+      async () => {
+        const res = await fetch(
+          `/api/codes/groups?groupCode=${encodeURIComponent(group.groupCode)}`,
+          { method: "DELETE" }
+        );
+        return res.json();
+      },
+      {
+        successMessage: `그룹 [${group.groupCode}]이(가) 삭제되었습니다.`,
+        errorMessage: "그룹 삭제에 실패했습니다.",
+        onSuccess: async () => {
+          await refreshCodes();
+          if (selectedGroupCode === group.groupCode && onGroupDeleted) {
+            onGroupDeleted(group.groupCode);
+          }
+          groupEdit.reset();
+        },
       }
-
-      await refreshCodes();
-      if (selectedGroupCode === group.groupCode && onGroupDeleted) {
-        onGroupDeleted(group.groupCode);
-      }
-      groupEdit.reset();
-      showFeedback(`그룹 [${group.groupCode}]이(가) 삭제되었습니다.`);
-    } catch (e: any) {
-      showFeedback("그룹 삭제 중 네트워크 오류가 발생했습니다.");
-    }
+    );
   };
 
   return (
@@ -338,6 +331,8 @@ export default function CodeGroupSection({
                 : handleSaveInlineEditGroup()
             }
             addLabel="그룹 추가"
+            saveDisabled={isSaving}
+            saveLabel={isSaving ? "저장 중..." : "저장"}
           />
         }
       >
@@ -356,7 +351,7 @@ export default function CodeGroupSection({
               ? "행 정보를 수정한 후 저장 또는 Enter를 누르세요. (식별자 그룹 코드는 수정 불가)"
               : groupEdit.isAdding
               ? "신규 행에 정보를 입력 후 저장 또는 Enter를 누르세요."
-              : "행 클릭 시 선택되어 세부 코드가 조회됩니다. (더블클릭/수정 버튼으로 편집)"}
+              : "행 클릭 시 선택되어 세부 코드가 조회됩니다. (수정 버튼으로 편집)"}
           </div>
         </div>
 
@@ -392,7 +387,11 @@ export default function CodeGroupSection({
                       })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineGroup();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineGroup();
+                      }
                       if (e.key === "Escape") groupEdit.cancelAdd();
                     }}
                   />
@@ -407,7 +406,11 @@ export default function CodeGroupSection({
                       groupEdit.updateAddForm({ groupName: e.target.value })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineGroup();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineGroup();
+                      }
                       if (e.key === "Escape") groupEdit.cancelAdd();
                     }}
                   />
@@ -424,7 +427,11 @@ export default function CodeGroupSection({
                       })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineGroup();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineGroup();
+                      }
                       if (e.key === "Escape") groupEdit.cancelAdd();
                     }}
                   />
@@ -451,7 +458,11 @@ export default function CodeGroupSection({
                       groupEdit.updateAddForm({ remarks: e.target.value })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineGroup();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineGroup();
+                      }
                       if (e.key === "Escape") groupEdit.cancelAdd();
                     }}
                   />
@@ -493,7 +504,11 @@ export default function CodeGroupSection({
                       groupEdit.updateEditForm({ groupName: e.target.value })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineEditGroup();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineEditGroup();
+                      }
                       if (e.key === "Escape") groupEdit.cancelEdit();
                     }}
                   />
@@ -510,7 +525,11 @@ export default function CodeGroupSection({
                       })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineEditGroup();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineEditGroup();
+                      }
                       if (e.key === "Escape") groupEdit.cancelEdit();
                     }}
                   />
@@ -537,7 +556,11 @@ export default function CodeGroupSection({
                       groupEdit.updateEditForm({ remarks: e.target.value })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineEditGroup();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineEditGroup();
+                      }
                       if (e.key === "Escape") groupEdit.cancelEdit();
                     }}
                   />

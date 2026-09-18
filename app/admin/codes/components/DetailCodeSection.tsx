@@ -18,10 +18,12 @@ import React, {
 import { useAdmin } from "@/lib/context/AdminContext";
 import { CodeItem } from "@/lib/types/admin";
 import AdminCard from "@/components/admin/AdminCard";
+import AdminBadge from "@/components/admin/AdminBadge";
 import AdminGridHeaderActions from "@/components/admin/AdminGridHeaderActions";
 import AdminSearchInput from "@/components/admin/AdminSearchInput";
 import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
 import { useInlineGridEdit } from "@/lib/hooks/useInlineGridEdit";
+import { useAdminMutation } from "@/lib/hooks/useAdminMutation";
 
 // 세부코드 폼 인터페이스
 interface CodeAddForm {
@@ -42,13 +44,15 @@ interface CodeEditForm {
 interface DetailCodeSectionProps {
   selectedGroupCode: string;
   selectedGroupName?: string;
+  deletedGroupCode?: string;
 }
 
 export default function DetailCodeSection({
   selectedGroupCode,
   selectedGroupName,
+  deletedGroupCode,
 }: DetailCodeSectionProps) {
-  const { showFeedback } = useAdmin();
+  const { codeGroups, showFeedback } = useAdmin();
 
   // 1. 인메모리 캐시: groupCode -> CodeItem[]
   const cacheRef = useRef<Map<string, CodeItem[]>>(new Map());
@@ -59,6 +63,9 @@ export default function DetailCodeSection({
   const [selectedDetailCode, setSelectedDetailCode] = useState<string | null>(
     null
   );
+
+  // 세부 코드 저장/수정/삭제 요청 훅 (중복 클릭 방지 및 피드백 캡슐화)
+  const { execute: mutateDetail, isPending: isSaving } = useAdminMutation();
 
   // 3. 검색 상태 및 지연 평가(Deferred Value)
   const [codeSearch, setCodeSearch] = useState("");
@@ -133,30 +140,44 @@ export default function DetailCodeSection({
     }
   }, [selectedGroupCode, fetchDetailCodes]);
 
+  // 상위 코드 그룹 목록 갱신 또는 그룹 삭제 시, 인메모리 캐시 자동 정리
+  useEffect(() => {
+    if (deletedGroupCode && cacheRef.current.has(deletedGroupCode)) {
+      cacheRef.current.delete(deletedGroupCode);
+    }
+  }, [deletedGroupCode]);
+
+  useEffect(() => {
+    if (!codeGroups || codeGroups.length === 0) return;
+    const currentGroupCodes = new Set(codeGroups.map((g) => g.groupCode));
+    for (const cachedGroupCode of Array.from(cacheRef.current.keys())) {
+      if (!currentGroupCodes.has(cachedGroupCode)) {
+        cacheRef.current.delete(cachedGroupCode);
+      }
+    }
+  }, [codeGroups]);
+
   // 필터링된 세부 코드 목록
   const filteredCodes = useMemo(() => {
-    if (!selectedGroupCode) return [];
     return detailCodes
       .filter((c) => {
         const query = deferredCodeSearch.toLowerCase().trim();
         if (!query) return true;
-        const remarksVal = c.remarks || "";
         return (
           c.code.toLowerCase().includes(query) ||
           c.name.toLowerCase().includes(query) ||
-          remarksVal.toLowerCase().includes(query)
+          (c.remarks && c.remarks.toLowerCase().includes(query))
         );
       })
       .sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [detailCodes, selectedGroupCode, deferredCodeSearch]);
+  }, [detailCodes, deferredCodeSearch]);
 
-  // 현재 선택된 세부 코드 객체
+  // 현재 선택된 세부 코드 항목
   const currentSelectedCode = useMemo(() => {
-    if (!selectedDetailCode) return null;
-    return filteredCodes.find((c) => c.code === selectedDetailCode) || null;
-  }, [filteredCodes, selectedDetailCode]);
+    return detailCodes.find((c) => c.code === selectedDetailCode) || null;
+  }, [detailCodes, selectedDetailCode]);
 
-  // 테이블 컬럼 정의
+  // 세부 코드 테이블 컬럼 정의
   const codeColumns: AdminTableColumn<CodeItem>[] = useMemo(
     () => [
       {
@@ -173,9 +194,9 @@ export default function DetailCodeSection({
       {
         key: "code",
         header: "코드 ID",
-        width: "w-44",
+        width: "w-36",
         render: (row) => (
-          <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
+          <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
             {row.code}
           </span>
         ),
@@ -183,7 +204,7 @@ export default function DetailCodeSection({
       {
         key: "name",
         header: "코드명",
-        width: "w-60",
+        width: "w-48",
         render: (row) => (
           <span className="font-semibold text-slate-900 dark:text-slate-100">
             {row.name}
@@ -205,18 +226,7 @@ export default function DetailCodeSection({
         key: "isUse",
         header: "사용여부",
         width: "w-24",
-        align: "center",
-        render: (row) => (
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
-              row.isUse
-                ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700"
-            }`}
-          >
-            {row.isUse ? "사용" : "미사용"}
-          </span>
-        ),
+        render: (row) => <AdminBadge status={row.isUse} />,
       },
       {
         key: "remarks",
@@ -253,7 +263,7 @@ export default function DetailCodeSection({
     });
   };
 
-  // 세부 코드 저장 (DB POST)
+  // 세부 코드 인라인 저장 (DB POST - useAdminMutation 적용)
   const handleSaveInlineCode = async () => {
     if (!selectedGroupCode) return;
     const code = codeEdit.addForm.code.trim().toUpperCase();
@@ -278,34 +288,32 @@ export default function DetailCodeSection({
       return;
     }
 
-    try {
-      const res = await fetch("/api/codes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          groupCode: selectedGroupCode,
-          code,
-          name,
-          sortOrder: Number(codeEdit.addForm.sortOrder) || 1,
-          isUse: codeEdit.addForm.isUse,
-          remarks: codeEdit.addForm.remarks.trim(),
-        }),
-      });
-
-      const json = await res.json();
-      if (!json.success) {
-        showFeedback(json.message || "코드 등록에 실패했습니다.");
-        return;
+    await mutateDetail(
+      async () => {
+        const res = await fetch("/api/codes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            groupCode: selectedGroupCode,
+            code,
+            name,
+            sortOrder: Number(codeEdit.addForm.sortOrder) || 1,
+            isUse: codeEdit.addForm.isUse,
+            remarks: codeEdit.addForm.remarks.trim(),
+          }),
+        });
+        return res.json();
+      },
+      {
+        successMessage: `신규 코드 [${code}]이(가) DB에 등록되었습니다.`,
+        errorMessage: "코드 등록에 실패했습니다.",
+        onSuccess: async () => {
+          await fetchDetailCodes(selectedGroupCode, true);
+          setSelectedDetailCode(code);
+          codeEdit.cancelAdd();
+        },
       }
-
-      // 강제 갱신으로 캐시 갱신
-      await fetchDetailCodes(selectedGroupCode, true);
-      setSelectedDetailCode(code);
-      codeEdit.cancelAdd();
-      showFeedback(`신규 코드 [${code}]이(가) DB에 등록되었습니다.`);
-    } catch (e: any) {
-      showFeedback("코드 등록 중 네트워크 오류가 발생했습니다.");
-    }
+    );
   };
 
   // 코드 수정 시작
@@ -318,7 +326,7 @@ export default function DetailCodeSection({
     });
   };
 
-  // 코드 수정 저장 (DB PUT)
+  // 코드 수정 저장 (DB PUT - useAdminMutation 적용)
   const handleSaveInlineEditCode = async () => {
     if (!codeEdit.editingId || !selectedGroupCode) return;
     const name = codeEdit.editForm.name.trim();
@@ -328,36 +336,36 @@ export default function DetailCodeSection({
       return;
     }
 
-    try {
-      const res = await fetch("/api/codes", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          groupCode: selectedGroupCode,
-          code: codeEdit.editingId,
-          name,
-          sortOrder: Number(codeEdit.editForm.sortOrder) || 1,
-          isUse: codeEdit.editForm.isUse,
-          remarks: codeEdit.editForm.remarks.trim(),
-        }),
-      });
+    const editingCode = codeEdit.editingId;
 
-      const json = await res.json();
-      if (!json.success) {
-        showFeedback(json.message || "코드 수정에 실패했습니다.");
-        return;
+    await mutateDetail(
+      async () => {
+        const res = await fetch("/api/codes", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            groupCode: selectedGroupCode,
+            code: editingCode,
+            name,
+            sortOrder: Number(codeEdit.editForm.sortOrder) || 1,
+            isUse: codeEdit.editForm.isUse,
+            remarks: codeEdit.editForm.remarks.trim(),
+          }),
+        });
+        return res.json();
+      },
+      {
+        successMessage: `코드 [${editingCode}] 정보가 수정되었습니다.`,
+        errorMessage: "코드 수정에 실패했습니다.",
+        onSuccess: async () => {
+          await fetchDetailCodes(selectedGroupCode, true);
+          codeEdit.cancelEdit();
+        },
       }
-
-      // 강제 갱신으로 캐시 갱신
-      await fetchDetailCodes(selectedGroupCode, true);
-      showFeedback(`코드 [${codeEdit.editingId}] 정보가 수정되었습니다.`);
-      codeEdit.cancelEdit();
-    } catch (e: any) {
-      showFeedback("코드 수정 중 네트워크 오류가 발생했습니다.");
-    }
+    );
   };
 
-  // 코드 삭제 (DB DELETE)
+  // 코드 삭제 (DB DELETE - useAdminMutation 적용)
   const handleDeleteCode = async (codeItem: CodeItem) => {
     if (
       !window.confirm(
@@ -367,31 +375,30 @@ export default function DetailCodeSection({
       return;
     }
 
-    try {
-      const groupCode = codeItem.groupCode || selectedGroupCode;
-      const res = await fetch(
-        `/api/codes?groupCode=${encodeURIComponent(
-          groupCode
-        )}&code=${encodeURIComponent(codeItem.code)}`,
-        { method: "DELETE" }
-      );
+    const groupCode = codeItem.groupCode || selectedGroupCode;
 
-      const json = await res.json();
-      if (!json.success) {
-        showFeedback(json.message || "코드 삭제에 실패했습니다.");
-        return;
+    await mutateDetail(
+      async () => {
+        const res = await fetch(
+          `/api/codes?groupCode=${encodeURIComponent(
+            groupCode
+          )}&code=${encodeURIComponent(codeItem.code)}`,
+          { method: "DELETE" }
+        );
+        return res.json();
+      },
+      {
+        successMessage: `코드 [${codeItem.code}]이(가) 삭제되었습니다.`,
+        errorMessage: "코드 삭제에 실패했습니다.",
+        onSuccess: async () => {
+          await fetchDetailCodes(selectedGroupCode, true);
+          if (selectedDetailCode === codeItem.code) {
+            setSelectedDetailCode(null);
+          }
+          codeEdit.reset();
+        },
       }
-
-      // 강제 갱신으로 캐시 갱신
-      await fetchDetailCodes(selectedGroupCode, true);
-      if (selectedDetailCode === codeItem.code) {
-        setSelectedDetailCode(null);
-      }
-      codeEdit.reset();
-      showFeedback(`코드 [${codeItem.code}]이(가) 삭제되었습니다.`);
-    } catch (e: any) {
-      showFeedback("코드 삭제 중 네트워크 오류가 발생했습니다.");
-    }
+    );
   };
 
   return (
@@ -426,6 +433,8 @@ export default function DetailCodeSection({
                 : handleSaveInlineEditCode()
             }
             addLabel="코드 등록"
+            saveDisabled={isSaving}
+            saveLabel={isSaving ? "저장 중..." : "저장"}
           />
         }
       >
@@ -493,7 +502,11 @@ export default function DetailCodeSection({
                       })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineCode();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineCode();
+                      }
                       if (e.key === "Escape") codeEdit.cancelAdd();
                     }}
                   />
@@ -508,7 +521,11 @@ export default function DetailCodeSection({
                       codeEdit.updateAddForm({ name: e.target.value })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineCode();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineCode();
+                      }
                       if (e.key === "Escape") codeEdit.cancelAdd();
                     }}
                   />
@@ -525,7 +542,11 @@ export default function DetailCodeSection({
                       })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineCode();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineCode();
+                      }
                       if (e.key === "Escape") codeEdit.cancelAdd();
                     }}
                   />
@@ -552,7 +573,11 @@ export default function DetailCodeSection({
                       codeEdit.updateAddForm({ remarks: e.target.value })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineCode();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineCode();
+                      }
                       if (e.key === "Escape") codeEdit.cancelAdd();
                     }}
                   />
@@ -594,7 +619,11 @@ export default function DetailCodeSection({
                       codeEdit.updateEditForm({ name: e.target.value })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineEditCode();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineEditCode();
+                      }
                       if (e.key === "Escape") codeEdit.cancelEdit();
                     }}
                   />
@@ -611,7 +640,11 @@ export default function DetailCodeSection({
                       })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineEditCode();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineEditCode();
+                      }
                       if (e.key === "Escape") codeEdit.cancelEdit();
                     }}
                   />
@@ -638,7 +671,11 @@ export default function DetailCodeSection({
                       codeEdit.updateEditForm({ remarks: e.target.value })
                     }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveInlineEditCode();
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveInlineEditCode();
+                      }
                       if (e.key === "Escape") codeEdit.cancelEdit();
                     }}
                   />

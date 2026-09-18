@@ -18,6 +18,8 @@ export default function AdminCodesPage() {
 
   // 1. 선택된 코드 그룹 상태 (초기값: 미선택)
   const [selectedGroupCode, setSelectedGroupCode] = useState<string>("");
+  // 최근 삭제된 코드 그룹 상태 (하단 세부코드 캐시 정리용)
+  const [deletedGroupCode, setDeletedGroupCode] = useState<string>("");
 
   // 현재 선택된 그룹의 그룹명 추출 (하단 헤더 뱃지 표시용)
   const currentGroup = useMemo(() => {
@@ -30,11 +32,12 @@ export default function AdminCodesPage() {
     setSelectedGroupCode(groupCode);
   };
 
-  // 그룹 삭제 시 선택 해제 처리
-  const handleGroupDeleted = (deletedGroupCode: string) => {
-    if (selectedGroupCode === deletedGroupCode) {
+  // 그룹 삭제 시 선택 해제 및 캐시 무효화 통지
+  const handleGroupDeleted = (targetGroupCode: string) => {
+    if (selectedGroupCode === targetGroupCode) {
       setSelectedGroupCode("");
     }
+    setDeletedGroupCode(targetGroupCode);
   };
 
   return (
@@ -50,6 +53,7 @@ export default function AdminCodesPage() {
       <DetailCodeSection
         selectedGroupCode={selectedGroupCode}
         selectedGroupName={currentGroup?.groupName}
+        deletedGroupCode={deletedGroupCode}
       />
     </section>
   );

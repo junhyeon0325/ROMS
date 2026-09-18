@@ -1,371 +1,168 @@
-// app/admin/heroes/page.tsx
-/**
- * [영웅 데이터 관리 페이지 컴포넌트]
- * - 오버워치 영웅 마스터 데이터 관리 화면 (URL: "/admin/heroes")
- * - 역할군(돌격/공격/지원)별 영웅 목록 조회, 신규 영웅 추가 및 픽 가능 여부 설정 폼 제공
- */
+// File: app/admin/heroes/page.tsx
+// Page/Component: AdminHeroesPage
+// Purpose: 영웅 마스터 데이터를 검색·필터하고 등록 또는 수정하는 관리자 페이지다.
 "use client";
 
-import React, { useState } from "react";
-import { useAdmin } from "@/lib/context/AdminContext";
+import { useMemo, useState } from "react";
+import AdminBadge from "@/components/admin/AdminBadge";
 import AdminCard from "@/components/admin/AdminCard";
+import AdminFilterPanel from "@/components/admin/AdminFilterPanel";
+import AdminFilterTabs from "@/components/admin/AdminFilterTabs";
 import AdminFormActions from "@/components/admin/AdminFormActions";
+import AdminFormField from "@/components/admin/AdminFormField";
+import AdminSearchInput from "@/components/admin/AdminSearchInput";
+import AdminStatusRadio from "@/components/admin/AdminStatusRadio";
+import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
+import { useAdmin } from "@/lib/context/AdminContext";
+import { useAdminMutation } from "@/lib/hooks/useAdminMutation";
+import { ExternalHero, HeroItem, HeroRole } from "@/lib/types/admin";
+import OverFastHeroModal from "./components/OverFastHeroModal";
 
-export interface HeroItem {
-  id: string;
-  nameKr: string;
-  nameEn: string;
-  role: "돌격" | "공격" | "지원";
-  difficulty: "쉬움" | "보통" | "어려움";
-  isPickable: boolean;
-  desc: string;
-}
+const EMPTY_HERO_FORM = { nameKr: "", nameEn: "", role: "DAMAGE" as HeroRole, isPickable: true, imageUrl: "", desc: "" };
+const ROLE_LABEL: Record<HeroRole, string> = { TANK: "돌격", DAMAGE: "공격", SUPPORT: "지원" };
 
-const initialHeroes: HeroItem[] = [];
-
+// 영웅 관리 상태와 API 저장 동작을 조율한다.
 export default function AdminHeroesPage() {
-  const { showFeedback } = useAdmin();
-
-  const [heroes, setHeroes] = useState<HeroItem[]>(initialHeroes);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"ALL" | "돌격" | "공격" | "지원">("ALL");
+  const { heroes, setHeroes, showFeedback, isHeroesLoading } = useAdmin();
+  const { execute: mutateHero, isPending: isSaving } = useAdminMutation();
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"ALL" | HeroRole>("ALL");
+  const [usageFilter, setUsageFilter] = useState("ALL");
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(null);
+  const [form, setForm] = useState(EMPTY_HERO_FORM);
+  const [isOverFastModalOpen, setIsOverFastModalOpen] = useState(false);
+  const [externalHeroes, setExternalHeroes] = useState<ExternalHero[]>([]);
+  const [isExternalLoading, setIsExternalLoading] = useState(false);
+  const [selectedExternalKeys, setSelectedExternalKeys] = useState<string[]>([]);
 
-  const [heroForm, setHeroForm] = useState({
-    nameKr: "",
-    nameEn: "",
-    role: "돌격" as "돌격" | "공격" | "지원",
-    difficulty: "보통" as "쉬움" | "보통" | "어려움",
-    isPickable: true,
-    desc: "",
-  });
+  const registeredBySourceKey = useMemo(() => new Map(heroes.filter((hero) => hero.sourceKey).map((hero) => [hero.sourceKey!, hero])), [heroes]);
+  const registeredByNameEn = useMemo(() => new Set(heroes.map((hero) => hero.nameEn)), [heroes]);
 
-
-  const filteredHeroes = heroes.filter((h) => {
-    const matchesSearch =
-      h.nameKr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      h.nameEn.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === "ALL" || h.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
-
-  const handleSelectHero = (h: HeroItem) => {
-    setSelectedHeroId(h.id);
-    setHeroForm({
-      nameKr: h.nameKr,
-      nameEn: h.nameEn,
-      role: h.role,
-      difficulty: h.difficulty,
-      isPickable: h.isPickable,
-      desc: h.desc,
+  const filteredHeroes = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return heroes.filter((hero) => {
+      const matchesSearch = !query || [hero.nameKr, hero.nameEn].some((value) => value.toLowerCase().includes(query));
+      const matchesRole = roleFilter === "ALL" || hero.role === roleFilter;
+      const matchesUsage = usageFilter === "ALL" || (usageFilter === "USE" ? hero.isPickable : !hero.isPickable);
+      return matchesSearch && matchesRole && matchesUsage;
     });
+  }, [heroes, roleFilter, search, usageFilter]);
+
+  const isFilterActive = Boolean(search) || roleFilter !== "ALL" || usageFilter !== "ALL";
+
+  // 영웅 목록의 검색어와 필터를 기본값으로 되돌린다.
+  const handleResetFilters = () => {
+    setSearch("");
+    setRoleFilter("ALL");
+    setUsageFilter("ALL");
   };
 
-  const handleNewHero = () => {
+  const heroColumns: AdminTableColumn<HeroItem>[] = useMemo(() => [
+    { key: "nameKr", header: "영웅 이름", width: "min-w-[190px]", render: (hero) => <div className="flex items-center gap-2.5">{hero.imageUrl ? <img src={hero.imageUrl} alt="" className="h-10 w-10 rounded-full border border-slate-200 object-cover dark:border-slate-700" /> : <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800" />}<div><p className="font-bold text-slate-900 dark:text-slate-100">{hero.nameKr}</p><p className="mt-0.5 text-[10px] font-mono text-slate-400">{hero.nameEn}</p></div></div> },
+    { key: "role", header: "역할군", width: "w-24", render: (hero) => <AdminBadge variant={hero.role === "TANK" ? "brand" : hero.role === "DAMAGE" ? "danger" : "success"}>{ROLE_LABEL[hero.role]}</AdminBadge> },
+    { key: "isPickable", header: "사용 여부", width: "w-24", align: "center", render: (hero) => <AdminBadge variant={hero.isPickable ? "success" : "neutral"}>{hero.isPickable ? "사용" : "미사용"}</AdminBadge> },
+  ], []);
+
+  // 선택한 영웅의 값을 우측 편집 폼에 채운다.
+  const handleSelectHero = (hero: HeroItem) => {
+    setSelectedHeroId(hero.id);
+    setForm({ nameKr: hero.nameKr, nameEn: hero.nameEn, role: hero.role, isPickable: hero.isPickable, imageUrl: hero.imageUrl || "", desc: hero.desc });
+  };
+
+  // 신규 등록을 위해 영웅 선택과 입력값을 초기화한다.
+  const handleNew = () => {
     setSelectedHeroId(null);
-    setHeroForm({
-      nameKr: "",
-      nameEn: "",
-      role: "공격",
-      difficulty: "보통",
-      isPickable: true,
-      desc: "",
-    });
-    showFeedback("신규 영웅 등록 모드로 전환되었습니다.");
+    setForm(EMPTY_HERO_FORM);
+    showFeedback("신규 영웅 등록 모드로 전환했습니다.");
   };
 
-  const handleSaveHero = () => {
-    if (!heroForm.nameKr.trim() || !heroForm.nameEn.trim()) {
+  // 등록 또는 수정 결과를 전역 영웅 목록과 폼에 즉시 반영한다.
+  const applySavedHero = (saved: HeroItem) => {
+    setHeroes((current) => current.some((hero) => hero.id === saved.id) ? current.map((hero) => hero.id === saved.id ? saved : hero) : [saved, ...current]);
+    handleSelectHero(saved);
+  };
+
+  // 모달을 열 때 최신 OverFast 영웅 목록을 불러오고 선택값을 초기화한다.
+  const handleOpenOverFastModal = async () => {
+    setIsOverFastModalOpen(true);
+    setSelectedExternalKeys([]);
+    try {
+      setIsExternalLoading(true);
+      const response = await fetch("/api/overwatch/heroes");
+      const json = await response.json();
+      if (!response.ok || !json.success) throw new Error(json.message);
+      setExternalHeroes(json.data);
+    } catch (error) {
+      showFeedback(error instanceof Error ? error.message : "외부 영웅 데이터를 불러오지 못했습니다.");
+    } finally {
+      setIsExternalLoading(false);
+    }
+  };
+
+  // 출처 식별자 또는 영문명이 이미 등록된 영웅은 외부 목록에서 다시 선택하지 못하게 한다.
+  const handleSelectExternalHero = (hero: ExternalHero) => {
+    if (registeredBySourceKey.has(hero.sourceKey) || registeredByNameEn.has(hero.nameEn)) {
+      showFeedback("이미 등록된 외부 영웅입니다.");
+      return;
+    }
+    setSelectedExternalKeys((current) => current.includes(hero.sourceKey) ? current.filter((key) => key !== hero.sourceKey) : [...current, hero.sourceKey]);
+  };
+
+  // 현재 검색 결과의 등록 가능 영웅을 모두 선택하거나 해당 선택만 해제한다.
+  const handleSelectAllExternalHeroes = (visibleHeroes: ExternalHero[]) => {
+    const visibleKeys = visibleHeroes.map((hero) => hero.sourceKey);
+    const isAllSelected = visibleKeys.every((key) => selectedExternalKeys.includes(key));
+    setSelectedExternalKeys((current) => isAllSelected ? current.filter((key) => !visibleKeys.includes(key)) : [...new Set([...current, ...visibleKeys])]);
+  };
+
+  // 선택한 외부 영웅을 하나의 요청으로 검증·등록하고 목록에 반영한다.
+  const handleSaveExternalHeroes = async () => {
+    const selectedHeroes = externalHeroes.filter((hero) => selectedExternalKeys.includes(hero.sourceKey));
+    if (!selectedHeroes.length) {
+      showFeedback("등록할 외부 영웅을 선택해주세요.");
+      return;
+    }
+    await mutateHero(async () => {
+      const response = await fetch("/api/heroes/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ heroes: selectedHeroes }) });
+      return response.json();
+    }, { successMessage: (saved?: HeroItem[]) => `${saved?.length || 0}명의 영웅을 DB에 등록했습니다.`, errorMessage: "외부 영웅 등록에 실패했습니다.", onSuccess: (saved?: HeroItem[]) => { if (!saved?.length) return; saved.forEach(applySavedHero); setIsOverFastModalOpen(false); } });
+  };
+
+  // 필수 입력값을 확인한 뒤 영웅 등록 또는 수정 API를 호출한다.
+  const handleSave = async () => {
+    if (!form.nameKr.trim() || !form.nameEn.trim()) {
       showFeedback("영웅 국문명과 영문명을 입력해주세요.");
       return;
     }
-
-    if (selectedHeroId) {
-      setHeroes((prev) =>
-        prev.map((h) => (h.id === selectedHeroId ? { ...h, ...heroForm } : h))
-      );
-      showFeedback(`영웅 [${heroForm.nameKr}] 정보가 수정되었습니다.`);
-    } else {
-      const newId = `HERO-${String(heroes.length + 1).padStart(2, "0")}`;
-      const newItem: HeroItem = { id: newId, ...heroForm };
-      setHeroes((prev) => [newItem, ...prev]);
-      setSelectedHeroId(newId);
-      showFeedback(`신규 영웅 [${heroForm.nameKr}] 등록이 완료되었습니다.`);
-    }
+    await mutateHero(async () => {
+      const response = await fetch("/api/heroes", { method: selectedHeroId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(selectedHeroId ? { ...form, id: selectedHeroId } : form) });
+      return response.json();
+    }, { successMessage: selectedHeroId ? `[${form.nameKr}] 영웅 정보를 수정했습니다.` : `[${form.nameKr}] 영웅을 등록했습니다.`, errorMessage: "영웅 저장에 실패했습니다.", onSuccess: (saved?: HeroItem) => saved && applySavedHero(saved) });
   };
 
-  const handleDeleteHero = () => {
-    if (!selectedHeroId) return;
-    setHeroes((prev) => prev.filter((h) => h.id !== selectedHeroId));
-    handleNewHero();
-    showFeedback("영웅이 삭제되었습니다.");
-  };
-
-  const handleTogglePickable = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setHeroes((prev) =>
-      prev.map((h) => {
-        if (h.id === id) {
-          const next = !h.isPickable;
-          showFeedback(`[${h.nameKr}] 영웅이 ${next ? "픽 가능" : "대회 밴(선택불가)"} 상태로 변경되었습니다.`);
-          return { ...h, isPickable: next };
-        }
-        return h;
-      })
-    );
-  };
-
-  const roleColor = (role: "돌격" | "공격" | "지원") => {
-    switch (role) {
-      case "돌격":
-        return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-900";
-      case "공격":
-        return "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-900";
-      case "지원":
-        return "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-900";
-    }
-  };
-
-  const roleIcon = (role: "돌격" | "공격" | "지원") => {
-    switch (role) {
-      case "돌격":
-        return "🛡️";
-      case "공격":
-        return "⚔️";
-      case "지원":
-        return "💉";
-    }
-  };
-
-  return (
-    <section className="h-full min-h-0 flex flex-col">
-      {/* 2단 레이아웃 */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 h-full min-h-0 flex-1">
-        {/* 좌측 7컬럼: 영웅 목록 */}
-        <div className="xl:col-span-7 h-full min-h-0 flex flex-col">
-          <AdminCard
-            title="등록된 영웅 목록"
-            countBadge={`총 ${filteredHeroes.length}명`}
-            className="h-full"
-          >
-            {/* 검색 및 역할군 필터 */}
-            <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-3 space-y-2.5 shrink-0">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                  영웅 이름 검색
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
-                  placeholder="영웅 이름 (예: 디바, D.Va, 아나, Tracer...) 검색..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-
-              <div className="flex items-center gap-2 pt-0.5">
-                {(["ALL", "돌격", "공격", "지원"] as const).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRoleFilter(r)}
-                    className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
-                      roleFilter === r
-                        ? "bg-[#f99e1a] text-slate-950 font-bold shadow-xs"
-                        : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    <span>{r === "ALL" ? "🌐" : roleIcon(r as any)}</span>
-                    <span>{r === "ALL" ? "전체 역할군" : r}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 영웅 목록 그리드 (내부 스크롤) */}
-            <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 custom-scrollbar">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {filteredHeroes.map((hero) => {
-                  const isSelected = hero.id === selectedHeroId;
-
-                  return (
-                    <div
-                      key={hero.id}
-                      onClick={() => handleSelectHero(hero)}
-                      className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
-                        isSelected
-                          ? "bg-amber-500/10 dark:bg-amber-500/15 border-[#f99e1a] shadow-xs"
-                          : "bg-white dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-lg shrink-0">
-                          {roleIcon(hero.role)}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                              {hero.nameKr}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-mono">
-                              {hero.nameEn}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <span
-                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${roleColor(
-                                hero.role
-                              )}`}
-                            >
-                              {hero.role}
-                            </span>
-                            <span className="text-[10px] text-slate-400">
-                              난이도: {hero.difficulty}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="shrink-0">
-                        <button
-                          type="button"
-                          onClick={(e) => handleTogglePickable(hero.id, e)}
-                          className={`text-[10px] font-bold px-2 py-1 rounded-md border transition-colors ${
-                            hero.isPickable
-                              ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                              : "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800"
-                          }`}
-                        >
-                          {hero.isPickable ? "픽 가능" : "밴 (선택불가)"}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {filteredHeroes.length === 0 && (
-                <div className="text-center py-16 text-xs text-slate-400">
-                  <span className="text-3xl block mb-2">🦸</span>
-                  조건에 일치하는 영웅이 없습니다.
-                </div>
-              )}
-            </div>
-          </AdminCard>
+  return <section className="h-full min-h-0 flex flex-col">
+    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 h-full min-h-0 flex-1">
+      <div className="xl:col-span-7 h-full min-h-0 flex flex-col"><AdminCard title="등록된 영웅 목록" countBadge={`총 ${filteredHeroes.length}명`} className="h-full" actions={<button type="button" disabled={!isFilterActive} onClick={handleResetFilters} className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs hover:scale-[1.02] active:scale-[0.98]" title="검색 조건 초기화"><svg className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg><span>조건 초기화</span></button>}>
+        <AdminFilterPanel>
+          <AdminSearchInput label="영웅 이름 검색" value={search} onChange={setSearch} placeholder="예: D.Va, 트레이서, Ana" containerClassName="lg:col-span-3" />
+          <AdminFilterTabs label="사용 여부" tabs={[{ code: "ALL", name: "전체" }, { code: "USE", name: "사용" }, { code: "UNUSED", name: "미사용" }]} activeTab={usageFilter} onChange={setUsageFilter} containerClassName="lg:col-span-3" />
+          <AdminFilterTabs label="역할군" tabs={[{ code: "ALL", name: "전체" }, { code: "TANK", name: "돌격" }, { code: "DAMAGE", name: "공격" }, { code: "SUPPORT", name: "지원" }]} activeTab={roleFilter} onChange={(value) => setRoleFilter(value as "ALL" | HeroRole)} containerClassName="lg:col-span-6" />
+        </AdminFilterPanel>
+        <AdminTable columns={heroColumns} data={filteredHeroes} selectedId={selectedHeroId} onRowClick={handleSelectHero} isLoading={isHeroesLoading} emptyTitle="등록된 영웅이 없습니다." emptyDescription="우측의 신규 등록 버튼으로 영웅을 추가해주세요." />
+      </AdminCard></div>
+      <div className="xl:col-span-5 h-full min-h-0 flex flex-col"><AdminCard title={selectedHeroId ? "영웅 정보 수정" : "신규 영웅 등록"} className="h-full" actions={<div className="flex items-center gap-2"><button type="button" onClick={handleOpenOverFastModal} className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700 transition hover:bg-sky-100 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300">OverFast 목록 불러오기</button><AdminFormActions onSave={handleSave} onNew={handleNew} isEditing={!!selectedHeroId} saveDisabled={isSaving} saveLabel={isSaving ? "저장 중..." : "저장"} /></div>}>
+        <div className="space-y-4 overflow-y-auto pr-1.5 custom-scrollbar">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <AdminFormField label="영웅 이름 (국문)" required><input value={form.nameKr} onChange={(event) => setForm((current) => ({ ...current, nameKr: event.target.value }))} placeholder="예: 트레이서" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-[#f99e1a] focus:outline-none dark:border-slate-700 dark:bg-slate-800" /></AdminFormField>
+            <AdminFormField label="영웅 이름 (영문)" required><input value={form.nameEn} onChange={(event) => setForm((current) => ({ ...current, nameEn: event.target.value }))} placeholder="예: Tracer" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono focus:border-[#f99e1a] focus:outline-none dark:border-slate-700 dark:bg-slate-800" /></AdminFormField>
+          </div>
+          <AdminFormField label="영웅 이미지 URL"><div className="flex items-center gap-3"><input value={form.imageUrl} onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))} placeholder="https://..." className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono focus:border-[#f99e1a] focus:outline-none dark:border-slate-700 dark:bg-slate-800" />{form.imageUrl ? <img src={form.imageUrl} alt="영웅 이미지 미리보기" className="h-10 w-10 rounded-full border border-slate-200 object-cover dark:border-slate-700" /> : <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800" />}</div></AdminFormField>
+          <AdminFormField label="역할군" required><select value={form.role} onChange={(event) => setForm((current) => ({ ...current, role: event.target.value as HeroRole }))} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-[#f99e1a] focus:outline-none dark:border-slate-700 dark:bg-slate-800"><option value="TANK">돌격 (Tank)</option><option value="DAMAGE">공격 (Damage)</option><option value="SUPPORT">지원 (Support)</option></select></AdminFormField>
+          <AdminStatusRadio label="사용 여부" name="heroIsPickable" value={form.isPickable} onChange={(isPickable) => setForm((current) => ({ ...current, isPickable }))} inactiveDescription="미사용 영웅은 대회 밴픽과 선수 기록 입력의 선택 목록에서 제외되며, 기존 기록은 유지됩니다." />
+          <AdminFormField label="설명 / 비고"><textarea rows={4} value={form.desc} onChange={(event) => setForm((current) => ({ ...current, desc: event.target.value }))} placeholder="플레이 스타일이나 대회 운영 참고사항을 입력하세요." className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-[#f99e1a] focus:outline-none dark:border-slate-700 dark:bg-slate-800" /></AdminFormField>
         </div>
-
-        {/* 우측 5컬럼: 영웅 상세/등록 폼 */}
-        <div className="xl:col-span-5 h-full min-h-0 flex flex-col">
-          <AdminCard
-            title={selectedHeroId ? `영웅 상세 정보 (${heroForm.nameKr})` : "신규 영웅 등록"}
-            className="h-full"
-            actions={
-              <AdminFormActions
-                onSave={handleSaveHero}
-                onDelete={selectedHeroId ? handleDeleteHero : undefined}
-                onNew={handleNewHero}
-                isEditing={!!selectedHeroId}
-              />
-            }
-          >
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1.5 custom-scrollbar">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                    영웅 국문명 *
-                  </label>
-                  <input
-                    type="text"
-                    value={heroForm.nameKr}
-                    onChange={(e) => setHeroForm({ ...heroForm, nameKr: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
-                    placeholder="예: 트레이서, 디바..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                    영웅 영문명 *
-                  </label>
-                  <input
-                    type="text"
-                    value={heroForm.nameEn}
-                    onChange={(e) => setHeroForm({ ...heroForm, nameEn: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
-                    placeholder="예: Tracer, D.Va..."
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                    역할군 (포지션)
-                  </label>
-                  <select
-                    value={heroForm.role}
-                    onChange={(e) =>
-                      setHeroForm({ ...heroForm, role: e.target.value as any })
-                    }
-                    className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
-                  >
-                    <option value="돌격">돌격 (Tank)</option>
-                    <option value="공격">공격 (Damage)</option>
-                    <option value="지원">지원 (Support)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                    운용 난이도
-                  </label>
-                  <select
-                    value={heroForm.difficulty}
-                    onChange={(e) =>
-                      setHeroForm({ ...heroForm, difficulty: e.target.value as any })
-                    }
-                    className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
-                  >
-                    <option value="쉬움">쉬움 (★☆☆)</option>
-                    <option value="보통">보통 (★★☆)</option>
-                    <option value="어려움">어려움 (★★★)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                  영웅 특징 및 기술 설명
-                </label>
-                <textarea
-                  rows={4}
-                  value={heroForm.desc}
-                  onChange={(e) => setHeroForm({ ...heroForm, desc: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 resize-none"
-                  placeholder="영웅의 플레이 스타일과 핵심 특성을 입력하세요."
-                />
-              </div>
-
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    대회 픽(선택) 허용 여부
-                  </span>
-                  <p className="text-[11px] text-slate-400">
-                    비활성화 시 모든 공식 경기에서 글로벌 밴 처리됩니다.
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={heroForm.isPickable}
-                  onChange={(e) =>
-                    setHeroForm({ ...heroForm, isPickable: e.target.checked })
-                  }
-                  className="w-4 h-4 rounded text-[#f99e1a] focus:ring-[#f99e1a] accent-[#f99e1a]"
-                />
-              </div>
-            </div>
-          </AdminCard>
-        </div>
-      </div>
-    </section>
-  );
+      </AdminCard></div>
+    </div>
+    <OverFastHeroModal isOpen={isOverFastModalOpen} isSaving={isSaving} isExternalLoading={isExternalLoading} externalHeroes={externalHeroes} selectedExternalKeys={selectedExternalKeys} registeredBySourceKey={registeredBySourceKey} registeredByNameEn={registeredByNameEn} onClose={() => setIsOverFastModalOpen(false)} onSelectHero={handleSelectExternalHero} onSelectAllHeroes={handleSelectAllExternalHeroes} onSave={handleSaveExternalHeroes} />
+  </section>;
 }

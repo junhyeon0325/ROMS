@@ -1,4 +1,4 @@
-// lib/constants/navigation.ts
+// 사용자·관리자 메뉴에서 공통으로 참조하는 메뉴 구조와 표시 정보를 모아 둔 상수 파일이다.
 // 메뉴 데이터 상수 파일
 
 // 메뉴 타입 정의
@@ -64,12 +64,6 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
                 description: "오버워치 2 전장(맵) 데이터 및 공식 맵풀 운영 관리",
             },
             {
-                id: "game-mode",
-                label: "게임 모드 관리",
-                href: "/admin/game-modes",
-                description: "오버워치 공식 게임 모드(혼합, 호위, 쟁탈 등) 규칙 및 설정 관리",
-            },
-            {
                 id: "hero",
                 label: "영웅 관리",
                 href: "/admin/heroes",
@@ -90,4 +84,4 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
             },
         ],
     },
-]
+]

@@ -14,6 +14,8 @@ interface AdminFormActionsProps {
   deleteLabel?: string;
   newLabel?: string;
   isEditing?: boolean;
+  saveDisabled?: boolean;
+  deleteDisabled?: boolean;
 }
 
 export default function AdminFormActions({
@@ -24,13 +26,16 @@ export default function AdminFormActions({
   deleteLabel = "삭제",
   newLabel = "+ 신규등록",
   isEditing = false,
+  saveDisabled = false,
+  deleteDisabled = false,
 }: AdminFormActionsProps) {
   return (
     <div className="flex items-center gap-2">
       <button
         type="button"
         onClick={onSave}
-        className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#f99e1a] hover:bg-[#ea8c08] text-slate-950 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+        disabled={saveDisabled}
+        className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#f99e1a] hover:bg-[#ea8c08] text-slate-950 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:active:scale-100"
       >
         {saveLabel}
       </button>
@@ -38,7 +43,8 @@ export default function AdminFormActions({
         <button
           type="button"
           onClick={onDelete}
-          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-950/70 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          disabled={deleteDisabled}
+          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-950/70 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:active:scale-100"
         >
           {deleteLabel}
         </button>

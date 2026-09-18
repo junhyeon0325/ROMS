@@ -130,7 +130,7 @@ export default function AdminHeader() {
 
       {/* 전역 토스트 피드백 알림 */}
       {toastMessage && (
-        <div className="fixed top-6 right-8 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-5 py-3 rounded-xl text-xs font-bold shadow-2xl z-50 transition-all border border-slate-700 dark:border-slate-300 flex items-center gap-2 animate-bounce">
+        <div className="fixed top-6 right-8 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-5 py-3 rounded-xl text-xs font-bold shadow-2xl z-[60] transition-all border border-slate-700 dark:border-slate-300 flex items-center gap-2 animate-bounce">
           <span className="text-emerald-400 dark:text-emerald-600 font-black">✓</span>
           <span>{toastMessage}</span>
         </div>

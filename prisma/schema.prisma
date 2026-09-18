@@ -151,10 +151,16 @@ model Match {
 }
 
 model MapItem {
-  id       BigInt  @id @default(autoincrement())
-  name     String
-  mapType  String  @map("map_type")
-  imageUrl String? @map("image_url")
+  id          BigInt  @id @default(autoincrement())
+  name        String
+  nameEn      String? @map("name_en")
+  mapType     String  @map("map_type")
+  location    String?
+  countryCode String? @map("country_code")
+  imageUrl    String? @map("image_url")
+  isActive    Boolean @default(false) @map("is_active")
+  source      String  @default("MANUAL")
+  sourceKey   String? @unique @map("source_key")
 
   createdBy String?  @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
@@ -216,6 +222,29 @@ model PlayerSetStat {
   @@map("player_set_stats")
 }
 
+model Hero {
+  id         BigInt  @id @default(autoincrement())
+  name       String
+  nameEn     String  @unique @map("name_en")
+  role       String
+  isPickable Boolean @default(true) @map("is_pickable")
+  imageUrl   String? @map("image_url")
+  source     String  @default("MANUAL")
+  sourceKey  String? @unique @map("source_key")
+
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
+
+  heroBans HeroBan[]
+
+  @@index([role])
+  @@index([isPickable])
+  @@map("heroes")
+}
+
 model HeroBan {
   id         BigInt @id @default(autoincrement())
   matchSetId BigInt @map("match_set_id")
@@ -230,6 +259,7 @@ model HeroBan {
 
   matchSet MatchSet @relation(fields: [matchSetId], references: [id], onDelete: Cascade)
   team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  hero     Hero     @relation(fields: [heroId], references: [id], onDelete: Restrict)
 
   @@map("hero_bans")
 }

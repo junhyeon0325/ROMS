@@ -13,7 +13,7 @@ function extractChzzkChannelId(input?: string | null): string | null {
   if (!input || !input.trim()) return null;
   const cleaned = input.trim();
   const parsed = cleaned
-    .replace(/^https?:\/\/(www\.)?(m\.)?chzzk\.naver\.com\/(live\/)?/i, "")
+    .replace(/^(https?:\/\/)?(www\.)?(m\.)?chzzk\.naver\.com\/(live\/)?/i, "")
     .split("?")[0]
     .replace(/\/$/, "")
     .trim();
@@ -24,6 +24,7 @@ function extractChzzkChannelId(input?: string | null): string | null {
 function formatStreamer(s: any) {
   const channelId = s.chzzkChannelId || "";
   const channelUrl = channelId ? `${CHZZK_BASE_URL}/${channelId}` : "";
+  const isChzzk = Boolean(channelId);
 
   return {
     id: s.id.toString(),
@@ -31,8 +32,9 @@ function formatStreamer(s: any) {
     profileImg: s.profileImageUrl || "",
     channelUrl: channelUrl,
     channelId: channelId,
-    type: channelId ? "CONNECT_TO_CHZZK" : "STANDARD_REGISTRATION",
-    followers: channelId ? "연동됨" : "—",
+    isChzzk: isChzzk,
+    type: isChzzk ? "치지직 연동" : "일반 등록",
+    followers: isChzzk ? "연동됨" : "—",
     registeredDate: s.createdAt ? new Date(s.createdAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
     memo: s.remarks || "",
     isUse: s.isUse ?? true,
@@ -67,7 +69,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, regType, channelUrl, channelId, profileImg, memo, isUse } = body;
+    const { name, isChzzk, channelUrl, channelId, profileImg, memo, isUse } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json(
@@ -76,18 +78,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isChzzk = Boolean(
-      body.isChzzk ||
-      regType === "CHZZK" ||
-      regType === "CONNECT_TO_CHZZK" ||
-      regType?.includes("CHZZK")
-    );
-    const chzzkChannelId = isChzzk ? extractChzzkChannelId(channelId || channelUrl) : null;
+    // 치지직 연동 여부: 명시적 isChzzk 플래그 또는 채널 정보 유무로 판단
+    const isChzzkMode = Boolean(isChzzk ?? (channelId || channelUrl));
+    const chzzkChannelId = isChzzkMode ? extractChzzkChannelId(channelId || channelUrl) : null;
 
     // 치지직 연동 선택 시 채널 주소/ID 필수 검증
-    if (isChzzk && !chzzkChannelId) {
+    if (isChzzkMode && !chzzkChannelId) {
       return NextResponse.json(
-        { success: false, message: "치지직 연동 등록 시 치지직 채널 주소 또는 채널 ID를 반드시 입력해야 합니다." },
+        { success: false, message: "치지직 연동 등록 시 [스트리머 조회]를 통해 연동할 채널을 선택해야 합니다." },
         { status: 400 }
       );
     }
@@ -146,7 +144,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, regType, channelUrl, channelId, profileImg, memo, isUse } = body;
+    const { id, name, isChzzk, channelUrl, channelId, profileImg, memo, isUse } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -161,18 +159,14 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const isChzzk = Boolean(
-      body.isChzzk ||
-      regType === "CHZZK" ||
-      regType === "CONNECT_TO_CHZZK" ||
-      regType?.includes("CHZZK")
-    );
-    const chzzkChannelId = isChzzk ? extractChzzkChannelId(channelId || channelUrl) : null;
+    // 치지직 연동 여부: 명시적 isChzzk 플래그 또는 채널 정보 유무로 판단
+    const isChzzkMode = Boolean(isChzzk ?? (channelId || channelUrl));
+    const chzzkChannelId = isChzzkMode ? extractChzzkChannelId(channelId || channelUrl) : null;
 
     // 치지직 연동 선택 시 채널 주소/ID 필수 검증
-    if (isChzzk && !chzzkChannelId) {
+    if (isChzzkMode && !chzzkChannelId) {
       return NextResponse.json(
-        { success: false, message: "치지직 연동 등록 시 치지직 채널 주소 또는 채널 ID를 반드시 입력해야 합니다." },
+        { success: false, message: "치지직 연동 등록 시 [스트리머 조회]를 통해 연동할 채널을 선택해야 합니다." },
         { status: 400 }
       );
     }

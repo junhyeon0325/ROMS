@@ -27,6 +27,8 @@ export interface AdminSearchInputProps {
   inputClassName?: string;
   /** 자동 포커스 여부 */
   autoFocus?: boolean;
+  /** 비활성화 여부 */
+  disabled?: boolean;
 }
 
 export default function AdminSearchInput({
@@ -39,8 +41,10 @@ export default function AdminSearchInput({
   containerClassName = "",
   inputClassName = "",
   autoFocus = false,
+  disabled = false,
 }: AdminSearchInputProps) {
   const handleClear = () => {
+    if (disabled) return;
     if (onClear) {
       onClear();
     } else {
@@ -55,7 +59,7 @@ export default function AdminSearchInput({
           <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
             {label}
           </label>
-          {value && (
+          {value && !disabled && (
             <button
               type="button"
               onClick={handleClear}
@@ -70,7 +74,10 @@ export default function AdminSearchInput({
         <input
           type="text"
           autoFocus={autoFocus}
-          className={`w-full pl-3 pr-8 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all ${inputClassName}`}
+          disabled={disabled}
+          className={`w-full pl-3 pr-8 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all ${
+            disabled ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800/60" : ""
+          } ${inputClassName}`}
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}

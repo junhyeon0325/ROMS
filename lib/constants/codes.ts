@@ -6,7 +6,7 @@
 
 // 1. 공통코드 그룹 ID (group_code)
 export const CODE_GROUPS = {
-  STREAMER_REGISTRATION: "STREAMER_REGISTRATION_METHOD", // 스트리머 등록 방식 공통코드 그룹
+  // 향후 대회 상태, 경기 구분 등 공통코드 정의 시 사용
 } as const;
 
 // 2. 외부 서비스 관련 기본 URL

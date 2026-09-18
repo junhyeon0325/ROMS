@@ -58,6 +58,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const CODE_REGEX = /^[A-Z0-9_]+$/;
+    if (!CODE_REGEX.test(trimmedCode)) {
+      return NextResponse.json(
+        { success: false, message: "그룹 코드는 영문 대문자, 숫자, 언더스코어(_)만 사용할 수 있습니다. (예: SYSTEM_ROLE)" },
+        { status: 400 }
+      );
+    }
+
     // 중복 체크
     const existing = await prisma.commonCodeGroup.findUnique({
       where: { groupCode: trimmedCode },

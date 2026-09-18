@@ -4,7 +4,8 @@
 export interface MemberItem {
   id: string;
   name: string;
-  type: string; // '치지직 연동' | '일반 등록'
+  type: string; // '치지직 연동' | '일반 등록' (또는 'CHZZK' | 'STANDARD')
+  isChzzk?: boolean;
   channelId?: string;
   roles?: string[]; // 대회 참여 시 배정되거나 이전 데이터 호환용
   followers: string;
@@ -64,10 +65,5 @@ export interface CodeItem {
   sortOrder: number;
   isUse: boolean;
   remarks?: string;
-  // 하위 호환성 지원 필드
-  group?: string;
-  sort?: number;
-  useYn?: "Y" | "N";
-  desc?: string;
 }
 

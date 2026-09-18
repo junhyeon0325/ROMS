@@ -16,11 +16,6 @@ function formatCode(c: any) {
     sortOrder: c.sortOrder ?? 0,
     isUse: c.isUse ?? true,
     remarks: c.remarks || "",
-    // 하위 호환성 지원 필드
-    group: c.groupCode,
-    sort: c.sortOrder ?? 0,
-    useYn: c.isUse ? "Y" : ("N" as "Y" | "N"),
-    desc: c.remarks || "",
   };
 }
 
@@ -59,9 +54,9 @@ export async function POST(request: NextRequest) {
     const group = (body.groupCode || body.group)?.trim().toUpperCase();
     const code = body.code?.trim().toUpperCase();
     const name = (body.name || body.codeName)?.trim();
-    const sort = body.sortOrder ?? body.sort ?? 1;
+    const sort = Number(body.sortOrder ?? body.sort) || 1;
     const isUse = body.isUse !== undefined ? Boolean(body.isUse) : (body.useYn !== undefined ? body.useYn === "Y" : true);
-    const desc = body.remarks ?? body.desc ?? "";
+    const desc = (body.remarks ?? body.desc ?? "")?.trim();
 
     if (!group) {
       return NextResponse.json(
@@ -73,6 +68,14 @@ export async function POST(request: NextRequest) {
     if (!code || !name) {
       return NextResponse.json(
         { success: false, message: "코드 ID와 코드명을 모두 입력해주세요." },
+        { status: 400 }
+      );
+    }
+
+    const CODE_REGEX = /^[A-Z0-9_]+$/;
+    if (!CODE_REGEX.test(code)) {
+      return NextResponse.json(
+        { success: false, message: "세부 코드 ID는 영문 대문자, 숫자, 언더스코어(_)만 사용할 수 있습니다. (예: ROLE_USER)" },
         { status: 400 }
       );
     }
@@ -141,9 +144,9 @@ export async function PUT(request: NextRequest) {
     const group = (body.groupCode || body.group)?.trim().toUpperCase();
     const code = body.code?.trim().toUpperCase();
     const name = (body.name || body.codeName)?.trim();
-    const sort = body.sortOrder ?? body.sort;
+    const sort = body.sortOrder !== undefined ? Number(body.sortOrder) : (body.sort !== undefined ? Number(body.sort) : undefined);
     const isUse = body.isUse !== undefined ? Boolean(body.isUse) : (body.useYn !== undefined ? body.useYn === "Y" : undefined);
-    const desc = body.remarks ?? body.desc;
+    const desc = body.remarks !== undefined ? body.remarks : body.desc;
 
     if (!group || !code) {
       return NextResponse.json(

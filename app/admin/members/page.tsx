@@ -9,13 +9,19 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useAdmin } from "@/lib/context/AdminContext";
 import { MemberItem } from "@/lib/types/admin";
-import { CODE_GROUPS, CHZZK_BASE_URL } from "@/lib/constants/codes";
+import { CHZZK_BASE_URL } from "@/lib/constants/codes";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
-import AdminAvatar, { MemberAvatar } from "@/components/admin/AdminAvatar";
+import { MemberAvatar } from "@/components/admin/AdminAvatar";
 import AdminFilterTabs from "@/components/admin/AdminFilterTabs";
 import AdminSearchInput from "@/components/admin/AdminSearchInput";
 import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
+
+// 치지직 채널 고유 URL 생성 헬퍼 함수
+function getChzzkChannelUrl(channelId?: string | null): string {
+  if (!channelId) return "";
+  return channelId.startsWith("http") ? channelId : `${CHZZK_BASE_URL}/${channelId}`;
+}
 
 // 치지직 후보 스트리머 인터페이스
 interface ChzzkCandidate {
@@ -30,42 +36,27 @@ interface ChzzkCandidate {
 }
 
 export default function AdminMembersPage() {
-  const { members, setMembers, showFeedback, refreshMembers, codes, isMembersLoading } = useAdmin();
+  const { members, setMembers, showFeedback, refreshMembers, isMembersLoading } = useAdmin();
 
-  // 스트리머 등록 방식 공통코드 (DB common_codes 기반)
-  const regTypeCodes = useMemo(() => {
-    return codes
-      .filter(
-        (c) =>
-          (c.groupCode || c.group) === CODE_GROUPS.STREAMER_REGISTRATION &&
-          (c.isUse ?? (c.useYn === "Y"))
-      )
-      .sort((a, b) => (a.sortOrder ?? a.sort ?? 0) - (b.sortOrder ?? b.sort ?? 0));
-  }, [codes]);
+  // 1. 구분 필터 탭 옵션 (치지직 연동 여부 기반)
+  const filterTabs = useMemo(() => [
+    { code: "ALL", name: "전체" },
+    { code: "CHZZK", name: "치지직 연동" },
+    { code: "STANDARD", name: "일반 등록" },
+  ], []);
 
-  const chzzkCodeItem = useMemo(() => {
-    return regTypeCodes.find((c) => c.code.includes("CHZZK"));
-  }, [regTypeCodes]);
-
-  const standardCodeItem = useMemo(() => {
-    return regTypeCodes.find((c) => !c.code.includes("CHZZK") || c.code.includes("STANDARD"));
-  }, [regTypeCodes]);
-
-  const defaultChzzkCode = chzzkCodeItem?.code || "CONNECT_TO_CHZZK";
-  const defaultStandardCode = standardCodeItem?.code || "STANDARD_REGISTRATION";
-
-  // 1. 구분 필터 탭 옵션 (DB 공통코드 명칭 100% 동적 바인딩)
-  const filterTabs = useMemo(() => {
-    return [
-      { code: "ALL", name: "전체" },
-      ...regTypeCodes.map((c) => ({ code: c.code, name: c.name })),
-    ];
-  }, [regTypeCodes]);
+  // 2. 사용 상태 필터 탭 옵션 (활성 / 비활성)
+  const statusFilterTabs = useMemo(() => [
+    { code: "ALL", name: "전체" },
+    { code: "ACTIVE", name: "사용중" },
+    { code: "INACTIVE", name: "미사용" },
+  ], []);
 
   // 검색 & 구분 필터 상태 (기본값: 'ALL')
   const [nameSearch, setNameSearch] = useState("");
   const [memoSearch, setMemoSearch] = useState("");
   const [memberTypeFilter, setMemberTypeFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
   // 선택된 인원 ID (우측 폼 바인딩용)
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -81,14 +72,14 @@ export default function AdminMembersPage() {
 
   // 우측 등록 폼 상태
   const [memberForm, setMemberForm] = useState<{
-    regType: string;
+    isChzzk: boolean;
     channelUrl: string;
     name: string;
     profileImg: string;
     memo: string;
     isUse: boolean;
   }>({
-    regType: defaultChzzkCode,
+    isChzzk: true,
     channelUrl: "",
     name: "",
     profileImg: "",
@@ -97,40 +88,33 @@ export default function AdminMembersPage() {
   });
 
   // 치지직 연동 방식 여부 헬퍼
-  const isChzzkType = Boolean(
-    memberForm.regType === defaultChzzkCode || memberForm.regType.includes("CHZZK")
-  );
+  const isChzzkType = memberForm.isChzzk;
 
-  // 인원 필터링 (이름/채널, 메모, 등록 구분 조건별 분리)
-  const filteredMemberList = members.filter((m) => {
-    const matchName =
-      !nameSearch.trim() ||
-      m.name.toLowerCase().includes(nameSearch.toLowerCase()) ||
-      (m.channelId && m.channelId.toLowerCase().includes(nameSearch.toLowerCase()));
+  // 인원 필터링 (이름/채널, 메모, 치지직 연동 구분, 사용 상태별) - useMemo 캐싱 적용
+  const filteredMemberList = useMemo(() => {
+    return members.filter((m) => {
+      const matchName =
+        !nameSearch.trim() ||
+        m.name.toLowerCase().includes(nameSearch.toLowerCase()) ||
+        (m.channelId && m.channelId.toLowerCase().includes(nameSearch.toLowerCase()));
 
-    const matchMemo =
-      !memoSearch.trim() ||
-      (m.memo && m.memo.toLowerCase().includes(memoSearch.toLowerCase()));
+      const matchMemo =
+        !memoSearch.trim() ||
+        (m.memo && m.memo.toLowerCase().includes(memoSearch.toLowerCase()));
 
-    const isMatchChzzk = Boolean(
-      (chzzkCodeItem && memberTypeFilter === chzzkCodeItem.code) ||
-      memberTypeFilter === "CHZZK" ||
-      memberTypeFilter === "CONNECT_TO_CHZZK"
-    );
-    const isMatchStandard = Boolean(
-      (standardCodeItem && memberTypeFilter === standardCodeItem.code) ||
-      memberTypeFilter === "STANDARD" ||
-      memberTypeFilter === "STANDARD_REGISTRATION"
-    );
+      const matchType =
+        memberTypeFilter === "ALL" ||
+        (memberTypeFilter === "CHZZK" && Boolean(m.channelId)) ||
+        (memberTypeFilter === "STANDARD" && !m.channelId);
 
-    const matchType =
-      memberTypeFilter === "ALL" ||
-      (isMatchChzzk && Boolean(m.channelId)) ||
-      (isMatchStandard && !m.channelId) ||
-      m.type === memberTypeFilter;
+      const matchStatus =
+        statusFilter === "ALL" ||
+        (statusFilter === "ACTIVE" && m.isUse !== false) ||
+        (statusFilter === "INACTIVE" && m.isUse === false);
 
-    return matchName && matchMemo && matchType;
-  });
+      return matchName && matchMemo && matchType && matchStatus;
+    });
+  }, [members, nameSearch, memoSearch, memberTypeFilter, statusFilter]);
 
   // 스트리머 목록 테이블 컬럼 정의 (공통 AdminTable 적용)
   const streamerColumns: AdminTableColumn<MemberItem>[] = useMemo(() => [
@@ -150,7 +134,7 @@ export default function AdminMembersPage() {
             </div>
             {m.channelId && (
               <a
-                href={m.channelId.startsWith("http") ? m.channelId : `${CHZZK_BASE_URL}/${m.channelId}`}
+                href={getChzzkChannelUrl(m.channelId)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 mt-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors whitespace-nowrap shrink-0"
@@ -172,10 +156,6 @@ export default function AdminMembersPage() {
       cellClassName: "whitespace-nowrap",
       render: (m) => {
         const isChzzk = Boolean(m.channelId);
-        const targetCode = isChzzk ? chzzkCodeItem : standardCodeItem;
-        if (!targetCode) {
-          return <span className="inline-block w-14 h-4 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse" />;
-        }
         return (
           <span
             className={`inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${
@@ -184,7 +164,7 @@ export default function AdminMembersPage() {
                 : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
             }`}
           >
-            {targetCode.name}
+            {isChzzk ? "치지직 연동" : "일반 등록"}
           </span>
         );
       },
@@ -218,7 +198,7 @@ export default function AdminMembersPage() {
         </span>
       ),
     },
-  ], [chzzkCodeItem, standardCodeItem]);
+  ], []);
 
   // 목록 항목 클릭 시 우측 폼에 바인딩
   const handleSelectMember = (m: MemberItem) => {
@@ -226,8 +206,8 @@ export default function AdminMembersPage() {
     const isChzzk = Boolean(m.channelId);
 
     setMemberForm({
-      regType: isChzzk ? defaultChzzkCode : defaultStandardCode,
-      channelUrl: m.channelId ? (m.channelId.startsWith("http") ? m.channelId : `${CHZZK_BASE_URL}/${m.channelId}`) : "",
+      isChzzk: isChzzk,
+      channelUrl: getChzzkChannelUrl(m.channelId),
       name: m.name,
       profileImg: m.profileImg || "",
       memo: m.memo || "",
@@ -239,7 +219,7 @@ export default function AdminMembersPage() {
   const handleNewMember = () => {
     setSelectedMemberId(null);
     setMemberForm({
-      regType: defaultChzzkCode,
+      isChzzk: true,
       channelUrl: "",
       name: "",
       profileImg: "",
@@ -253,7 +233,7 @@ export default function AdminMembersPage() {
   const applySelectedCandidate = (candidate: ChzzkCandidate) => {
     setMemberForm((prev) => ({
       ...prev,
-      regType: defaultChzzkCode,
+      isChzzk: true,
       channelUrl: `${CHZZK_BASE_URL}/${candidate.channelId}`,
       name: candidate.channelName,
       profileImg: candidate.channelImageUrl || prev.profileImg,
@@ -300,6 +280,18 @@ export default function AdminMembersPage() {
     setIsCandidateModalOpen(true);
   };
 
+  // 모달 열림 시 ESC 키 닫기 이벤트 리스너 등록
+  useEffect(() => {
+    if (!isCandidateModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsCandidateModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isCandidateModalOpen]);
+
   // 스트리머 Supabase DB 저장 (신규 등록 or 수정)
   const handleSaveMember = async () => {
     if (!memberForm.name.trim()) {
@@ -308,7 +300,7 @@ export default function AdminMembersPage() {
     }
 
     if (isChzzkType && !memberForm.channelUrl.trim()) {
-      showFeedback("치지직 채널 주소 또는 채널 ID를 입력해주세요.");
+      showFeedback("[스트리머 조회] 버튼을 통해 연동할 스트리머를 검색 후 선택해주세요.");
       return;
     }
 
@@ -322,7 +314,7 @@ export default function AdminMembersPage() {
           body: JSON.stringify({
             id: selectedMemberId,
             name: memberForm.name,
-            regType: memberForm.regType,
+            isChzzk: memberForm.isChzzk,
             channelUrl: isChzzkType ? memberForm.channelUrl : "",
             profileImg: memberForm.profileImg,
             memo: memberForm.memo,
@@ -345,7 +337,7 @@ export default function AdminMembersPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: memberForm.name,
-            regType: memberForm.regType,
+            isChzzk: memberForm.isChzzk,
             channelUrl: isChzzkType ? memberForm.channelUrl : "",
             profileImg: memberForm.profileImg,
             memo: memberForm.memo,
@@ -369,6 +361,7 @@ export default function AdminMembersPage() {
   };
 
 
+
   return (
     <section className="h-full min-h-0 flex flex-col">
       {/* 2단 분할 레이아웃 */}
@@ -382,11 +375,12 @@ export default function AdminMembersPage() {
             actions={
               <button
                 type="button"
-                disabled={!nameSearch && !memoSearch && memberTypeFilter === "ALL"}
+                disabled={!nameSearch && !memoSearch && memberTypeFilter === "ALL" && statusFilter === "ALL"}
                 onClick={() => {
                   setNameSearch("");
                   setMemoSearch("");
                   setMemberTypeFilter("ALL");
+                  setStatusFilter("ALL");
                 }}
                 className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs hover:scale-[1.02] active:scale-[0.98]"
                 title="검색 조건 초기화"
@@ -400,7 +394,7 @@ export default function AdminMembersPage() {
           >
             {/* 검색 및 필터 박스 (한 라인 4분할 1/4 크기 그리드 레이아웃) */}
             <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-3 shrink-0">
-              {/* 한 라인 4분할(1/4 크기) 그리드 - 향후 검색 조건 확장 지원 */}
+              {/* 한 라인 4분할(1/4 크기) 그리드 - 이름, 메모, 구분, 상태 */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                 {/* 1. 이름 / 채널 검색 (1/4) */}
                 <AdminSearchInput
@@ -423,7 +417,7 @@ export default function AdminMembersPage() {
                   }
                 />
 
-                {/* 3. 구분 필터 (1/4 - 직관적인 탭 버튼 형태: 상수로 정의된 전체 + 공통코드) */}
+                {/* 3. 구분 필터 (1/4 - 전체 / 치지직 연동 / 일반 등록) */}
                 <AdminFilterTabs
                   label="구분"
                   tabs={filterTabs}
@@ -431,10 +425,13 @@ export default function AdminMembersPage() {
                   onChange={setMemberTypeFilter}
                 />
 
-                {/* 4. 향후 추가 검색 조건 확장용 슬롯 (1/4 빈 영역) */}
-                <div className="hidden lg:block">
-                  {/* 빈 슬롯: 향후 신규 검색 필터 추가 시 배치 */}
-                </div>
+                {/* 4. 사용 상태 필터 (1/4 - 전체 / 사용중 / 미사용) */}
+                <AdminFilterTabs
+                  label="상태"
+                  tabs={statusFilterTabs}
+                  activeTab={statusFilter}
+                  onChange={setStatusFilter}
+                />
               </div>
             </div>
 
@@ -459,7 +456,7 @@ export default function AdminMembersPage() {
                   <p className="text-[11px] text-slate-400">
                     {members.length === 0
                       ? "우측 등록 폼에서 새로운 스트리머를 등록해주세요."
-                      : "이름 또는 메모 검색 조건, 구분 필터를 변경해보세요."}
+                      : "이름 또는 메모 검색 조건, 구분/상태 필터를 변경해보세요."}
                   </p>
                 </div>
               )}
@@ -482,75 +479,92 @@ export default function AdminMembersPage() {
             }
           >
             <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1.5 custom-scrollbar">
-              {/* 등록 방식 선택 (DB 공통코드 명칭 동적 반영) */}
+              {/* 등록 방식 선택 (치지직 연동 vs 일반 직접 등록) */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                   등록 방식
                 </label>
                 <div className="flex gap-2">
-                  {regTypeCodes.length > 0 ? (
-                    regTypeCodes.map((item) => {
-                      const isChecked = memberForm.regType === item.code;
-                      return (
-                        <label
-                          key={item.code}
-                          className={`flex-1 text-center py-2 text-xs font-semibold rounded-xl border cursor-pointer transition-all ${
-                            isChecked
-                              ? "bg-[#f99e1a] text-slate-950 font-bold border-[#f99e1a] shadow-sm"
-                              : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="regType"
-                            className="hidden"
-                            checked={isChecked}
-                            onChange={() =>
-                              setMemberForm((p) => ({ ...p, regType: item.code }))
-                            }
-                          />
-                          {item.name}
-                        </label>
-                      );
-                    })
-                  ) : (
-                    <>
-                      <div className="flex-1 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse border border-slate-200/50 dark:border-slate-700/50" />
-                      <div className="flex-1 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse border border-slate-200/50 dark:border-slate-700/50" />
-                    </>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setMemberForm((p) => ({ ...p, isChzzk: true }))}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      memberForm.isChzzk
+                        ? "bg-emerald-500 hover:bg-emerald-600 text-white font-bold border-emerald-500 shadow-sm"
+                        : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${memberForm.isChzzk ? "bg-white" : "bg-emerald-500"}`} />
+                    치지직 연동
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMemberForm((p) => ({ ...p, isChzzk: false }))}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      !memberForm.isChzzk
+                        ? "bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 font-bold border-slate-800 dark:border-slate-200 shadow-sm"
+                        : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${!memberForm.isChzzk ? "bg-white dark:bg-slate-900" : "bg-slate-400"}`} />
+                    일반 등록 (수기)
+                  </button>
                 </div>
               </div>
 
               {/* 치지직 연동 시 채널 주소 입력창 */}
+              {/* 치지직 연동 시 채널 주소 (직접 입력 불가, 반드시 스트리머 조회를 통해 연동) */}
               {isChzzkType && (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    치지직 채널 주소 <span className="text-rose-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      치지직 채널 주소 <span className="text-rose-500">*</span>
+                    </label>
+                    {memberForm.channelUrl ? (
+                      <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        조회 및 연동 완료
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                        스트리머 조회 필수
+                      </span>
+                    )}
+                  </div>
                   <div className="flex gap-2">
-                    <input
-                      type="text"
-                      className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all font-mono"
-                      placeholder="예: https://chzzk.naver.com/xxxxxxxx"
-                      value={memberForm.channelUrl}
-                      onChange={(e) =>
-                        setMemberForm((p) => ({ ...p, channelUrl: e.target.value }))
-                      }
-                    />
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        readOnly
+                        onClick={handleOpenStreamerModal}
+                        className={`w-full px-3 py-2 text-xs rounded-xl border transition-all font-mono cursor-pointer select-none ${
+                          memberForm.channelUrl
+                            ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200"
+                            : "bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600"
+                        }`}
+                        placeholder="[스트리머 조회] 버튼을 눌러 연동할 스트리머를 선택하세요"
+                        value={memberForm.channelUrl}
+                        title="치지직 채널 주소는 직접 입력할 수 없으며, 스트리머 조회를 통해 연동됩니다. 클릭하면 검색창이 열립니다."
+                      />
+                    </div>
                     <button
                       type="button"
-                      className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shrink-0 flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white transition-all shrink-0 flex items-center gap-1.5 shadow-2xs cursor-pointer"
                       onClick={handleOpenStreamerModal}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
-                      <span>스트리머 조회</span>
+                      <span>{memberForm.channelUrl ? "스트리머 재조회" : "스트리머 조회"}</span>
                     </button>
                   </div>
-                  <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
-                    [스트리머 조회] 버튼을 누르면 검색창에서 원하는 스트리머를 찾아 바로 연동할 수 있습니다.
+                  <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    직접 입력할 수 없으며, 반드시 [스트리머 조회] 버튼을 통해 검색된 스트리머만 등록됩니다.
                   </p>
                 </div>
               )}
@@ -566,7 +580,7 @@ export default function AdminMembersPage() {
                   className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all"
                   placeholder={
                     isChzzkType
-                      ? "조회 시 자동 입력됩니다 (수정 가능)"
+                      ? (memberForm.channelUrl ? "치지직 채널명 (수정 가능)" : "[스트리머 조회] 시 자동 입력됩니다")
                       : "선수 또는 스트리머 이름을 입력하세요"
                   }
                   value={memberForm.name}
@@ -574,6 +588,11 @@ export default function AdminMembersPage() {
                     setMemberForm((p) => ({ ...p, name: e.target.value }))
                   }
                 />
+                {isChzzkType && !memberForm.channelUrl && (
+                  <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+                    💡 [스트리머 조회]로 선택 시 채널명이 자동 입력되며, 이후 대회용 표시 이름으로 자유롭게 수정할 수 있습니다.
+                  </p>
+                )}
               </div>
 
               {/* 프로필 이미지 URL */}
@@ -666,7 +685,10 @@ export default function AdminMembersPage() {
       </div>
       {/* 치지직 스트리머 조회 및 검색 모달 */}
       {isCandidateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setIsCandidateModalOpen(false)}
+        >
           <div
             className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
@@ -838,7 +860,7 @@ export default function AdminMembersPage() {
                     {/* 우측 버튼 영역 */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       <a
-                        href={`${CHZZK_BASE_URL}/${cand.channelId}`}
+                        href={getChzzkChannelUrl(cand.channelId)}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}

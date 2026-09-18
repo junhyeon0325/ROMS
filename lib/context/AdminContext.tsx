@@ -2,14 +2,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { MemberItem, TournamentItem, MapItem, CodeGroupItem, CodeItem, TournamentParticipant } from "@/lib/types/admin";
+import { MemberItem, TournamentItem, MapItem, CodeGroupItem, TournamentParticipant } from "@/lib/types/admin";
 import {
   initialMembers,
   initialTournaments,
   initialParticipants,
   initialMaps,
   initialCodeGroups,
-  initialCodes,
 } from "@/lib/mock/adminData";
 
 interface AdminContextType {
@@ -25,8 +24,6 @@ interface AdminContextType {
   setMaps: React.Dispatch<React.SetStateAction<MapItem[]>>;
   codeGroups: CodeGroupItem[];
   setCodeGroups: React.Dispatch<React.SetStateAction<CodeGroupItem[]>>;
-  codes: CodeItem[];
-  setCodes: React.Dispatch<React.SetStateAction<CodeItem[]>>;
   refreshCodes: () => Promise<void>;
   isCodesLoading: boolean;
   toastMessage: string | null;
@@ -45,7 +42,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [participants, setParticipants] = useState<TournamentParticipant[]>(initialParticipants);
   const [maps, setMaps] = useState<MapItem[]>(initialMaps);
   const [codeGroups, setCodeGroups] = useState<CodeGroupItem[]>(initialCodeGroups);
-  const [codes, setCodes] = useState<CodeItem[]>(initialCodes);
 
   const [isMembersLoading, setIsMembersLoading] = useState<boolean>(true);
   const [isCodesLoading, setIsCodesLoading] = useState<boolean>(true);
@@ -70,25 +66,18 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // DB에서 공통코드 그룹 및 세부코드 실시간 동기화
+  // DB에서 공통코드 그룹 실시간 동기화 (세부코드는 온디맨드 조회)
   const refreshCodes = async () => {
     try {
       setIsCodesLoading(true);
-      const [groupsRes, codesRes] = await Promise.all([
-        fetch("/api/codes/groups"),
-        fetch("/api/codes"),
-      ]);
+      const groupsRes = await fetch("/api/codes/groups");
       const groupsJson = await groupsRes.json();
-      const codesJson = await codesRes.json();
 
       if (groupsJson.success && Array.isArray(groupsJson.data)) {
         setCodeGroups(groupsJson.data);
       }
-      if (codesJson.success && Array.isArray(codesJson.data)) {
-        setCodes(codesJson.data);
-      }
     } catch (e) {
-      console.error("Failed to load codes from DB:", e);
+      console.error("Failed to load code groups from DB:", e);
     } finally {
       setIsCodesLoading(false);
     }
@@ -148,8 +137,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         setMaps,
         codeGroups,
         setCodeGroups,
-        codes,
-        setCodes,
         refreshCodes,
         isCodesLoading,
         toastMessage,

@@ -9,36 +9,19 @@
 import React, { useMemo } from "react";
 import Link from "next/link";
 import { useAdmin } from "@/lib/context/AdminContext";
-import { CODE_GROUPS } from "@/lib/constants/codes";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminKpiCard from "@/components/admin/AdminKpiCard";
 
 export default function AdminDashboardPage() {
-  const { members, tournaments, maps, codeGroups, codes, showFeedback } = useAdmin();
+  const { members, tournaments, maps, codeGroups, showFeedback } = useAdmin();
 
-  // 스트리머 등록 방식 공통코드 동적 매핑 (DB 기반)
-  const regTypeCodes = useMemo(() => {
-    return codes.filter(
-      (c) => (c.groupCode || c.group) === CODE_GROUPS.STREAMER_REGISTRATION && (c.isUse ?? (c.useYn === "Y"))
-    );
-  }, [codes]);
-
-  const chzzkCodeItem = useMemo(() => {
-    return regTypeCodes.find((c) => c.code.includes("CHZZK"));
-  }, [regTypeCodes]);
-
-  const standardCodeItem = useMemo(() => {
-    return regTypeCodes.find((c) => !c.code.includes("CHZZK") || c.code.includes("STANDARD"));
-  }, [regTypeCodes]);
-
-  // 스트리머 KPI 메타 텍스트 (DB 공통코드 명칭 동적 반영)
+  // 스트리머 KPI 메타 텍스트 (치지직 연동 인원 vs 일반 등록 인원)
   const streamerMetaText = useMemo(() => {
     if (members.length === 0) return "—";
-    if (!chzzkCodeItem || !standardCodeItem) return "—";
     const chzzkCount = members.filter((m) => Boolean(m.channelId)).length;
     const standardCount = members.length - chzzkCount;
-    return `${chzzkCodeItem.name} ${chzzkCount} · ${standardCodeItem.name} ${standardCount}`;
-  }, [members, chzzkCodeItem, standardCodeItem]);
+    return `치지직 연동 ${chzzkCount} · 일반 등록 ${standardCount}`;
+  }, [members]);
 
   return (
     <section className="space-y-6">
@@ -169,8 +152,8 @@ export default function AdminDashboardPage() {
         <AdminKpiCard
           href="/admin/codes"
           label="시스템 마스터 코드"
-          value={codes.length}
-          unit="건"
+          value={codeGroups.length}
+          unit="개 그룹"
           color="amber"
           icon={
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
@@ -178,7 +161,7 @@ export default function AdminDashboardPage() {
               <polyline points="8 6 2 12 8 18" />
             </svg>
           }
-          meta={`${codeGroups.length}개 코드 그룹`}
+          meta="표준 마스터 코드 관리"
           title="공통코드 관리 화면으로 이동"
         />
 
@@ -267,7 +250,7 @@ export default function AdminDashboardPage() {
                                 : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                             }`}
                           >
-                            {(m.channelId ? chzzkCodeItem?.name : standardCodeItem?.name) || "—"}
+                            {m.channelId ? "치지직 연동" : "일반 등록"}
                           </span>
                         </div>
                         <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">

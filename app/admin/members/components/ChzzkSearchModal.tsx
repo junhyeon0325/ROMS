@@ -1,273 +1,298 @@
+// File: app/admin/members/components/ChzzkSearchModal.tsx
+// Page/Component: ChzzkSearchModal
+// Purpose: 치지직 채널을 검색하고 등록 상태를 확인한 뒤 하나의 채널만 스트리머 폼에 반영한다.
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { getChzzkChannelUrl } from "@/lib/constants/codes";
+import { useEffect, useMemo, useState } from "react";
+import AdminBadge from "@/components/admin/AdminBadge";
 import { MemberAvatar } from "@/components/admin/AdminAvatar";
 import AdminModal from "@/components/admin/AdminModal";
-import { ChzzkCandidate } from "@/lib/types/admin";
+import AdminSearchInput from "@/components/admin/AdminSearchInput";
+import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
+import { getChzzkChannelUrl } from "@/lib/constants/codes";
+import { ChzzkCandidate, MemberItem } from "@/lib/types/admin";
 
-// 치지직 후보 스트리머 인터페이스
 interface ChzzkSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (candidate: ChzzkCandidate) => void;
+  registeredByChannelId: Map<string, MemberItem>;
+  selectedMemberId: string | null;
   showFeedback: (msg: string) => void;
 }
 
+type SearchResultState = "idle" | "not-found" | "error";
+
+// 치지직 API 검색 결과를 표 형식의 단일 선택 목록으로 제공한다.
 export default function ChzzkSearchModal({
   isOpen,
   onClose,
   onSelect,
+  registeredByChannelId,
+  selectedMemberId,
   showFeedback,
 }: ChzzkSearchModalProps) {
-  const [modalQuery, setModalQuery] = useState("");
+  const [query, setQuery] = useState("");
   const [searchedQuery, setSearchedQuery] = useState("");
   const [candidates, setCandidates] = useState<ChzzkCandidate[]>([]);
-  const [modalLoading, setModalLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
+    null,
+  );
+  const [resultState, setResultState] = useState<SearchResultState>("idle");
 
-  // 모달이 열릴 때 초기화
   useEffect(() => {
-    if (isOpen) {
-      setModalQuery("");
-      setCandidates([]);
-      setHasSearched(false);
-      setSearchedQuery("");
-    }
+    if (!isOpen) return;
+    setQuery("");
+    setSearchedQuery("");
+    setCandidates([]);
+    setSelectedChannelId(null);
+    setResultState("idle");
   }, [isOpen]);
 
-  // 치지직 검색 API 호출
-  const handleSearch = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const trimmed = modalQuery.trim();
-    if (!trimmed) {
+  // 검색어로 치지직 채널 후보를 조회하고, 실패 원인을 표의 빈 상태로 구분한다.
+  const handleSearch = async () => {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
       showFeedback("검색할 스트리머 닉네임이나 채널 주소를 입력해주세요.");
       return;
     }
-    setModalLoading(true);
-    setSearchedQuery(trimmed);
-    setHasSearched(true);
+    setIsLoading(true);
+    setSearchedQuery(trimmedQuery);
+    setCandidates([]);
+    setSelectedChannelId(null);
+    setResultState("idle");
     try {
-      const res = await fetch(`/api/chzzk?query=${encodeURIComponent(trimmed)}`);
-      const result = await res.json();
-      if (result.success) {
-        const channelList: ChzzkCandidate[] =
-          result.channels || (result.channel ? [result.channel] : []);
-        setCandidates(channelList);
-      } else {
-        setCandidates([]);
-        showFeedback(result.message || "치지직 채널을 찾을 수 없습니다.");
+      const response = await fetch(
+        `/api/chzzk?query=${encodeURIComponent(trimmedQuery)}`,
+      );
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        setResultState(response.status === 404 ? "not-found" : "error");
+        return;
       }
-    } catch (e: any) {
-      setCandidates([]);
-      showFeedback("치지직 채널 조회 중 통신 오류가 발생했습니다.");
+      const channelList: ChzzkCandidate[] =
+        result.channels || (result.channel ? [result.channel] : []);
+      setCandidates(channelList);
+      setResultState(channelList.length ? "idle" : "not-found");
+    } catch {
+      setResultState("error");
     } finally {
-      setModalLoading(false);
+      setIsLoading(false);
     }
+  };
+
+  // 다른 스트리머에 연결된 채널은 중복 연결을 막고, 현재 편집 대상의 채널만 다시 선택할 수 있게 한다.
+  const getChannelStatus = (candidate: ChzzkCandidate) => {
+    const registeredMember = registeredByChannelId.get(candidate.channelId);
+    const isCurrentMember = registeredMember?.id === selectedMemberId;
+    return {
+      registeredMember,
+      isCurrentMember,
+      isSelectable: !registeredMember || isCurrentMember,
+    };
+  };
+
+  // 행 또는 라디오 버튼 클릭 시 등록 가능한 후보 하나만 선택한다.
+  const handleSelectCandidate = (candidate: ChzzkCandidate) => {
+    if (!getChannelStatus(candidate).isSelectable) {
+      showFeedback("이미 다른 스트리머에 연동된 치지직 채널입니다.");
+      return;
+    }
+    setSelectedChannelId(candidate.channelId);
+  };
+
+  const selectedCandidate = useMemo(
+    () =>
+      candidates.find(
+        (candidate) => candidate.channelId === selectedChannelId,
+      ) ?? null,
+    [candidates, selectedChannelId],
+  );
+  const columns: AdminTableColumn<ChzzkCandidate>[] = useMemo(
+    () => [
+      {
+        key: "select",
+        header: "선택",
+        width: "w-16",
+        align: "center",
+        render: (candidate) => {
+          const { isSelectable } = getChannelStatus(candidate);
+          return (
+            <input
+              type="radio"
+              name="chzzk-channel"
+              checked={selectedChannelId === candidate.channelId}
+              disabled={!isSelectable}
+              onClick={(event) => event.stopPropagation()}
+              onChange={() => handleSelectCandidate(candidate)}
+              className="h-3.5 w-3.5 border-slate-300 text-[#f99e1a] accent-[#f99e1a] disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label={`${candidate.channelName} 선택`}
+            />
+          );
+        },
+      },
+      {
+        key: "channelName",
+        header: "스트리머 / 채널",
+        width: "min-w-[240px]",
+        render: (candidate) => (
+          <div className="flex items-center gap-2.5">
+            <MemberAvatar
+              name={candidate.channelName}
+              profileImg={candidate.channelImageUrl || undefined}
+              size="w-9 h-9 text-xs"
+            />
+            <div className="min-w-0">
+              <p className="truncate font-bold text-slate-900 dark:text-slate-100">
+                {candidate.channelName}
+              </p>
+              <a
+                href={getChzzkChannelUrl(candidate.channelId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(event) => event.stopPropagation()}
+                className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 transition-colors hover:bg-emerald-100 dark:border-emerald-800/60 dark:bg-emerald-950/50 dark:text-emerald-400 dark:hover:bg-emerald-900/60"
+                title="치지직 채널 바로가기"
+              >
+                치지직 바로가기 <span className="text-[9px] leading-none">↗</span>
+              </a>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: "followerCount",
+        header: "팔로워",
+        width: "w-24",
+        render: (candidate) => (
+          <span className="text-[11px] text-slate-500">
+            {candidate.followerText}명
+          </span>
+        ),
+      },
+      {
+        key: "channelDescription",
+        header: "소개",
+        width: "min-w-[180px]",
+        render: (candidate) => (
+          <span className="line-clamp-1 text-[11px] text-slate-500">
+            {candidate.channelDescription || "-"}
+          </span>
+        ),
+      },
+      {
+        key: "status",
+        header: "상태",
+        width: "w-32",
+        render: (candidate) => {
+          const { registeredMember, isCurrentMember } =
+            getChannelStatus(candidate);
+          if (!registeredMember)
+            return <AdminBadge variant="neutral">신규 등록 가능</AdminBadge>;
+          if (isCurrentMember)
+            return <AdminBadge variant="brand">현재 연동 채널</AdminBadge>;
+          return <AdminBadge variant="success">이미 연동됨</AdminBadge>;
+        },
+      },
+    ],
+    [registeredByChannelId, selectedChannelId, selectedMemberId],
+  );
+
+  // 검색 전·결과 없음·통신 오류를 동일한 표 영역에서 명확히 안내한다.
+  const renderEmpty = () => {
+    if (resultState === "not-found")
+      return (
+        <>
+          <p className="font-semibold text-slate-700 dark:text-slate-300">
+            ‘{searchedQuery}’에 대한 검색 결과가 없습니다.
+          </p>
+          <p className="mt-1 text-[11px]">
+            채널명 철자 또는 치지직 채널 고유 주소를 확인해주세요.
+          </p>
+        </>
+      );
+    if (resultState === "error")
+      return (
+        <>
+          <p className="font-semibold text-slate-700 dark:text-slate-300">
+            치지직 채널 검색에 실패했습니다.
+          </p>
+          <p className="mt-1 text-[11px]">잠시 후 다시 시도해주세요.</p>
+        </>
+      );
+    return (
+      <>
+        <p className="font-semibold text-slate-700 dark:text-slate-300">
+          등록할 스트리머를 검색해주세요.
+        </p>
+        <p className="mt-1 text-[11px]">
+          채널명 또는 치지직 채널 주소로 조회할 수 있습니다.
+        </p>
+      </>
+    );
   };
 
   return (
     <AdminModal
       isOpen={isOpen}
       onClose={onClose}
-      maxWidth="lg"
-      bodyClassName="flex-1 flex flex-col min-h-0 overflow-hidden"
-      title={
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-          <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
-            치지직 스트리머 조회
-          </span>
-          {hasSearched && (
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400">
-              검색 결과 {candidates.length}건
-            </span>
-          )}
-        </div>
-      }
+      title="치지직 스트리머 조회"
+      description="검색 결과에서 하나의 채널을 선택해 스트리머 등록 폼에 반영합니다. 이미 다른 스트리머에 연동된 채널은 선택할 수 없습니다."
+      maxWidth="4xl"
+      bodyClassName="p-5 overflow-y-auto flex-1 min-h-0 space-y-4"
       footer={
-        <div className="flex items-center justify-between w-full">
-          <span className="text-[11px] text-slate-400 dark:text-slate-500">
-            원하는 스트리머를 [선택]하면 채널 주소와 프로필이 자동으로 연동됩니다.
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[11px] text-slate-400">
+            {selectedCandidate
+              ? `[${selectedCandidate.channelName}] 채널 선택됨`
+              : "연동할 채널 하나를 선택해주세요."}
           </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            닫기
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={() => selectedCandidate && onSelect(selectedCandidate)}
+              disabled={!selectedCandidate}
+              className="rounded-lg bg-[#f99e1a] px-3.5 py-1.5 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              선택 반영
+            </button>
+          </div>
         </div>
       }
     >
-      {/* 모달 내부 검색 바 */}
-      <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-800/20 shrink-0">
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                autoFocus
-                className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/20 focus:border-[#f99e1a] transition-all font-medium"
-                placeholder="스트리머 닉네임 또는 채널 주소를 입력하세요..."
-                value={modalQuery}
-                onChange={(e) => setModalQuery(e.target.value)}
-              />
-              <svg
-                className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-            <button
-              type="submit"
-              disabled={modalLoading}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shrink-0 disabled:opacity-50 flex items-center gap-1.5 shadow-2xs cursor-pointer"
-            >
-              {modalLoading ? (
-                <>
-                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>검색중...</span>
-                </>
-              ) : (
-                <span>검색</span>
-              )}
-            </button>
-          </form>
-        </div>
-
-        {/* 후보 리스트 및 상태 영역 */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2.5 custom-scrollbar min-h-[260px] max-h-[460px]">
-          {modalLoading ? (
-            <div className="h-48 flex flex-col items-center justify-center text-center">
-              <div className="w-7 h-7 border-2 border-[#f99e1a] border-t-transparent rounded-full animate-spin mb-3" />
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                치지직 스트리머를 조회하고 있습니다...
-              </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                잠시만 기다려주세요.
-              </p>
-            </div>
-          ) : !hasSearched ? (
-            <div className="h-48 flex flex-col items-center justify-center text-center p-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl mb-3 shadow-2xs">
-                🔍
-              </div>
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                등록할 스트리머를 검색해주세요
-              </p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 max-w-xs">
-                상단 검색창에 스트리머 닉네임 또는 채널 주소를 입력한 뒤 검색 버튼을 누르세요.
-              </p>
-            </div>
-          ) : candidates.length === 0 ? (
-            <div className="h-48 flex flex-col items-center justify-center text-center p-4">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-xl mb-3">
-                👀
-              </div>
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                ‘{searchedQuery}’에 대한 검색 결과가 없습니다
-              </p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 max-w-xs">
-                철자를 확인하시거나, 치지직 웹페이지의 채널 고유 주소(URL)를 입력해주세요.
-              </p>
-            </div>
-          ) : (
-            candidates.map((cand) => (
-              <div
-                key={cand.channelId}
-                onClick={() => onSelect(cand)}
-                className="group relative p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-800/40 hover:bg-amber-500/5 dark:hover:bg-amber-500/10 hover:border-[#f99e1a] dark:hover:border-[#f99e1a] transition-all cursor-pointer flex items-center justify-between gap-3.5 shadow-2xs hover:shadow-md"
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  {/* 아바타 */}
-                  <MemberAvatar
-                    name={cand.channelName}
-                    profileImg={cand.channelImageUrl || undefined}
-                    size="w-10 h-10 text-sm"
-                  />
-
-                  {/* 스트리머 정보 */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-bold text-xs text-slate-900 dark:text-slate-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                        {cand.channelName}
-                      </span>
-                      {cand.verifiedMark && (
-                        <span
-                          className="inline-flex items-center text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 font-semibold"
-                          title="치지직 공식 파트너"
-                        >
-                          공식
-                        </span>
-                      )}
-                      {cand.openLive && (
-                        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.2 rounded bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 font-bold">
-                          ● LIVE
-                        </span>
-                      )}
-                    </div>
-
-                    {/* 팔로워 & 채널 ID */}
-                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-                      <span className="font-semibold text-amber-600 dark:text-amber-400">
-                        팔로워 {cand.followerText}명
-                      </span>
-                      <span className="text-slate-300 dark:text-slate-700">•</span>
-                      <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">
-                        ID: {cand.channelId.slice(0, 8)}...
-                      </span>
-                    </div>
-
-                    {/* 소개글 */}
-                    {cand.channelDescription && (
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-1">
-                        {cand.channelDescription}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* 우측 버튼 영역 */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <a
-                    href={getChzzkChannelUrl(cand.channelId)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
-                    title="치지직 채널 바로가기 새창 열기"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                      />
-                    </svg>
-                  </a>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelect(cand);
-                    }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white dark:bg-white dark:text-slate-900 group-hover:bg-[#f99e1a] group-hover:text-slate-950 transition-colors shadow-2xs cursor-pointer"
-                  >
-                    선택
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleSearch();
+        }}
+      >
+        <AdminSearchInput
+          label="치지직 스트리머 검색"
+          placeholder="스트리머 닉네임 또는 채널 주소를 입력하세요..."
+          value={query}
+          onChange={setQuery}
+        />
+      </form>
+      <div className="h-[420px] shrink-0">
+        <AdminTable
+          columns={columns}
+          data={candidates}
+          keyField="channelId"
+          selectedId={selectedChannelId}
+          onRowClick={handleSelectCandidate}
+          isLoading={isLoading}
+          emptyIcon="🔎"
+          emptyTitle="검색 결과가 없습니다."
+          renderEmpty={renderEmpty}
+        />
       </div>
     </AdminModal>
   );

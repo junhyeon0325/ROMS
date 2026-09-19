@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { formatHeroDto } from "@/lib/heroes/heroDto";
 import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/auth-guards";
 
 const HERO_ROLES = ["TANK", "DAMAGE", "SUPPORT"] as const;
 class ImportValidationError extends Error {}
@@ -32,6 +33,9 @@ function normalizeImportHero(
 
 // 선택값의 중복과 기존 등록 여부를 검증한 뒤 트랜잭션으로 일괄 저장한다.
 export async function POST(request: NextRequest) {
+  const authError = await requireAdminApi();
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     if (!Array.isArray(body.heroes) || !body.heroes.length)

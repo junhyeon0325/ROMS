@@ -5,21 +5,30 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useAdmin } from "@/lib/context/AdminContext";
+import {
+  useAdminFeedback,
+  useAdminMaps,
+} from "@/lib/context/AdminFeatureContexts";
 import { useAdminMutation } from "@/lib/hooks/useAdminMutation";
-import { getOverFastModeCodes, MAP_MODE_GROUP_CODE } from "@/lib/constants/maps";
+import { importMaps, saveMap } from "@/lib/maps/mapClient";
+import {
+  getOverFastModeCodes,
+  MAP_MODE_GROUP_CODE,
+} from "@/lib/constants/maps";
 import { CodeItem, ExternalMap, MapFormData, MapItem } from "@/lib/types/admin";
 import MapFormSection from "./components/MapFormSection";
 import MapListSection from "./components/MapListSection";
 import OverFastMapModal from "./components/OverFastMapModal";
-import {
-  EMPTY_MAP_FORM,
-  toMapForm,
-} from "./components/mapForm";
+import { EMPTY_MAP_FORM, toMapForm } from "./components/mapForm";
 
 // 맵 관리 상태와 저장 동작, 세 개의 맵 관리 영역을 조율한다.
 export default function AdminMapsPage() {
-  const { maps, setMaps, showFeedback, isMapsLoading } = useAdmin();
+  const {
+    items: maps,
+    setItems: setMaps,
+    isLoading: isMapsLoading,
+  } = useAdminMaps();
+  const { showFeedback } = useAdminFeedback();
   const { execute: mutateMap, isPending: isSaving } = useAdminMutation();
   const [mapModes, setMapModes] = useState<CodeItem[]>([]);
   const [isModesLoading, setIsModesLoading] = useState(true);
@@ -37,10 +46,14 @@ export default function AdminMapsPage() {
     // 맵 목록 필터와 편집 폼에서 사용하는 활성 MAP_MODE 공통코드를 불러온다.
     const loadMapModes = async () => {
       try {
-        const response = await fetch(`/api/codes?groupCode=${MAP_MODE_GROUP_CODE}`);
+        const response = await fetch(
+          `/api/codes?groupCode=${MAP_MODE_GROUP_CODE}`,
+        );
         const json = await response.json().catch(() => null);
         if (!response.ok || !json?.success || !Array.isArray(json.data)) {
-          throw new Error(json?.message || "MAP_MODE 공통코드 조회에 실패했습니다.");
+          throw new Error(
+            json?.message || "MAP_MODE 공통코드 조회에 실패했습니다.",
+          );
         }
         setMapModes(json.data.filter((code: CodeItem) => code.isUse));
       } catch {
@@ -96,7 +109,11 @@ export default function AdminMapsPage() {
       showFeedback("이미 등록된 맵입니다.");
       return;
     }
-    if (!getOverFastModeCodes(map.gamemodes).some((code) => modeNameByCode.has(code))) {
+    if (
+      !getOverFastModeCodes(map.gamemodes).some((code) =>
+        modeNameByCode.has(code),
+      )
+    ) {
       showFeedback("MAP_MODE 공통코드가 없는 모드의 맵은 선택할 수 없습니다.");
       return;
     }
@@ -129,25 +146,13 @@ export default function AdminMapsPage() {
       showFeedback("영문명과 맵 모드는 필수입니다.");
       return;
     }
-    await mutateMap(
-      async () => {
-        const response = await fetch("/api/maps", {
-          method: selectedMapId ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            selectedMapId ? { ...form, id: selectedMapId } : form,
-          ),
-        });
-        return response.json();
-      },
-      {
-        successMessage: selectedMapId
-          ? `[${form.nameKr}] 맵 정보를 수정했습니다.`
-          : `[${form.nameKr}] 맵을 등록했습니다.`,
-        errorMessage: "맵 저장에 실패했습니다.",
-        onSuccess: (saved?: MapItem) => saved && applySavedMap(saved),
-      },
-    );
+    await mutateMap(() => saveMap(form, selectedMapId), {
+      successMessage: selectedMapId
+        ? `[${form.nameKr}] 맵 정보를 수정했습니다.`
+        : `[${form.nameKr}] 맵을 등록했습니다.`,
+      errorMessage: "맵 저장에 실패했습니다.",
+      onSuccess: (saved?: MapItem) => saved && applySavedMap(saved),
+    });
   };
 
   // 저장된 맵을 전역 관리자 목록에 반영하고 해당 맵을 편집 대상으로 유지한다.
@@ -171,45 +176,26 @@ export default function AdminMapsPage() {
       return;
     }
     const hasUnsupportedMode = selectedExternalMaps.some(
-      (map) => !getOverFastModeCodes(map.gamemodes).some((code) => modeNameByCode.has(code)),
+      (map) =>
+        !getOverFastModeCodes(map.gamemodes).some((code) =>
+          modeNameByCode.has(code),
+        ),
     );
     if (hasUnsupportedMode) {
       showFeedback("MAP_MODE 공통코드가 없는 모드의 맵이 포함되어 있습니다.");
       return;
     }
-    await mutateMap(
-      async () => {
-        const response = await fetch("/api/maps/import", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            maps: selectedExternalMaps.map((map) => ({
-              nameEn: map.nameEn,
-              mode:
-                getOverFastModeCodes(map.gamemodes).find((code) =>
-                  modeNameByCode.has(code),
-                ) || "",
-              location: map.location,
-              countryCode: map.countryCode,
-              imageUrl: map.imageUrl,
-              sourceKey: map.sourceKey,
-            })),
-          }),
-        });
-        return response.json();
+    await mutateMap(() => importMaps(selectedExternalMaps, modeNameByCode), {
+      successMessage: (saved?: MapItem[]) =>
+        `${saved?.length || 0}건의 맵을 DB에 등록했습니다.`,
+      errorMessage:
+        "외부 맵 등록에 실패했습니다. 어떤 맵도 저장되지 않았습니다.",
+      onSuccess: (saved?: MapItem[]) => {
+        if (!saved?.length) return;
+        saved.forEach(applySavedMap);
+        setIsOverFastModalOpen(false);
       },
-      {
-        successMessage: (saved?: MapItem[]) =>
-          `${saved?.length || 0}건의 맵을 DB에 등록했습니다.`,
-        errorMessage:
-          "외부 맵 등록에 실패했습니다. 어떤 맵도 저장되지 않았습니다.",
-        onSuccess: (saved?: MapItem[]) => {
-          if (!saved?.length) return;
-          saved.forEach(applySavedMap);
-          setIsOverFastModalOpen(false);
-        },
-      },
-    );
+    });
   };
 
   return (

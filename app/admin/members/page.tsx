@@ -6,7 +6,7 @@
  */
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useAdmin } from "@/lib/context/AdminContext";
 import { useAdminMutation } from "@/lib/hooks/useAdminMutation";
 import { ChzzkCandidate, MemberFormData, MemberItem } from "@/lib/types/admin";
@@ -27,6 +27,17 @@ const INITIAL_FORM_STATE: MemberFormData = {
 export default function AdminMembersPage() {
   const { members, setMembers, showFeedback, isMembersLoading } = useAdmin();
 
+  // 치지직 검색 결과의 중복 연동 여부를 채널 ID 기준으로 빠르게 판단한다.
+  const registeredByChannelId = useMemo(
+    () =>
+      new Map(
+        members
+          .filter((member) => member.channelId)
+          .map((member) => [member.channelId as string, member]),
+      ),
+    [members],
+  );
+
   // 선택된 인원 ID (우측 폼 바인딩용)
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
@@ -37,7 +48,8 @@ export default function AdminMembersPage() {
   const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
 
   // 우측 등록/수정 폼 상태
-  const [memberForm, setMemberForm] = useState<MemberFormData>(INITIAL_FORM_STATE);
+  const [memberForm, setMemberForm] =
+    useState<MemberFormData>(INITIAL_FORM_STATE);
 
   // 치지직 연동 방식 여부
   const isChzzkType = memberForm.isChzzk;
@@ -86,7 +98,9 @@ export default function AdminMembersPage() {
     }
 
     if (isChzzkType && !memberForm.channelUrl.trim()) {
-      showFeedback("[스트리머 조회] 버튼을 통해 연동할 스트리머를 검색 후 선택해주세요.");
+      showFeedback(
+        "[스트리머 조회] 버튼을 통해 연동할 스트리머를 검색 후 선택해주세요.",
+      );
       return;
     }
 
@@ -94,7 +108,7 @@ export default function AdminMembersPage() {
       // 기존 스트리머 수정 (PUT)
       await mutateMember(
         async () => {
-          const res = await fetch("/api/streamers", {
+          const res = await fetch("/api/members", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -115,17 +129,19 @@ export default function AdminMembersPage() {
           onSuccess: (data?: MemberItem) => {
             if (data) {
               setMembers((prev) =>
-                prev.map((item) => (item.id === selectedMemberId ? data : item))
+                prev.map((item) =>
+                  item.id === selectedMemberId ? data : item,
+                ),
               );
             }
           },
-        }
+        },
       );
     } else {
       // 신규 스트리머 등록 (POST)
       await mutateMember(
         async () => {
-          const res = await fetch("/api/streamers", {
+          const res = await fetch("/api/members", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -148,7 +164,7 @@ export default function AdminMembersPage() {
               setSelectedMemberId(data.id);
             }
           },
-        }
+        },
       );
     }
   };
@@ -182,6 +198,8 @@ export default function AdminMembersPage() {
         isOpen={isCandidateModalOpen}
         onClose={() => setIsCandidateModalOpen(false)}
         onSelect={applySelectedCandidate}
+        registeredByChannelId={registeredByChannelId}
+        selectedMemberId={selectedMemberId}
         showFeedback={showFeedback}
       />
     </section>

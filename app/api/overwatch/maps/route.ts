@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/auth-guards";
 
 const OVERFAST_MAPS_URL = "https://overfast-api.tekrop.fr/maps";
 
@@ -7,6 +8,9 @@ const OVERFAST_MAPS_URL = "https://overfast-api.tekrop.fr/maps";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const authError = await requireAdminApi();
+  if (authError) return authError;
+
   try {
     const response = await fetch(OVERFAST_MAPS_URL, { next: { revalidate: 60 * 60 * 12 }, headers: { Accept: "application/json" } });
     if (!response.ok) throw new Error(`OverFast responded with ${response.status}`);

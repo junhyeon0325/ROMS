@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/auth-guards";
 
 // 포맷 직렬화 헬퍼 함수
 function formatCodeGroup(g: any) {
@@ -15,12 +16,17 @@ function formatCodeGroup(g: any) {
     remarks: g.remarks || "",
     sortOrder: g.sortOrder ?? 0,
     isUse: g.isUse ?? true,
-    createdAt: g.createdAt ? new Date(g.createdAt).toISOString().split("T")[0] : "",
+    createdAt: g.createdAt
+      ? new Date(g.createdAt).toISOString().split("T")[0]
+      : "",
   };
 }
 
 // 1. 공통코드 그룹 목록 조회 (GET)
 export async function GET() {
+  const authError = await requireAdminApi();
+  if (authError) return authError;
+
   try {
     const groups = await prisma.commonCodeGroup.findMany({
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
@@ -36,13 +42,16 @@ export async function GET() {
         message: "공통코드 그룹 목록을 불러오지 못했습니다.",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // 2. 신규 공통코드 그룹 등록 (POST)
 export async function POST(request: NextRequest) {
+  const authError = await requireAdminApi();
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { groupCode, groupName, remarks, sortOrder, isUse } = body;
@@ -54,15 +63,19 @@ export async function POST(request: NextRequest) {
     if (!trimmedCode || !trimmedName) {
       return NextResponse.json(
         { success: false, message: "그룹 코드와 그룹명을 모두 입력해주세요." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const CODE_REGEX = /^[A-Z0-9_]+$/;
     if (!CODE_REGEX.test(trimmedCode)) {
       return NextResponse.json(
-        { success: false, message: "그룹 코드는 영문 대문자, 숫자, 언더스코어(_)만 사용할 수 있습니다. (예: SYSTEM_ROLE)" },
-        { status: 400 }
+        {
+          success: false,
+          message:
+            "그룹 코드는 영문 대문자, 숫자, 언더스코어(_)만 사용할 수 있습니다. (예: SYSTEM_ROLE)",
+        },
+        { status: 400 },
       );
     }
 
@@ -73,8 +86,11 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       return NextResponse.json(
-        { success: false, message: `이미 존재하는 그룹 코드 [${trimmedCode}] 입니다.` },
-        { status: 409 }
+        {
+          success: false,
+          message: `이미 존재하는 그룹 코드 [${trimmedCode}] 입니다.`,
+        },
+        { status: 409 },
       );
     }
 
@@ -101,13 +117,16 @@ export async function POST(request: NextRequest) {
         message: "공통코드 그룹 등록 중 데이터베이스 오류가 발생했습니다.",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // 3. 공통코드 그룹 정보 수정 (PUT)
 export async function PUT(request: NextRequest) {
+  const authError = await requireAdminApi();
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { groupCode, groupName, remarks, sortOrder, isUse } = body;
@@ -118,14 +137,14 @@ export async function PUT(request: NextRequest) {
     if (!trimmedCode) {
       return NextResponse.json(
         { success: false, message: "수정할 그룹 코드가 누락되었습니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!trimmedName) {
       return NextResponse.json(
         { success: false, message: "그룹명을 입력해주세요." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -133,7 +152,7 @@ export async function PUT(request: NextRequest) {
       where: { groupCode: trimmedCode },
       data: {
         groupName: trimmedName,
-        remarks: remarks !== undefined ? (remarks?.trim() || null) : undefined,
+        remarks: remarks !== undefined ? remarks?.trim() || null : undefined,
         sortOrder: Number(sortOrder) || 0,
         isUse: isUse !== false,
       },
@@ -152,13 +171,16 @@ export async function PUT(request: NextRequest) {
         message: "공통코드 그룹 수정 중 데이터베이스 오류가 발생했습니다.",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // 4. 공통코드 그룹 삭제 (DELETE)
 export async function DELETE(request: NextRequest) {
+  const authError = await requireAdminApi();
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     let groupCode = searchParams.get("groupCode");
@@ -173,7 +195,7 @@ export async function DELETE(request: NextRequest) {
     if (!trimmedCode) {
       return NextResponse.json(
         { success: false, message: "삭제할 그룹 코드가 필요합니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -193,7 +215,7 @@ export async function DELETE(request: NextRequest) {
         message: "공통코드 그룹 삭제 중 데이터베이스 오류가 발생했습니다.",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -10,8 +10,17 @@ import React from "react";
 import { usePathname } from "next/navigation";
 import { useAdmin } from "@/lib/context/AdminContext";
 import { ADMIN_NAV_ITEMS } from "@/lib/constants/navigation";
+import LogoutButton from "@/components/auth/LogoutButton";
 
-export default function AdminHeader() {
+interface AdminHeaderProps {
+  user: {
+    email?: string | null;
+    role: "USER" | "ADMIN" | "DEV";
+  };
+}
+
+// 현재 관리자 정보, 페이지 안내, 로그아웃 동작을 한 헤더에서 제공한다.
+export default function AdminHeader({ user }: AdminHeaderProps) {
   const pathname = usePathname();
   const { toastMessage } = useAdmin();
 
@@ -109,22 +118,33 @@ export default function AdminHeader() {
           )}
         </div>
 
-        {/* 우측 사이드 브레드크럼 */}
-        <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 font-medium shrink-0">
-          {breadcrumbs.map((crumb, idx) => (
-            <React.Fragment key={idx}>
-              {idx > 0 && <span className="text-slate-300 dark:text-slate-600 font-mono text-[10px]">&gt;</span>}
-              <span
-                className={
-                  idx === breadcrumbs.length - 1
-                    ? "font-semibold text-slate-800 dark:text-slate-200"
-                    : "text-slate-500 dark:text-slate-400"
-                }
-              >
-                {crumb}
-              </span>
-            </React.Fragment>
-          ))}
+        {/* 우측 사용자 정보와 브레드크럼 */}
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="hidden lg:flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 font-medium">
+            {breadcrumbs.map((crumb, idx) => (
+              <React.Fragment key={idx}>
+                {idx > 0 && <span className="text-slate-300 dark:text-slate-600 font-mono text-[10px]">&gt;</span>}
+                <span
+                  className={
+                    idx === breadcrumbs.length - 1
+                      ? "font-semibold text-slate-800 dark:text-slate-200"
+                      : "text-slate-500 dark:text-slate-400"
+                  }
+                >
+                  {crumb}
+                </span>
+              </React.Fragment>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-700 pl-4">
+            <div className="hidden sm:block text-right leading-tight">
+              <p className="max-w-40 truncate text-[11px] font-bold text-slate-700 dark:text-slate-200">
+                {user.email}
+              </p>
+              <p className="text-[10px] font-black text-[#f99e1a]">{user.role}</p>
+            </div>
+            <LogoutButton />
+          </div>
         </div>
       </header>
 

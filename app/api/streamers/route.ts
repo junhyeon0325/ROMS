@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CHZZK_BASE_URL } from "@/lib/constants/codes";
+import { requireAdminApi } from "@/lib/auth-guards";
 
 // 치지직 채널 ID 추출 헬퍼 (URL 또는 단독 ID 문자열 모두 안전하게 처리)
 function extractChzzkChannelId(input?: string | null): string | null {
@@ -43,6 +44,9 @@ function formatStreamer(s: any) {
 
 // 1. 스트리머 목록 조회 (GET)
 export async function GET() {
+  const authError = await requireAdminApi();
+  if (authError) return authError;
+
   try {
     const streamers = await prisma.streamer.findMany({
       orderBy: {
@@ -67,6 +71,9 @@ export async function GET() {
 
 // 2. 신규 스트리머 등록 (POST)
 export async function POST(request: NextRequest) {
+  const authError = await requireAdminApi();
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { name, isChzzk, channelUrl, channelId, profileImg, memo, isUse } = body;
@@ -142,6 +149,9 @@ export async function POST(request: NextRequest) {
 
 // 3. 스트리머 정보 수정 (PUT)
 export async function PUT(request: NextRequest) {
+  const authError = await requireAdminApi();
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { id, name, isChzzk, channelUrl, channelId, profileImg, memo, isUse } = body;

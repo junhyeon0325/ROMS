@@ -1,5 +1,6 @@
 // OverFast 영웅 목록을 관리자 가져오기 모달의 데이터 형식으로 변환한다.
 import { NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/auth-guards";
 
 const OVERFAST_HEROES_URL = "https://overfast-api.tekrop.fr/heroes";
 const ROLE_BY_OVERFAST: Record<string, "TANK" | "DAMAGE" | "SUPPORT"> = { tank: "TANK", damage: "DAMAGE", support: "SUPPORT" };
@@ -9,6 +10,9 @@ export const dynamic = "force-dynamic";
 // 최신 OverFast 영웅 데이터 중 관리 가능한 역할군만 반환한다.
 // OverFast 역할 값을 ROMS 영웅 역할군으로 변환해 반환한다.
 export async function GET() {
+  const authError = await requireAdminApi();
+  if (authError) return authError;
+
   try {
     const response = await fetch(OVERFAST_HEROES_URL, { next: { revalidate: 60 * 60 * 12 }, headers: { Accept: "application/json" } });
     if (!response.ok) throw new Error(`OverFast responded with ${response.status}`);

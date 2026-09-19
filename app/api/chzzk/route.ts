@@ -5,6 +5,7 @@
  * - 치지직 채널 URL, 32자리 채널 ID 해시, 또는 스트리머 이름 검색 지원
  */
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/auth-guards";
 
 function formatFollowers(count?: number): string {
   if (!count && count !== 0) return "—";
@@ -18,6 +19,9 @@ function formatFollowers(count?: number): string {
 }
 
 export async function GET(request: NextRequest) {
+  const authError = await requireAdminApi();
+  if (authError) return authError;
+
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("query");
 

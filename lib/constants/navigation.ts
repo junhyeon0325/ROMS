@@ -54,7 +54,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
             {
                 id: "streamer",
                 label: "스트리머 관리",
-                href: "/admin/members",
+                href: "/admin/streamers",
                 description: "스트리머 프로필 정보 등록 및 치지직 채널 연동 관리",
             },
             {

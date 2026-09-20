@@ -53,5 +53,4 @@ export default function AdminAvatar({
   );
 }
 
-// 하위 호환성을 위한 별칭 export
-export { AdminAvatar, AdminAvatar as MemberAvatar };
+export { AdminAvatar };

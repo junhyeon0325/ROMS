@@ -1,12 +1,13 @@
+// 관리자 요청으로 OverFast 맵 데이터를 조회해 관리자 화면용 형식으로 반환한다.
 import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/auth-guards";
 
 const OVERFAST_MAPS_URL = "https://overfast-api.tekrop.fr/maps";
 
-// The administrator explicitly refreshes this source. Keep the route dynamic
-// while letting the upstream response use Next's short-lived data cache.
+// 관리자 요청마다 경로를 동적으로 처리하되 외부 응답은 짧게 캐시한다.
 export const dynamic = "force-dynamic";
 
+// 인증된 관리자에게만 외부 맵 목록을 조회해 화면에서 사용할 데이터로 변환한다.
 export async function GET() {
   const authError = await requireAdminApi();
   if (authError) return authError;

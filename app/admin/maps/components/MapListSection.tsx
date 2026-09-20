@@ -3,7 +3,8 @@
 // Purpose: 맵 관리 페이지에서 등록 맵 검색·필터·선택 UI를 제공한다.
 
 import { useMemo, useState } from "react";
-import { CodeItem, MapItem } from "@/lib/types/admin";
+import type { CodeItem } from "@/lib/types/codes";
+import type { MapItem } from "@/lib/types/maps";
 import AdminBadge from "@/components/admin/AdminBadge";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFilterPanel from "@/components/admin/AdminFilterPanel";

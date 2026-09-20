@@ -1,235 +1,68 @@
-// app/api/streamers/route.ts
-/**
- * [스트리머(선수) Supabase DB CRUD API 엔드포인트]
- * - Prisma Client를 통해 Supabase PostgreSQL 데이터베이스와 직접 연동
- * - 스트리머 목록 조회(GET), 신규 등록(POST), 정보 수정 및 활성/비활성화(PUT) 처리
- */
+// File: app/api/streamers/route.ts
+// Page/Component: streamers API route
+// Purpose: 스트리머 목록 조회와 등록·수정 요청을 인증 후 서비스 계층에 전달한다.
+
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { CHZZK_BASE_URL } from "@/lib/constants/codes";
 import { requireAdminApi } from "@/lib/auth-guards";
+import { createStreamer, findStreamerByChzzkChannelId, findStreamers, updateStreamer } from "@/lib/streamers/streamerService";
+import { normalizeStreamerPayload, validateStreamerPayload } from "@/lib/streamers/streamerValidator";
 
-// 치지직 채널 ID 추출 헬퍼 (URL 또는 단독 ID 문자열 모두 안전하게 처리)
-function extractChzzkChannelId(input?: string | null): string | null {
-  if (!input || !input.trim()) return null;
-  const cleaned = input.trim();
-  const parsed = cleaned
-    .replace(/^(https?:\/\/)?(www\.)?(m\.)?chzzk\.naver\.com\/(live\/)?/i, "")
-    .split("?")[0]
-    .replace(/\/$/, "")
-    .trim();
-  return parsed || null;
+// 예외 객체에서 기존 API 응답의 error 필드에 넣을 메시지를 추출한다.
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error";
 }
 
-// BigInt 및 필드 직렬화 헬퍼 함수
-function formatStreamer(s: any) {
-  const channelId = s.chzzkChannelId || "";
-  const channelUrl = channelId ? `${CHZZK_BASE_URL}/${channelId}` : "";
-  const isChzzk = Boolean(channelId);
-
-  return {
-    id: s.id.toString(),
-    name: s.name,
-    profileImg: s.profileImageUrl || "",
-    channelUrl: channelUrl,
-    channelId: channelId,
-    isChzzk: isChzzk,
-    type: isChzzk ? "치지직 연동" : "일반 등록",
-    followers: isChzzk ? "연동됨" : "—",
-    registeredDate: s.createdAt ? new Date(s.createdAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
-    memo: s.remarks || "",
-    isUse: s.isUse ?? true,
-  };
-}
-
-// 1. 스트리머 목록 조회 (GET)
+// 스트리머 목록을 기존 응답 형식으로 조회한다.
 export async function GET() {
   const authError = await requireAdminApi();
   if (authError) return authError;
-
   try {
-    const streamers = await prisma.streamer.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
-    const data = streamers.map(formatStreamer);
-    return NextResponse.json({ success: true, data });
-  } catch (error: any) {
+    return NextResponse.json({ success: true, data: await findStreamers() });
+  } catch (error) {
     console.error("GET /api/streamers error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "스트리머 목록을 불러오지 못했습니다.",
-        error: error.message,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: "스트리머 목록을 불러오지 못했습니다.", error: getErrorMessage(error) }, { status: 500 });
   }
 }
 
-// 2. 신규 스트리머 등록 (POST)
+// 신규 스트리머 요청을 검증하고 동일 Chzzk 채널 중복 없이 등록한다.
 export async function POST(request: NextRequest) {
   const authError = await requireAdminApi();
   if (authError) return authError;
-
   try {
-    const body = await request.json();
-    const { name, isChzzk, channelUrl, channelId, profileImg, memo, isUse } = body;
-
-    if (!name || !name.trim()) {
-      return NextResponse.json(
-        { success: false, message: "스트리머 이름 또는 채널명을 입력해주세요." },
-        { status: 400 }
-      );
+    const payload = normalizeStreamerPayload(await request.json());
+    const validationError = validateStreamerPayload(payload);
+    if (validationError) return NextResponse.json({ success: false, message: validationError }, { status: 400 });
+    if (payload.chzzkChannelId) {
+      const existing = await findStreamerByChzzkChannelId(payload.chzzkChannelId);
+      if (existing) return NextResponse.json({ success: false, message: `이미 등록된 치지직 채널입니다. (현재 등록 스트리머: ${existing.name})` }, { status: 409 });
     }
-
-    // 치지직 연동 여부: 명시적 isChzzk 플래그 또는 채널 정보 유무로 판단
-    const isChzzkMode = Boolean(isChzzk ?? (channelId || channelUrl));
-    const chzzkChannelId = isChzzkMode ? extractChzzkChannelId(channelId || channelUrl) : null;
-
-    // 치지직 연동 선택 시 채널 주소/ID 필수 검증
-    if (isChzzkMode && !chzzkChannelId) {
-      return NextResponse.json(
-        { success: false, message: "치지직 연동 등록 시 [스트리머 조회]를 통해 연동할 채널을 선택해야 합니다." },
-        { status: 400 }
-      );
-    }
-
-    // 치지직 채널 ID 중복 검사
-    if (chzzkChannelId) {
-      const existing = await prisma.streamer.findFirst({
-        where: { chzzkChannelId },
-      });
-      if (existing) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: `이미 등록된 치지직 채널입니다. (현재 등록 스트리머: ${existing.name})`,
-          },
-          { status: 409 }
-        );
-      }
-    }
-
-    const created = await prisma.streamer.create({
-      data: {
-        name: name.trim(),
-        profileImageUrl: profileImg?.trim() || null,
-        chzzkChannelId: chzzkChannelId,
-        isUse: isUse !== false,
-        remarks: memo?.trim() || null,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: `[${created.name}] 스트리머가 DB에 성공적으로 등록되었습니다.`,
-      data: formatStreamer(created),
-    });
-  } catch (error: any) {
+    const data = await createStreamer(payload);
+    return NextResponse.json({ success: true, message: `[${data.name}] 스트리머가 DB에 성공적으로 등록되었습니다.`, data });
+  } catch (error) {
     console.error("POST /api/streamers error:", error);
-    if (error.code === "P2002") {
-      return NextResponse.json(
-        { success: false, message: "이미 등록된 치지직 채널 ID입니다." },
-        { status: 409 }
-      );
-    }
-    return NextResponse.json(
-      {
-        success: false,
-        message: "스트리머 등록 중 데이터베이스 오류가 발생했습니다.",
-        error: error.message,
-      },
-      { status: 500 }
-    );
+    const status = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002" ? 409 : 500;
+    return NextResponse.json({ success: false, message: status === 409 ? "이미 등록된 치지직 채널 ID입니다." : "스트리머 등록 중 데이터베이스 오류가 발생했습니다.", error: getErrorMessage(error) }, { status });
   }
 }
 
-// 3. 스트리머 정보 수정 (PUT)
+// 기존 스트리머 요청을 검증하고 본인을 제외한 Chzzk 채널 중복 없이 수정한다.
 export async function PUT(request: NextRequest) {
   const authError = await requireAdminApi();
   if (authError) return authError;
-
   try {
-    const body = await request.json();
-    const { id, name, isChzzk, channelUrl, channelId, profileImg, memo, isUse } = body;
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, message: "수정할 스트리머 ID가 누락되었습니다." },
-        { status: 400 }
-      );
+    const payload = normalizeStreamerPayload(await request.json());
+    const validationError = validateStreamerPayload(payload, true);
+    if (validationError) return NextResponse.json({ success: false, message: validationError }, { status: 400 });
+    if (payload.chzzkChannelId) {
+      const existing = await findStreamerByChzzkChannelId(payload.chzzkChannelId);
+      if (existing && existing.id.toString() !== payload.id) return NextResponse.json({ success: false, message: `이미 다른 스트리머에게 등록된 치지직 채널입니다. (등록된 스트리머: ${existing.name})` }, { status: 409 });
     }
-    if (!name || !name.trim()) {
-      return NextResponse.json(
-        { success: false, message: "스트리머 이름을 입력해주세요." },
-        { status: 400 }
-      );
-    }
-
-    // 치지직 연동 여부: 명시적 isChzzk 플래그 또는 채널 정보 유무로 판단
-    const isChzzkMode = Boolean(isChzzk ?? (channelId || channelUrl));
-    const chzzkChannelId = isChzzkMode ? extractChzzkChannelId(channelId || channelUrl) : null;
-
-    // 치지직 연동 선택 시 채널 주소/ID 필수 검증
-    if (isChzzkMode && !chzzkChannelId) {
-      return NextResponse.json(
-        { success: false, message: "치지직 연동 등록 시 [스트리머 조회]를 통해 연동할 채널을 선택해야 합니다." },
-        { status: 400 }
-      );
-    }
-
-    // 치지직 채널 ID 다른 스트리머와의 중복 검사
-    if (chzzkChannelId) {
-      const existing = await prisma.streamer.findFirst({
-        where: { chzzkChannelId },
-      });
-      if (existing && existing.id.toString() !== id.toString()) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: `이미 다른 스트리머에게 등록된 치지직 채널입니다. (등록된 스트리머: ${existing.name})`,
-          },
-          { status: 409 }
-        );
-      }
-    }
-
-    const updated = await prisma.streamer.update({
-      where: {
-        id: BigInt(id),
-      },
-      data: {
-        name: name.trim(),
-        profileImageUrl: profileImg?.trim() || null,
-        chzzkChannelId: chzzkChannelId,
-        ...(isUse !== undefined ? { isUse: Boolean(isUse) } : {}),
-        remarks: memo?.trim() || null,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: `[${updated.name}] 스트리머 정보가 수정되었습니다.`,
-      data: formatStreamer(updated),
-    });
-  } catch (error: any) {
+    const data = await updateStreamer(payload);
+    return NextResponse.json({ success: true, message: `[${data.name}] 스트리머 정보가 수정되었습니다.`, data });
+  } catch (error) {
     console.error("PUT /api/streamers error:", error);
-    if (error.code === "P2002") {
-      return NextResponse.json(
-        { success: false, message: "이미 다른 스트리머에게 등록된 치지직 채널 ID입니다." },
-        { status: 409 }
-      );
-    }
-    return NextResponse.json(
-      {
-        success: false,
-        message: "스트리머 수정 중 데이터베이스 오류가 발생했습니다.",
-        error: error.message,
-      },
-      { status: 500 }
-    );
+    const status = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002" ? 409 : 500;
+    return NextResponse.json({ success: false, message: status === 409 ? "이미 다른 스트리머에게 등록된 치지직 채널 ID입니다." : "스트리머 수정 중 데이터베이스 오류가 발생했습니다.", error: getErrorMessage(error) }, { status });
   }
 }

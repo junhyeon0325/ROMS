@@ -8,7 +8,7 @@
 
 import React from "react";
 import { usePathname } from "next/navigation";
-import { useAdmin } from "@/lib/context/AdminContext";
+import { useAdminFeedback } from "@/lib/context/AdminFeatureContexts";
 import { ADMIN_NAV_ITEMS } from "@/lib/constants/navigation";
 import LogoutButton from "@/components/auth/LogoutButton";
 
@@ -22,7 +22,7 @@ interface AdminHeaderProps {
 // 현재 관리자 정보, 페이지 안내, 로그아웃 동작을 한 헤더에서 제공한다.
 export default function AdminHeader({ user }: AdminHeaderProps) {
   const pathname = usePathname();
-  const { toastMessage } = useAdmin();
+  const { toastMessage } = useAdminFeedback();
 
   // 브레드크럼 매핑 계산
   const getBreadcrumbs = () => {

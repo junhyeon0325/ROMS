@@ -15,8 +15,8 @@ import React, {
   useEffect,
   useDeferredValue,
 } from "react";
-import { useAdmin } from "@/lib/context/AdminContext";
-import { CodeItem } from "@/lib/types/admin";
+import { useAdminCodes, useAdminFeedback } from "@/lib/context/AdminFeatureContexts";
+import type { CodeItem } from "@/lib/types/codes";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminBadge from "@/components/admin/AdminBadge";
 import AdminGridHeaderActions from "@/components/admin/AdminGridHeaderActions";
@@ -24,23 +24,11 @@ import AdminSearchInput from "@/components/admin/AdminSearchInput";
 import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
 import { useInlineGridEdit } from "@/lib/hooks/useInlineGridEdit";
 import { useAdminMutation } from "@/lib/hooks/useAdminMutation";
+import { deleteCode, fetchCodes, saveCode } from "@/lib/codes/codeClient";
+import { INITIAL_CODE_ADD_FORM, INITIAL_CODE_EDIT_FORM, type CodeAddForm, type CodeEditForm } from "./codeFormState";
+import { createCodeColumns } from "./codeTableColumns";
 
 // 세부코드 폼 인터페이스
-interface CodeAddForm {
-  code: string;
-  name: string;
-  sortOrder: number;
-  isUse: boolean;
-  remarks: string;
-}
-
-interface CodeEditForm {
-  name: string;
-  sortOrder: number;
-  isUse: boolean;
-  remarks: string;
-}
-
 interface DetailCodeSectionProps {
   selectedGroupCode: string;
   selectedGroupName?: string;
@@ -52,7 +40,8 @@ export default function DetailCodeSection({
   selectedGroupName,
   deletedGroupCode,
 }: DetailCodeSectionProps) {
-  const { codeGroups, showFeedback } = useAdmin();
+  const { items: codeGroups } = useAdminCodes();
+  const { showFeedback } = useAdminFeedback();
 
   // 1. 인메모리 캐시: groupCode -> CodeItem[]
   const cacheRef = useRef<Map<string, CodeItem[]>>(new Map());
@@ -73,19 +62,8 @@ export default function DetailCodeSection({
 
   // 4. 인라인 그리드 편집 상태 훅
   const codeEdit = useInlineGridEdit<CodeAddForm, CodeEditForm>(
-    {
-      code: "",
-      name: "",
-      sortOrder: 1,
-      isUse: true,
-      remarks: "",
-    },
-    {
-      name: "",
-      sortOrder: 1,
-      isUse: true,
-      remarks: "",
-    }
+    INITIAL_CODE_ADD_FORM,
+    INITIAL_CODE_EDIT_FORM,
   );
 
   // 세부 코드 비동기 조회 (인메모리 캐시 우선 참조)
@@ -106,10 +84,7 @@ export default function DetailCodeSection({
 
       try {
         setIsDetailLoading(true);
-        const res = await fetch(
-          `/api/codes?groupCode=${encodeURIComponent(groupCode)}`
-        );
-        const json = await res.json();
+        const json = await fetchCodes(groupCode);
 
         if (json.success && Array.isArray(json.data)) {
           cacheRef.current.set(groupCode, json.data);
@@ -178,7 +153,7 @@ export default function DetailCodeSection({
   }, [detailCodes, selectedDetailCode]);
 
   // 세부 코드 테이블 컬럼 정의
-  const codeColumns: AdminTableColumn<CodeItem>[] = useMemo(
+  const legacyCodeColumns: AdminTableColumn<CodeItem>[] = useMemo(
     () => [
       {
         key: "index",
@@ -243,6 +218,7 @@ export default function DetailCodeSection({
     ],
     []
   );
+  const codeColumns = useMemo(createCodeColumns, []);
 
   // 세부 코드 추가 시작
   const handleStartAddCode = () => {
@@ -289,21 +265,7 @@ export default function DetailCodeSection({
     }
 
     await mutateDetail(
-      async () => {
-        const res = await fetch("/api/codes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            groupCode: selectedGroupCode,
-            code,
-            name,
-            sortOrder: Number(codeEdit.addForm.sortOrder) || 1,
-            isUse: codeEdit.addForm.isUse,
-            remarks: codeEdit.addForm.remarks.trim(),
-          }),
-        });
-        return res.json();
-      },
+      () => saveCode({ groupCode: selectedGroupCode, code, name, sortOrder: Number(codeEdit.addForm.sortOrder) || 1, isUse: codeEdit.addForm.isUse, remarks: codeEdit.addForm.remarks.trim() }, true),
       {
         successMessage: `신규 코드 [${code}]이(가) DB에 등록되었습니다.`,
         errorMessage: "코드 등록에 실패했습니다.",
@@ -339,21 +301,7 @@ export default function DetailCodeSection({
     const editingCode = codeEdit.editingId;
 
     await mutateDetail(
-      async () => {
-        const res = await fetch("/api/codes", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            groupCode: selectedGroupCode,
-            code: editingCode,
-            name,
-            sortOrder: Number(codeEdit.editForm.sortOrder) || 1,
-            isUse: codeEdit.editForm.isUse,
-            remarks: codeEdit.editForm.remarks.trim(),
-          }),
-        });
-        return res.json();
-      },
+      () => saveCode({ groupCode: selectedGroupCode, code: editingCode, name, sortOrder: Number(codeEdit.editForm.sortOrder) || 1, isUse: codeEdit.editForm.isUse, remarks: codeEdit.editForm.remarks.trim() }, false),
       {
         successMessage: `코드 [${editingCode}] 정보가 수정되었습니다.`,
         errorMessage: "코드 수정에 실패했습니다.",
@@ -378,15 +326,7 @@ export default function DetailCodeSection({
     const groupCode = codeItem.groupCode || selectedGroupCode;
 
     await mutateDetail(
-      async () => {
-        const res = await fetch(
-          `/api/codes?groupCode=${encodeURIComponent(
-            groupCode
-          )}&code=${encodeURIComponent(codeItem.code)}`,
-          { method: "DELETE" }
-        );
-        return res.json();
-      },
+      () => deleteCode(groupCode, codeItem.code),
       {
         successMessage: `코드 [${codeItem.code}]이(가) 삭제되었습니다.`,
         errorMessage: "코드 삭제에 실패했습니다.",

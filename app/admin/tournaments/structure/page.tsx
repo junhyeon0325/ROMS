@@ -6,9 +6,11 @@
  */
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAdmin } from "@/lib/context/AdminContext";
 import { TournamentParticipant } from "@/lib/types/admin";
+import { PARTICIPANT_ROLE_GROUP_CODE } from "@/lib/constants/commonCodes";
+import { useCommonCodes } from "@/lib/hooks/useCommonCodes";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
 import Link from "next/link";
@@ -27,6 +29,15 @@ interface Group {
 
 export default function AdminTournamentStructurePage() {
   const { tournaments, members, participants, setParticipants, showFeedback } = useAdmin();
+  const { codes: participantRoles, error: participantRolesError } = useCommonCodes(PARTICIPANT_ROLE_GROUP_CODE);
+  const participantRoleNameByCode = useMemo(() => new Map(participantRoles.map((role) => [role.code, role.name])), [participantRoles]);
+  const participantRoleCodeByName = useMemo(() => new Map(participantRoles.map((role) => [role.name, role.code])), [participantRoles]);
+  const participantRoleNames = useMemo(() => participantRoles.map((role) => role.name), [participantRoles]);
+  const defaultParticipantRoleName = participantRoleNameByCode.get("PLAYER") || participantRoleNames[0] || "";
+  // 기존 참가자 역할은 한글 표시값으로 저장되어 있어 공통코드 이름을 유지해 호환한다.
+  const createRoleState = (selectedNames: string[] = defaultParticipantRoleName ? [defaultParticipantRoleName] : []) => Object.fromEntries(participantRoleNames.map((name) => [name, selectedNames.includes(name)])) as Record<string, boolean>;
+  const displayParticipantRole = (name: string) => participantRoleNameByCode.get(participantRoleCodeByName.get(name) || "") || name;
+  useEffect(() => { if (participantRolesError) showFeedback(participantRolesError); }, [participantRolesError, showFeedback]);
 
   // 대상 대회 선택
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>(
@@ -40,17 +51,15 @@ export default function AdminTournamentStructurePage() {
 
   // --- [참가 인원 및 역할 상태] ---
   const [participantSearch, setParticipantSearch] = useState("");
-  const [participantRoleFilter, setParticipantRoleFilter] = useState<"전체" | "팀장" | "선수" | "감독">(
-    "전체"
-  );
+  const [participantRoleFilter, setParticipantRoleFilter] = useState("ALL");
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [participantForm, setParticipantForm] = useState<{
     memberId: string;
-    roles: { 팀장: boolean; 선수: boolean; 감독: boolean };
+    roles: Record<string, boolean>;
     teamName: string;
   }>({
     memberId: "",
-    roles: { 팀장: false, 선수: true, 감독: false },
+    roles: {},
     teamName: "",
   });
 
@@ -81,9 +90,9 @@ export default function AdminTournamentStructurePage() {
   // 역할별 인원 집계
   const countStats = {
     total: currentTournamentParticipants.length,
-    captains: currentTournamentParticipants.filter((p) => p.roles.includes("팀장")).length,
-    players: currentTournamentParticipants.filter((p) => p.roles.includes("선수")).length,
-    coaches: currentTournamentParticipants.filter((p) => p.roles.includes("감독")).length,
+    captains: currentTournamentParticipants.filter((p) => p.roles.includes(participantRoleNameByCode.get("CAPTAIN") || "")).length,
+    players: currentTournamentParticipants.filter((p) => p.roles.includes(participantRoleNameByCode.get("PLAYER") || "")).length,
+    coaches: currentTournamentParticipants.filter((p) => p.roles.includes(participantRoleNameByCode.get("COACH") || "")).length,
   };
 
   // 검색 및 필터링된 참가자 목록
@@ -93,7 +102,7 @@ export default function AdminTournamentStructurePage() {
       (p.channelId && p.channelId.toLowerCase().includes(participantSearch.toLowerCase())) ||
       (p.teamName && p.teamName.toLowerCase().includes(participantSearch.toLowerCase()));
     const matchRole =
-      participantRoleFilter === "전체" || p.roles.includes(participantRoleFilter);
+      participantRoleFilter === "ALL" || p.roles.includes(participantRoleFilter);
     return matchSearch && matchRole;
   });
 
@@ -102,11 +111,7 @@ export default function AdminTournamentStructurePage() {
     setSelectedParticipantId(item.id);
     setParticipantForm({
       memberId: item.memberId,
-      roles: {
-        팀장: item.roles.includes("팀장"),
-        선수: item.roles.includes("선수"),
-        감독: item.roles.includes("감독"),
-      },
+      roles: createRoleState(item.roles),
       teamName: item.teamName || "",
     });
   };
@@ -116,7 +121,7 @@ export default function AdminTournamentStructurePage() {
     setSelectedParticipantId(null);
     setParticipantForm({
       memberId: "",
-      roles: { 팀장: false, 선수: true, 감독: false },
+      roles: createRoleState(),
       teamName: "",
     });
     showFeedback("신규 참가자 등록 모드로 전환되었습니다.");
@@ -129,10 +134,7 @@ export default function AdminTournamentStructurePage() {
       return;
     }
 
-    const selectedRoles: string[] = [];
-    if (participantForm.roles.팀장) selectedRoles.push("팀장");
-    if (participantForm.roles.선수) selectedRoles.push("선수");
-    if (participantForm.roles.감독) selectedRoles.push("감독");
+    const selectedRoles = participantRoleNames.filter((role) => participantForm.roles[role]);
 
     if (selectedRoles.length === 0) {
       showFeedback("최소 하나 이상의 역할(팀장, 선수, 감독)을 선택해주세요.");
@@ -265,7 +267,7 @@ export default function AdminTournamentStructurePage() {
                   setSelectedParticipantId(null);
                   setParticipantForm({
                     memberId: "",
-                    roles: { 팀장: false, 선수: true, 감독: false },
+                    roles: createRoleState(),
                     teamName: "",
                   });
                   showFeedback(`대상 대회가 변경되었습니다.`);
@@ -377,7 +379,7 @@ export default function AdminTournamentStructurePage() {
                   </div>
                   <div className="bg-amber-50/70 dark:bg-amber-950/30 p-2.5 rounded-xl border border-amber-200/60 dark:border-amber-900/40 text-center">
                     <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 block">
-                      팀장 (Captains)
+                      {participantRoleNameByCode.get("CAPTAIN") || "CAPTAIN"}
                     </span>
                     <span className="text-base font-extrabold text-amber-700 dark:text-amber-300">
                       {countStats.captains}명
@@ -385,7 +387,7 @@ export default function AdminTournamentStructurePage() {
                   </div>
                   <div className="bg-amber-500/10 dark:bg-amber-500/15 p-2.5 rounded-xl border border-amber-500/30 text-center">
                     <span className="text-[10px] font-semibold text-[#f99e1a] dark:text-amber-400 block">
-                      선수 (Players)
+                      {participantRoleNameByCode.get("PLAYER") || "PLAYER"}
                     </span>
                     <span className="text-base font-extrabold text-[#f99e1a] dark:text-amber-300">
                       {countStats.players}명
@@ -393,7 +395,7 @@ export default function AdminTournamentStructurePage() {
                   </div>
                   <div className="bg-purple-50/70 dark:bg-purple-950/30 p-2.5 rounded-xl border border-purple-200/60 dark:border-purple-900/40 text-center">
                     <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 block">
-                      감독 (Coaches)
+                      {participantRoleNameByCode.get("COACH") || "COACH"}
                     </span>
                     <span className="text-base font-extrabold text-purple-700 dark:text-purple-300">
                       {countStats.coaches}명
@@ -413,18 +415,18 @@ export default function AdminTournamentStructurePage() {
 
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
-                      {(["전체", "팀장", "선수", "감독"] as const).map((role) => (
+                      {[{ code: "ALL", name: "전체" }, ...participantRoles].map((role) => (
                         <button
-                          key={role}
+                          key={role.code}
                           type="button"
-                          onClick={() => setParticipantRoleFilter(role)}
+                          onClick={() => setParticipantRoleFilter(role.code === "ALL" ? "ALL" : role.name)}
                           className={`px-2.5 py-1 text-xs rounded-lg font-semibold transition-all ${
-                            participantRoleFilter === role
+                            participantRoleFilter === (role.code === "ALL" ? "ALL" : role.name)
                               ? "bg-[#f99e1a] text-slate-950 font-bold shadow-xs"
                               : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700"
                           }`}
                         >
-                          {role}
+                          {role.name}
                         </button>
                       ))}
                     </div>
@@ -526,18 +528,13 @@ export default function AdminTournamentStructurePage() {
                               <td className="px-3.5 py-3">
                                 <div className="flex flex-wrap gap-1">
                                   {p.roles.map((r) => {
-                                    const roleBadgeClass =
-                                      r === "팀장"
-                                        ? "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800"
-                                        : r === "선수"
-                                        ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
-                                        : "bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800";
+                                    const roleBadgeClass = "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700";
                                     return (
                                       <span
                                         key={r}
                                         className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${roleBadgeClass}`}
                                       >
-                                        {r}
+                                        {displayParticipantRole(r)}
                                       </span>
                                     );
                                   })}
@@ -667,18 +664,14 @@ export default function AdminTournamentStructurePage() {
                       대회 역할 부여 (복수 선택 가능) <span className="text-rose-500">*</span>
                     </label>
                     <div className="flex gap-2">
-                      {(["팀장", "선수", "감독"] as const).map((role) => {
-                        const isChecked = participantForm.roles[role];
+                      {participantRoles.map((role) => {
+                        const isChecked = participantForm.roles[role.name] || false;
                         const activeColorClass =
-                          role === "팀장"
-                            ? "bg-amber-600 text-white border-amber-600 shadow-sm"
-                            : role === "선수"
-                            ? "bg-[#f99e1a] text-slate-950 font-bold border-[#f99e1a] shadow-sm"
-                            : "bg-purple-600 text-white border-purple-600 shadow-sm";
+                          "bg-[#f99e1a] text-slate-950 font-bold border-[#f99e1a] shadow-sm";
 
                         return (
                           <button
-                            key={role}
+                            key={role.code}
                             type="button"
                             className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                               isChecked
@@ -688,12 +681,12 @@ export default function AdminTournamentStructurePage() {
                             onClick={() =>
                               setParticipantForm((p) => ({
                                 ...p,
-                                roles: { ...p.roles, [role]: !p.roles[role] },
+                                roles: { ...p.roles, [role.name]: !p.roles[role.name] },
                               }))
                             }
                           >
                             {isChecked ? "✓ " : ""}
-                            {role}
+                            {role.name}
                           </button>
                         );
                       })}

@@ -8,8 +8,8 @@
 "use client";
 
 import React, { useState, useMemo, useDeferredValue } from "react";
-import { useAdmin } from "@/lib/context/AdminContext";
-import { CodeGroupItem } from "@/lib/types/admin";
+import { useAdminCodes, useAdminFeedback } from "@/lib/context/AdminFeatureContexts";
+import type { CodeGroupItem } from "@/lib/types/codes";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminBadge from "@/components/admin/AdminBadge";
 import AdminGridHeaderActions from "@/components/admin/AdminGridHeaderActions";
@@ -17,23 +17,11 @@ import AdminSearchInput from "@/components/admin/AdminSearchInput";
 import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
 import { useInlineGridEdit } from "@/lib/hooks/useInlineGridEdit";
 import { useAdminMutation } from "@/lib/hooks/useAdminMutation";
+import { deleteCodeGroup, saveCodeGroup } from "@/lib/codes/codeClient";
+import { INITIAL_GROUP_ADD_FORM, INITIAL_GROUP_EDIT_FORM, type GroupAddForm, type GroupEditForm } from "./codeFormState";
+import { createGroupColumns } from "./codeTableColumns";
 
 // 코드그룹 폼 인터페이스
-interface GroupAddForm {
-  groupCode: string;
-  groupName: string;
-  remarks: string;
-  sortOrder: number;
-  isUse: boolean;
-}
-
-interface GroupEditForm {
-  groupName: string;
-  remarks: string;
-  sortOrder: number;
-  isUse: boolean;
-}
-
 interface CodeGroupSectionProps {
   selectedGroupCode: string;
   onSelectGroup: (groupCode: string) => void;
@@ -45,7 +33,8 @@ export default function CodeGroupSection({
   onSelectGroup,
   onGroupDeleted,
 }: CodeGroupSectionProps) {
-  const { codeGroups, refreshCodes, showFeedback, isCodesLoading } = useAdmin();
+  const { items: codeGroups, refresh: refreshCodes, isLoading: isCodesLoading } = useAdminCodes();
+  const { showFeedback } = useAdminFeedback();
 
   // 저장/삭제 API 요청 훅 (중복 클릭 방지 및 피드백 캡슐화)
   const { execute: mutateGroup, isPending: isSaving } = useAdminMutation();
@@ -56,19 +45,8 @@ export default function CodeGroupSection({
 
   // 인라인 그리드 편집 상태 훅
   const groupEdit = useInlineGridEdit<GroupAddForm, GroupEditForm>(
-    {
-      groupCode: "",
-      groupName: "",
-      remarks: "",
-      sortOrder: 1,
-      isUse: true,
-    },
-    {
-      groupName: "",
-      remarks: "",
-      sortOrder: 1,
-      isUse: true,
-    }
+    INITIAL_GROUP_ADD_FORM,
+    INITIAL_GROUP_EDIT_FORM,
   );
 
   // 필터링된 코드그룹 목록
@@ -92,7 +70,7 @@ export default function CodeGroupSection({
   }, [codeGroups, selectedGroupCode]);
 
   // 테이블 컬럼 정의
-  const groupColumns: AdminTableColumn<CodeGroupItem>[] = useMemo(
+  const legacyGroupColumns: AdminTableColumn<CodeGroupItem>[] = useMemo(
     () => [
       {
         key: "index",
@@ -157,6 +135,7 @@ export default function CodeGroupSection({
     ],
     []
   );
+  const groupColumns = useMemo(createGroupColumns, []);
 
   // 그룹 추가 시작
   const handleStartAddGroup = () => {
@@ -197,20 +176,7 @@ export default function CodeGroupSection({
     }
 
     await mutateGroup(
-      async () => {
-        const res = await fetch("/api/codes/groups", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            groupCode,
-            groupName,
-            remarks: groupEdit.addForm.remarks.trim(),
-            sortOrder: Number(groupEdit.addForm.sortOrder) || 1,
-            isUse: groupEdit.addForm.isUse,
-          }),
-        });
-        return res.json();
-      },
+      () => saveCodeGroup({ groupCode, groupName, remarks: groupEdit.addForm.remarks.trim(), sortOrder: Number(groupEdit.addForm.sortOrder) || 1, isUse: groupEdit.addForm.isUse }, true),
       {
         successMessage: `신규 그룹 [${groupCode}]이(가) DB에 등록되었습니다.`,
         errorMessage: "그룹 등록에 실패했습니다.",
@@ -247,20 +213,7 @@ export default function CodeGroupSection({
     const editingGroupCode = groupEdit.editingId;
 
     await mutateGroup(
-      async () => {
-        const res = await fetch("/api/codes/groups", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            groupCode: editingGroupCode,
-            groupName: name,
-            remarks: groupEdit.editForm.remarks.trim(),
-            sortOrder: Number(groupEdit.editForm.sortOrder) || 1,
-            isUse: groupEdit.editForm.isUse,
-          }),
-        });
-        return res.json();
-      },
+      () => saveCodeGroup({ groupCode: editingGroupCode, groupName: name, remarks: groupEdit.editForm.remarks.trim(), sortOrder: Number(groupEdit.editForm.sortOrder) || 1, isUse: groupEdit.editForm.isUse }, false),
       {
         successMessage: `그룹 [${editingGroupCode}] 정보가 수정되었습니다.`,
         errorMessage: "그룹 수정에 실패했습니다.",
@@ -284,13 +237,7 @@ export default function CodeGroupSection({
     }
 
     await mutateGroup(
-      async () => {
-        const res = await fetch(
-          `/api/codes/groups?groupCode=${encodeURIComponent(group.groupCode)}`,
-          { method: "DELETE" }
-        );
-        return res.json();
-      },
+      () => deleteCodeGroup(group.groupCode),
       {
         successMessage: `그룹 [${group.groupCode}]이(가) 삭제되었습니다.`,
         errorMessage: "그룹 삭제에 실패했습니다.",

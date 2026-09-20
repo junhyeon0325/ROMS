@@ -3,7 +3,8 @@
 // Purpose: 맵을 직접 등록하거나 수정하는 폼 UI를 제공한다.
 
 import { Dispatch, SetStateAction } from "react";
-import { CodeItem, MapFormData } from "@/lib/types/admin";
+import type { CodeItem } from "@/lib/types/codes";
+import type { MapFormData } from "@/lib/types/maps";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
 import AdminFormField from "@/components/admin/AdminFormField";

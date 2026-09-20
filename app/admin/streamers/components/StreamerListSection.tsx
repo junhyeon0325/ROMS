@@ -1,29 +1,33 @@
+// File: app/admin/streamers/components/StreamerListSection.tsx
+// Page/Component: StreamerListSection
+// Purpose: 스트리머 목록의 검색, 필터링, 선택 기능을 제공하는 관리 영역이다.
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { MemberItem } from "@/lib/types/admin";
-import { getChzzkChannelUrl } from "@/lib/constants/codes";
+import type { StreamerItem } from "@/lib/types/streamers";
+import { getChzzkChannelUrl } from "@/lib/streamers/chzzk";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFilterPanel from "@/components/admin/AdminFilterPanel";
-import { MemberAvatar } from "@/components/admin/AdminAvatar";
+import AdminAvatar from "@/components/admin/AdminAvatar";
 import AdminBadge from "@/components/admin/AdminBadge";
 import AdminFilterTabs from "@/components/admin/AdminFilterTabs";
 import AdminSearchInput from "@/components/admin/AdminSearchInput";
 import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
 
-interface MemberListSectionProps {
-  members: MemberItem[];
-  selectedMemberId: string | null;
-  onSelectMember: (member: MemberItem) => void;
+interface StreamerListSectionProps {
+  streamers: StreamerItem[];
+  selectedStreamerId: string | null;
+  onSelectStreamer: (streamer: StreamerItem) => void;
   isLoading: boolean;
 }
 
-export default function MemberListSection({
-  members,
-  selectedMemberId,
-  onSelectMember,
+// 스트리머 데이터를 현재 검색·필터 조건에 맞춰 목록 테이블로 표시한다.
+export default function StreamerListSection({
+  streamers,
+  selectedStreamerId,
+  onSelectStreamer,
   isLoading,
-}: MemberListSectionProps) {
+}: StreamerListSectionProps) {
   // 1. 구분 필터 탭 옵션 (치지직 연동 여부 기반)
   const filterTabs = useMemo(
     () => [
@@ -47,12 +51,12 @@ export default function MemberListSection({
   // 검색 & 구분 필터 상태
   const [nameSearch, setNameSearch] = useState("");
   const [memoSearch, setMemoSearch] = useState("");
-  const [memberTypeFilter, setMemberTypeFilter] = useState<string>("ALL");
+  const [streamerTypeFilter, setStreamerTypeFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
   // 인원 필터링 (이름/채널, 메모, 치지직 연동 구분, 사용 상태별)
-  const filteredMemberList = useMemo(() => {
-    return members.filter((m) => {
+  const filteredStreamerList = useMemo(() => {
+    return streamers.filter((m) => {
       const matchName =
         !nameSearch.trim() ||
         m.name.toLowerCase().includes(nameSearch.toLowerCase()) ||
@@ -63,9 +67,9 @@ export default function MemberListSection({
         (m.memo && m.memo.toLowerCase().includes(memoSearch.toLowerCase()));
 
       const matchType =
-        memberTypeFilter === "ALL" ||
-        (memberTypeFilter === "CHZZK" && Boolean(m.channelId)) ||
-        (memberTypeFilter === "STANDARD" && !m.channelId);
+        streamerTypeFilter === "ALL" ||
+        (streamerTypeFilter === "CHZZK" && Boolean(m.channelId)) ||
+        (streamerTypeFilter === "STANDARD" && !m.channelId);
 
       const matchStatus =
         statusFilter === "ALL" ||
@@ -74,24 +78,24 @@ export default function MemberListSection({
 
       return matchName && matchMemo && matchType && matchStatus;
     });
-  }, [members, nameSearch, memoSearch, memberTypeFilter, statusFilter]);
+  }, [streamers, nameSearch, memoSearch, streamerTypeFilter, statusFilter]);
 
   // 검색 초기화 가능 여부
   const isFilterActive =
     Boolean(nameSearch) ||
     Boolean(memoSearch) ||
-    memberTypeFilter !== "ALL" ||
+    streamerTypeFilter !== "ALL" ||
     statusFilter !== "ALL";
 
   const handleResetFilters = () => {
     setNameSearch("");
     setMemoSearch("");
-    setMemberTypeFilter("ALL");
+    setStreamerTypeFilter("ALL");
     setStatusFilter("ALL");
   };
 
   // 스트리머 목록 테이블 컬럼 정의 (공통 AdminTable 적용)
-  const streamerColumns: AdminTableColumn<MemberItem>[] = useMemo(
+  const streamerColumns: AdminTableColumn<StreamerItem>[] = useMemo(
     () => [
       {
         key: "name",
@@ -101,7 +105,7 @@ export default function MemberListSection({
         render: (m) => (
           <div className="flex items-center gap-2.5 whitespace-nowrap">
             <div className="shrink-0">
-              <MemberAvatar name={m.name} profileImg={m.profileImg} />
+              <AdminAvatar name={m.name} profileImg={m.profileImg} />
             </div>
             <div className="min-w-0">
               <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
@@ -162,7 +166,7 @@ export default function MemberListSection({
     <div className="xl:col-span-7 h-full min-h-0 flex flex-col">
       <AdminCard
         title="등록된 스트리머 조회"
-        countBadge={`총 ${filteredMemberList.length}명`}
+        countBadge={`총 ${filteredStreamerList.length}명`}
         className="h-full"
         actions={
           <button
@@ -223,8 +227,8 @@ export default function MemberListSection({
             <AdminFilterTabs
               label="구분"
               tabs={filterTabs}
-              activeTab={memberTypeFilter}
-              onChange={setMemberTypeFilter}
+              activeTab={streamerTypeFilter}
+              onChange={setStreamerTypeFilter}
               containerClassName="lg:col-span-3"
             />
 
@@ -239,25 +243,25 @@ export default function MemberListSection({
         </AdminFilterPanel>
 
         {/* 스트리머 목록 테이블 (공통 AdminTable 컴포넌트) */}
-        <AdminTable<MemberItem>
+        <AdminTable<StreamerItem>
           columns={streamerColumns}
-          data={filteredMemberList}
+          data={filteredStreamerList}
           keyField="id"
-          selectedId={selectedMemberId}
-          onRowClick={onSelectMember}
+          selectedId={selectedStreamerId}
+          onRowClick={onSelectStreamer}
           isLoading={isLoading}
           renderEmpty={() => (
             <div className="flex flex-col items-center justify-center gap-2">
               <span className="text-3xl">
-                {members.length === 0 ? "👤" : "🔍"}
+                {streamers.length === 0 ? "👤" : "🔍"}
               </span>
               <p className="font-semibold text-xs text-slate-700 dark:text-slate-300">
-                {members.length === 0
+                {streamers.length === 0
                   ? "등록된 스트리머가 없습니다."
                   : "검색 조건에 일치하는 스트리머가 없습니다."}
               </p>
               <p className="text-[11px] text-slate-400">
-                {members.length === 0
+                {streamers.length === 0
                   ? "우측 등록 폼에서 새로운 스트리머를 등록해주세요."
                   : "이름 또는 메모 검색 조건, 구분/상태 필터를 변경해보세요."}
               </p>

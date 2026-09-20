@@ -10,12 +10,12 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ADMIN_NAV_ITEMS } from "@/lib/constants/navigation";
-import { useAdmin } from "@/lib/context/AdminContext";
+import { useAdminUi } from "@/lib/context/AdminFeatureContexts";
 
 export default function AdminSidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { menuSearchQuery, setMenuSearchQuery, isDarkMode, toggleDarkMode } = useAdmin();
+  const { menuSearchQuery, setMenuSearchQuery, isDarkMode, toggleDarkMode } = useAdminUi();
 
   // 메뉴 활성화(선택) 여부 판정
   const isItemActive = (href?: string) => {

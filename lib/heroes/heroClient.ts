@@ -1,7 +1,17 @@
 // File: lib/heroes/heroClient.ts
 // Page/Component: heroClient
 // Purpose: 영웅 관리 화면의 HTTP 요청 형식과 응답 타입을 일관되게 유지한다.
-import type { ExternalHero, HeroItem } from "@/lib/types/admin";
+import type { ExternalHero, HeroItem } from "@/lib/types/heroes";
+
+// 영웅 목록 API를 호출한다.
+export async function fetchHeroes(): Promise<{ success: boolean; data?: HeroItem[]; message?: string }> {
+  return (await fetch("/api/heroes")).json();
+}
+
+// OverFast 영웅 목록 API를 호출한다.
+export async function fetchOverFastHeroes(): Promise<{ success: boolean; data?: ExternalHero[]; message?: string }> {
+  return (await fetch("/api/overwatch/heroes")).json();
+}
 
 export type HeroFormData = Pick<
   HeroItem,

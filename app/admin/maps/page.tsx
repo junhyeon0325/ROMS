@@ -15,7 +15,8 @@ import {
   getOverFastModeCodes,
   MAP_MODE_GROUP_CODE,
 } from "@/lib/constants/maps";
-import { CodeItem, ExternalMap, MapFormData, MapItem } from "@/lib/types/admin";
+import type { CodeItem } from "@/lib/types/codes";
+import type { ExternalMap, MapFormData, MapItem } from "@/lib/types/maps";
 import MapFormSection from "./components/MapFormSection";
 import MapListSection from "./components/MapListSection";
 import OverFastMapModal from "./components/OverFastMapModal";

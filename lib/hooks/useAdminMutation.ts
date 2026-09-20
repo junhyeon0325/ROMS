@@ -7,7 +7,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useAdmin } from "@/lib/context/AdminContext";
+import { useAdminFeedback } from "@/lib/context/AdminFeatureContexts";
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -31,7 +31,7 @@ export interface MutationOptions<T = any> {
 }
 
 export function useAdminMutation() {
-  const { showFeedback } = useAdmin();
+  const { showFeedback } = useAdminFeedback();
   const [isPending, setIsPending] = useState(false);
 
   /**

@@ -1,74 +1,53 @@
-// lib/hooks/useCommonCodes.ts
-/**
- * [공통코드 조회 커스텀 훅]
- * - 지정된 공통코드 그룹(groupCode)의 세부 코드를 API를 통해 동적으로 조회합니다.
- * - 기본적으로 활성화(useYn === 'Y')된 코드를 정렬(sort 오름차순)하여 반환합니다.
- */
+// File: lib/hooks/useCommonCodes.ts
+// Page/Component: useCommonCodes
+// Purpose: 요청한 한 개 공통코드 그룹을 화면 간 캐시와 진행 중 요청 공유로 조회한다.
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { CodeItem } from "@/lib/types/admin";
+import { useEffect, useState } from "react";
+import type { CodeItem } from "@/lib/types/codes";
 
-interface UseCommonCodesOptions {
-  /** 활성화(useYn === 'Y') 코드만 필터링할지 여부 (기본값: true) */
-  onlyActive?: boolean;
-  /** 자동 조회 여부 (기본값: true) */
-  autoFetch?: boolean;
+const codeCache = new Map<string, CodeItem[]>();
+const pendingRequests = new Map<string, Promise<CodeItem[]>>();
+
+// 필요한 그룹만 조회하고 이미 시작했거나 완료된 조회는 재사용한다.
+async function fetchCommonCodes(groupCode: string) {
+  const cached = codeCache.get(groupCode);
+  if (cached) return cached;
+  const pending = pendingRequests.get(groupCode);
+  if (pending) return pending;
+
+  const request = fetch(`/api/codes?groupCode=${encodeURIComponent(groupCode)}`)
+    .then(async (response) => {
+      const json = await response.json().catch(() => null);
+      if (!response.ok || !json?.success || !Array.isArray(json.data)) {
+        throw new Error(json?.message || `${groupCode} 공통코드 조회에 실패했습니다.`);
+      }
+      const codes = json.data.filter((code: CodeItem) => code.isUse);
+      codeCache.set(groupCode, codes);
+      return codes;
+    })
+    .finally(() => pendingRequests.delete(groupCode));
+  pendingRequests.set(groupCode, request);
+  return request;
 }
 
-export function useCommonCodes(
-  groupCode: string,
-  options: UseCommonCodesOptions = {}
-) {
-  const { onlyActive = true, autoFetch = true } = options;
-
-  const [codes, setCodes] = useState<CodeItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(Boolean(groupCode && autoFetch));
+// 활성 공통코드만 반환하며 같은 그룹은 페이지 전환 뒤에도 다시 요청하지 않는다.
+export function useCommonCodes(groupCode: string) {
+  const [codes, setCodes] = useState<CodeItem[]>(() => codeCache.get(groupCode) || []);
+  const [isLoading, setIsLoading] = useState(() => !codeCache.has(groupCode));
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCodes = useCallback(async () => {
-    if (!groupCode) {
-      setCodes([]);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch(`/api/codes?group=${encodeURIComponent(groupCode)}`);
-      const json = await res.json();
-
-      if (json.success && Array.isArray(json.data)) {
-        let items: CodeItem[] = json.data;
-        if (onlyActive) {
-          items = items.filter((c) => c.isUse);
-        }
-        items.sort((a, b) => a.sortOrder - b.sortOrder);
-        setCodes(items);
-      } else {
-        setCodes([]);
-        setError(json.message || "공통코드 목록 조회에 실패했습니다.");
-      }
-    } catch (err: any) {
-      console.error(`공통코드 [${groupCode}] 조회 중 오류:`, err);
-      setError("공통코드 조회 중 통신 오류가 발생했습니다.");
-    } finally {
-      setLoading(false);
-    }
-  }, [groupCode, onlyActive]);
-
   useEffect(() => {
-    if (autoFetch) {
-      fetchCodes();
-    }
-  }, [fetchCodes, autoFetch]);
+    let isMounted = true;
+    setCodes(codeCache.get(groupCode) || []);
+    setIsLoading(!codeCache.has(groupCode));
+    setError(null);
+    void fetchCommonCodes(groupCode).then(
+      (items) => isMounted && setCodes(items),
+      (cause: unknown) => isMounted && setError(cause instanceof Error ? cause.message : "공통코드 조회에 실패했습니다."),
+    ).finally(() => isMounted && setIsLoading(false));
+    return () => { isMounted = false; };
+  }, [groupCode]);
 
-  return {
-    codes,
-    loading,
-    error,
-    refetch: fetchCodes,
-  };
+  return { codes, isLoading, error };
 }

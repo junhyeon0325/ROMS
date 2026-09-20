@@ -28,12 +28,13 @@ type DataState<T> = {
   setItems: Dispatch<SetStateAction<T[]>>;
   refresh: () => Promise<void>;
   isLoading: boolean;
+  error: Error | null;
 };
 
 // 관리자 API 목록을 조회하고 각 도메인 상태로 보관한다.
 function createDataContext<T>(
   name: string,
-  loadItems: () => Promise<{ success: boolean; data?: T[] }>,
+  loadItems: () => Promise<{ success: boolean; data?: T[]; message?: string }>,
   shouldLoad: (pathname: string) => boolean,
 ) {
   const Context = createContext<DataState<T> | undefined>(undefined);
@@ -41,13 +42,20 @@ function createDataContext<T>(
     const pathname = usePathname();
     const [items, setItems] = useState<T[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
     const refresh = useCallback(async () => {
       try {
+        setError(null);
         setIsLoading(true);
         const json = await loadItems();
-        if (json.success && Array.isArray(json.data)) setItems(json.data);
-      } catch (error) {
-        console.error(`Failed to load ${name}:`, error);
+        if (json.success && Array.isArray(json.data)) {
+          setItems(json.data);
+        } else {
+          setError(new Error(json.message || `${name}을(를) 불러오지 못했습니다.`));
+        }
+      } catch (cause) {
+        console.error(`Failed to load ${name}:`, cause);
+        setError(cause instanceof Error ? cause : new Error(`${name}을(를) 불러오지 못했습니다.`));
       } finally {
         setIsLoading(false);
       }
@@ -57,7 +65,7 @@ function createDataContext<T>(
       if (shouldLoad(pathname)) void refresh();
     }, [pathname, refresh]);
     return (
-      <Context.Provider value={{ items, setItems, refresh, isLoading }}>
+      <Context.Provider value={{ items, setItems, refresh, isLoading, error }}>
         {children}
       </Context.Provider>
     );

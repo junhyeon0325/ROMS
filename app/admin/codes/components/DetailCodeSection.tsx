@@ -11,22 +11,18 @@ import React, {
   useState,
   useMemo,
   useRef,
-  useCallback,
   useEffect,
   useDeferredValue,
 } from "react";
-import { useAdminCodes, useAdminFeedback } from "@/lib/context/AdminFeatureContexts";
+import { useAdminFeedback } from "@/lib/context/AdminFeatureContexts";
 import type { CodeItem } from "@/lib/types/codes";
 import AdminCard from "@/components/admin/AdminCard";
-import AdminBadge from "@/components/admin/AdminBadge";
 import AdminGridHeaderActions from "@/components/admin/AdminGridHeaderActions";
 import AdminSearchInput from "@/components/admin/AdminSearchInput";
-import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
 import { useInlineGridEdit } from "@/lib/hooks/useInlineGridEdit";
-import { useAdminMutation } from "@/lib/hooks/useAdminMutation";
-import { deleteCode, fetchCodes, saveCode } from "@/lib/codes/codeClient";
 import { INITIAL_CODE_ADD_FORM, INITIAL_CODE_EDIT_FORM, type CodeAddForm, type CodeEditForm } from "./codeFormState";
-import { createCodeColumns } from "./codeTableColumns";
+import { useDetailCodeManagement } from "../hooks/useDetailCodeManagement";
+import DetailCodeTable from "./DetailCodeTable";
 
 // 세부코드 폼 인터페이스
 interface DetailCodeSectionProps {
@@ -40,21 +36,12 @@ export default function DetailCodeSection({
   selectedGroupName,
   deletedGroupCode,
 }: DetailCodeSectionProps) {
-  const { items: codeGroups } = useAdminCodes();
   const { showFeedback } = useAdminFeedback();
-
-  // 1. 인메모리 캐시: groupCode -> CodeItem[]
-  const cacheRef = useRef<Map<string, CodeItem[]>>(new Map());
-
-  // 2. 상태
-  const [detailCodes, setDetailCodes] = useState<CodeItem[]>([]);
-  const [isDetailLoading, setIsDetailLoading] = useState<boolean>(false);
+  const { detailCodes, error: detailCodesError, isDetailLoading, isSaving, removeDetailCode, saveDetailCode } = useDetailCodeManagement(selectedGroupCode, deletedGroupCode);
+  const notifiedDetailErrorRef = useRef<Error | null>(null);
   const [selectedDetailCode, setSelectedDetailCode] = useState<string | null>(
     null
   );
-
-  // 세부 코드 저장/수정/삭제 요청 훅 (중복 클릭 방지 및 피드백 캡슐화)
-  const { execute: mutateDetail, isPending: isSaving } = useAdminMutation();
 
   // 3. 검색 상태 및 지연 평가(Deferred Value)
   const [codeSearch, setCodeSearch] = useState("");
@@ -66,71 +53,23 @@ export default function DetailCodeSection({
     INITIAL_CODE_EDIT_FORM,
   );
 
-  // 세부 코드 비동기 조회 (인메모리 캐시 우선 참조)
-  const fetchDetailCodes = useCallback(
-    async (groupCode: string, forceRefresh = false) => {
-      if (!groupCode) {
-        setDetailCodes([]);
-        setIsDetailLoading(false);
-        return;
-      }
-
-      // 캐시가 있고 강제 갱신이 아니면 0ms 즉시 반환
-      if (!forceRefresh && cacheRef.current.has(groupCode)) {
-        setDetailCodes(cacheRef.current.get(groupCode)!);
-        setIsDetailLoading(false);
-        return;
-      }
-
-      try {
-        setIsDetailLoading(true);
-        const json = await fetchCodes(groupCode);
-
-        if (json.success && Array.isArray(json.data)) {
-          cacheRef.current.set(groupCode, json.data);
-          setDetailCodes(json.data);
-        } else {
-          setDetailCodes([]);
-        }
-      } catch (err) {
-        console.error(`세부 코드 [${groupCode}] 조회 실패:`, err);
-        setDetailCodes([]);
-      } finally {
-        setIsDetailLoading(false);
-      }
-    },
-    []
-  );
-
-  // 상위 선택 그룹 변경 시 데이터 로드 및 선택 상태 초기화
+  // 상위 선택 그룹 변경 시 UI 선택·편집·검색 상태를 초기화한다.
   useEffect(() => {
     setSelectedDetailCode(null);
     codeEdit.reset();
     setCodeSearch("");
+  }, [selectedGroupCode]);
 
-    if (selectedGroupCode) {
-      fetchDetailCodes(selectedGroupCode);
-    } else {
-      setDetailCodes([]);
-    }
-  }, [selectedGroupCode, fetchDetailCodes]);
-
-  // 상위 코드 그룹 목록 갱신 또는 그룹 삭제 시, 인메모리 캐시 자동 정리
+  // 상세 코드 조회 오류를 동일 Error 객체당 한 번만 기존 알림으로 전달한다.
   useEffect(() => {
-    if (deletedGroupCode && cacheRef.current.has(deletedGroupCode)) {
-      cacheRef.current.delete(deletedGroupCode);
+    if (!detailCodesError) {
+      notifiedDetailErrorRef.current = null;
+      return;
     }
-  }, [deletedGroupCode]);
-
-  useEffect(() => {
-    if (!codeGroups || codeGroups.length === 0) return;
-    const currentGroupCodes = new Set(codeGroups.map((g) => g.groupCode));
-    for (const cachedGroupCode of Array.from(cacheRef.current.keys())) {
-      if (!currentGroupCodes.has(cachedGroupCode)) {
-        cacheRef.current.delete(cachedGroupCode);
-      }
-    }
-  }, [codeGroups]);
+    if (notifiedDetailErrorRef.current === detailCodesError) return;
+    notifiedDetailErrorRef.current = detailCodesError;
+    showFeedback(detailCodesError.message || "세부 코드를 불러오지 못했습니다.");
+  }, [detailCodesError, showFeedback]);
 
   // 필터링된 세부 코드 목록
   const filteredCodes = useMemo(() => {
@@ -151,74 +90,6 @@ export default function DetailCodeSection({
   const currentSelectedCode = useMemo(() => {
     return detailCodes.find((c) => c.code === selectedDetailCode) || null;
   }, [detailCodes, selectedDetailCode]);
-
-  // 세부 코드 테이블 컬럼 정의
-  const legacyCodeColumns: AdminTableColumn<CodeItem>[] = useMemo(
-    () => [
-      {
-        key: "index",
-        header: "순번",
-        width: "w-14 min-w-[56px]",
-        align: "center",
-        render: (_row, idx) => (
-          <span className="text-slate-400 dark:text-slate-500 font-mono whitespace-nowrap">
-            {idx + 1}
-          </span>
-        ),
-      },
-      {
-        key: "code",
-        header: "코드 ID",
-        width: "w-36",
-        render: (row) => (
-          <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-            {row.code}
-          </span>
-        ),
-      },
-      {
-        key: "name",
-        header: "코드명",
-        width: "w-48",
-        render: (row) => (
-          <span className="font-semibold text-slate-900 dark:text-slate-100">
-            {row.name}
-          </span>
-        ),
-      },
-      {
-        key: "sortOrder",
-        header: "순서",
-        width: "w-20 min-w-[70px]",
-        align: "center",
-        render: (row) => (
-          <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">
-            {row.sortOrder}
-          </span>
-        ),
-      },
-      {
-        key: "isUse",
-        header: "사용여부",
-        width: "w-24",
-        render: (row) => <AdminBadge status={row.isUse} />,
-      },
-      {
-        key: "remarks",
-        header: "코드 설명",
-        render: (row) => (
-          <span
-            className="text-slate-500 dark:text-slate-400 truncate max-w-xs block"
-            title={row.remarks}
-          >
-            {row.remarks || "—"}
-          </span>
-        ),
-      },
-    ],
-    []
-  );
-  const codeColumns = useMemo(createCodeColumns, []);
 
   // 세부 코드 추가 시작
   const handleStartAddCode = () => {
@@ -264,17 +135,13 @@ export default function DetailCodeSection({
       return;
     }
 
-    await mutateDetail(
-      () => saveCode({ groupCode: selectedGroupCode, code, name, sortOrder: Number(codeEdit.addForm.sortOrder) || 1, isUse: codeEdit.addForm.isUse, remarks: codeEdit.addForm.remarks.trim() }, true),
-      {
-        successMessage: `신규 코드 [${code}]이(가) DB에 등록되었습니다.`,
-        errorMessage: "코드 등록에 실패했습니다.",
-        onSuccess: async () => {
-          await fetchDetailCodes(selectedGroupCode, true);
-          setSelectedDetailCode(code);
-          codeEdit.cancelAdd();
-        },
-      }
+    await saveDetailCode(
+      { groupCode: selectedGroupCode, code, name, sortOrder: Number(codeEdit.addForm.sortOrder) || 1, isUse: codeEdit.addForm.isUse, remarks: codeEdit.addForm.remarks.trim() },
+      true,
+      () => {
+        setSelectedDetailCode(code);
+        codeEdit.cancelAdd();
+      },
     );
   };
 
@@ -300,16 +167,10 @@ export default function DetailCodeSection({
 
     const editingCode = codeEdit.editingId;
 
-    await mutateDetail(
-      () => saveCode({ groupCode: selectedGroupCode, code: editingCode, name, sortOrder: Number(codeEdit.editForm.sortOrder) || 1, isUse: codeEdit.editForm.isUse, remarks: codeEdit.editForm.remarks.trim() }, false),
-      {
-        successMessage: `코드 [${editingCode}] 정보가 수정되었습니다.`,
-        errorMessage: "코드 수정에 실패했습니다.",
-        onSuccess: async () => {
-          await fetchDetailCodes(selectedGroupCode, true);
-          codeEdit.cancelEdit();
-        },
-      }
+    await saveDetailCode(
+      { groupCode: selectedGroupCode, code: editingCode, name, sortOrder: Number(codeEdit.editForm.sortOrder) || 1, isUse: codeEdit.editForm.isUse, remarks: codeEdit.editForm.remarks.trim() },
+      false,
+      () => codeEdit.cancelEdit(),
     );
   };
 
@@ -325,20 +186,12 @@ export default function DetailCodeSection({
 
     const groupCode = codeItem.groupCode || selectedGroupCode;
 
-    await mutateDetail(
-      () => deleteCode(groupCode, codeItem.code),
-      {
-        successMessage: `코드 [${codeItem.code}]이(가) 삭제되었습니다.`,
-        errorMessage: "코드 삭제에 실패했습니다.",
-        onSuccess: async () => {
-          await fetchDetailCodes(selectedGroupCode, true);
-          if (selectedDetailCode === codeItem.code) {
-            setSelectedDetailCode(null);
-          }
-          codeEdit.reset();
-        },
+    await removeDetailCode(groupCode, codeItem.code, () => {
+      if (selectedDetailCode === codeItem.code) {
+        setSelectedDetailCode(null);
       }
-    );
+      codeEdit.reset();
+    });
   };
 
   return (
@@ -401,228 +254,15 @@ export default function DetailCodeSection({
         </div>
 
         {/* 세부코드 테이블 그리드 */}
-        <AdminTable<CodeItem>
-          columns={codeColumns}
+        <DetailCodeTable
           data={filteredCodes}
-          keyField="code"
-          selectedId={selectedDetailCode}
-          onRowClick={(row) => setSelectedDetailCode(row.code)}
+          selectedGroupCode={selectedGroupCode}
+          selectedCode={selectedDetailCode}
           isLoading={isDetailLoading}
-          emptyIcon={!selectedGroupCode ? "👆" : "⚙️"}
-          emptyTitle={
-            !selectedGroupCode
-              ? "상단 그리드에서 코드 그룹을 먼저 선택해주세요."
-              : "등록된 세부 코드가 없습니다."
-          }
-          emptyDescription={
-            !selectedGroupCode
-              ? undefined
-              : "우측 상단의 '+ 코드 등록' 버튼을 눌러 새로운 코드를 등록해주세요."
-          }
-          topRow={
-            codeEdit.isAdding ? (
-              <tr className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150">
-                <td className="px-2 py-2 text-center whitespace-nowrap">
-                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
-                    NEW
-                  </span>
-                </td>
-                <td className="px-2 py-1.5">
-                  <input
-                    type="text"
-                    autoFocus
-                    placeholder="예: ROLE_DPS"
-                    className="w-full px-2 py-1 text-xs font-mono font-bold uppercase rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-[#f99e1a] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f99e1a]/30 shadow-2xs"
-                    value={codeEdit.addForm.code}
-                    onChange={(e) =>
-                      codeEdit.updateAddForm({
-                        code: e.target.value
-                          .toUpperCase()
-                          .replace(/[^A-Z0-9_]/g, ""),
-                      })
-                    }
-                    onKeyDown={(e) => {
-                      if (e.nativeEvent.isComposing) return;
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleSaveInlineCode();
-                      }
-                      if (e.key === "Escape") codeEdit.cancelAdd();
-                    }}
-                  />
-                </td>
-                <td className="px-2 py-1.5">
-                  <input
-                    type="text"
-                    placeholder="예: 딜러 (공격군)"
-                    className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a] focus:ring-1 focus:ring-[#f99e1a]"
-                    value={codeEdit.addForm.name}
-                    onChange={(e) =>
-                      codeEdit.updateAddForm({ name: e.target.value })
-                    }
-                    onKeyDown={(e) => {
-                      if (e.nativeEvent.isComposing) return;
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleSaveInlineCode();
-                      }
-                      if (e.key === "Escape") codeEdit.cancelAdd();
-                    }}
-                  />
-                </td>
-                <td className="px-2 py-1.5 text-center">
-                  <input
-                    type="number"
-                    min="0"
-                    className="w-16 px-1.5 py-1 text-xs text-center font-mono font-bold rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#f99e1a]"
-                    value={codeEdit.addForm.sortOrder}
-                    onChange={(e) =>
-                      codeEdit.updateAddForm({
-                        sortOrder: Number(e.target.value) || 0,
-                      })
-                    }
-                    onKeyDown={(e) => {
-                      if (e.nativeEvent.isComposing) return;
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleSaveInlineCode();
-                      }
-                      if (e.key === "Escape") codeEdit.cancelAdd();
-                    }}
-                  />
-                </td>
-                <td className="px-2 py-1.5 text-center">
-                  <select
-                    className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
-                    value={codeEdit.addForm.isUse ? "Y" : "N"}
-                    onChange={(e) =>
-                      codeEdit.updateAddForm({ isUse: e.target.value === "Y" })
-                    }
-                  >
-                    <option value="Y">사용</option>
-                    <option value="N">미사용</option>
-                  </select>
-                </td>
-                <td className="px-2 py-1.5">
-                  <input
-                    type="text"
-                    placeholder="코드 설명 및 비고 입력..."
-                    className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                    value={codeEdit.addForm.remarks}
-                    onChange={(e) =>
-                      codeEdit.updateAddForm({ remarks: e.target.value })
-                    }
-                    onKeyDown={(e) => {
-                      if (e.nativeEvent.isComposing) return;
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleSaveInlineCode();
-                      }
-                      if (e.key === "Escape") codeEdit.cancelAdd();
-                    }}
-                  />
-                </td>
-              </tr>
-            ) : null
-          }
-          renderRow={(c) => {
-            if (!codeEdit.isEditing(c.code)) return null;
-            return (
-              <tr
-                key={c.code}
-                className="bg-amber-500/10 dark:bg-amber-500/15 animate-in fade-in duration-150"
-              >
-                <td className="px-2 py-2 text-center whitespace-nowrap">
-                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-[#f99e1a] text-slate-950 shadow-2xs whitespace-nowrap leading-none tracking-tight">
-                    수정
-                  </span>
-                </td>
-                <td className="px-3.5 py-2 font-mono font-bold text-slate-400 dark:text-slate-500">
-                  <div
-                    className="flex items-center gap-1.5"
-                    title="식별자 불변 원칙: 세부 코드 ID는 수정할 수 없습니다."
-                  >
-                    <span>{c.code}</span>
-                    <span className="text-[10px] px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-sans font-normal">
-                      고정
-                    </span>
-                  </div>
-                </td>
-                <td className="px-2 py-1.5">
-                  <input
-                    type="text"
-                    autoFocus
-                    placeholder="코드명"
-                    className="w-full px-2 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#f99e1a]"
-                    value={codeEdit.editForm.name}
-                    onChange={(e) =>
-                      codeEdit.updateEditForm({ name: e.target.value })
-                    }
-                    onKeyDown={(e) => {
-                      if (e.nativeEvent.isComposing) return;
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleSaveInlineEditCode();
-                      }
-                      if (e.key === "Escape") codeEdit.cancelEdit();
-                    }}
-                  />
-                </td>
-                <td className="px-2 py-1.5 text-center">
-                  <input
-                    type="number"
-                    min="0"
-                    className="w-16 px-1.5 py-1 text-xs text-center font-mono font-bold rounded bg-white dark:bg-slate-900 border border-[#f99e1a] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-[#f99e1a]"
-                    value={codeEdit.editForm.sortOrder}
-                    onChange={(e) =>
-                      codeEdit.updateEditForm({
-                        sortOrder: Number(e.target.value) || 0,
-                      })
-                    }
-                    onKeyDown={(e) => {
-                      if (e.nativeEvent.isComposing) return;
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleSaveInlineEditCode();
-                      }
-                      if (e.key === "Escape") codeEdit.cancelEdit();
-                    }}
-                  />
-                </td>
-                <td className="px-2 py-1.5 text-center">
-                  <select
-                    className="px-1.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#f99e1a]"
-                    value={codeEdit.editForm.isUse ? "Y" : "N"}
-                    onChange={(e) =>
-                      codeEdit.updateEditForm({ isUse: e.target.value === "Y" })
-                    }
-                  >
-                    <option value="Y">사용</option>
-                    <option value="N">미사용</option>
-                  </select>
-                </td>
-                <td className="px-2 py-1.5">
-                  <input
-                    type="text"
-                    placeholder="코드 설명 / 비고..."
-                    className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#f99e1a]"
-                    value={codeEdit.editForm.remarks}
-                    onChange={(e) =>
-                      codeEdit.updateEditForm({ remarks: e.target.value })
-                    }
-                    onKeyDown={(e) => {
-                      if (e.nativeEvent.isComposing) return;
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleSaveInlineEditCode();
-                      }
-                      if (e.key === "Escape") codeEdit.cancelEdit();
-                    }}
-                  />
-                </td>
-              </tr>
-            );
-          }}
+          codeEdit={codeEdit}
+          onSelectCode={setSelectedDetailCode}
+          onSaveAdd={handleSaveInlineCode}
+          onSaveEdit={handleSaveInlineEditCode}
         />
       </AdminCard>
     </div>

@@ -56,4 +56,6 @@ Thumbs.db
 
 # Generated project deliverables and development journals are kept locally.
 산출물/
+# 개발일지는 로컬 기록으로만 보관하며 Git 저장소에 추가하지 않는다.
+산출물/개발일지/
 

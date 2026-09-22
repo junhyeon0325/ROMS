@@ -9,19 +9,24 @@
 import React, { useMemo } from "react";
 import Link from "next/link";
 import { useAdmin } from "@/lib/context/AdminContext";
+import { useAdminCodes, useAdminFeedback, useAdminMaps, useAdminStreamers } from "@/lib/context/AdminFeatureContexts";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminKpiCard from "@/components/admin/AdminKpiCard";
 
 export default function AdminDashboardPage() {
-  const { members, tournaments, maps, codeGroups, showFeedback } = useAdmin();
+  const { tournaments } = useAdmin();
+  const { items: streamers } = useAdminStreamers();
+  const { items: maps } = useAdminMaps();
+  const { items: codeGroups } = useAdminCodes();
+  const { showFeedback } = useAdminFeedback();
 
   // 스트리머 KPI 메타 텍스트 (치지직 연동 인원 vs 일반 등록 인원)
   const streamerMetaText = useMemo(() => {
-    if (members.length === 0) return "—";
-    const chzzkCount = members.filter((m) => Boolean(m.channelId)).length;
-    const standardCount = members.length - chzzkCount;
+    if (streamers.length === 0) return "—";
+    const chzzkCount = streamers.filter((streamer) => Boolean(streamer.channelId)).length;
+    const standardCount = streamers.length - chzzkCount;
     return `치지직 연동 ${chzzkCount} · 일반 등록 ${standardCount}`;
-  }, [members]);
+  }, [streamers]);
 
   return (
     <section className="space-y-6">
@@ -70,7 +75,7 @@ export default function AdminDashboardPage() {
             새로고침
           </button>
           <Link
-            href="/admin/members"
+            href="/admin/streamers"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#f99e1a] hover:bg-[#ea8c08] border border-[#f99e1a]/40 text-slate-950 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
           >
             + 스트리머 관리
@@ -99,9 +104,9 @@ export default function AdminDashboardPage() {
       {/* 2) 실시간 KPI 핵심 통계 지표 그리드 (6종) - AdminKpiCard 컴포넌트로 모듈화 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3.5">
         <AdminKpiCard
-          href="/admin/members"
+          href="/admin/streamers"
           label="등록 스트리머"
-          value={members.length}
+          value={streamers.length}
           unit="명"
           color="blue"
           icon={
@@ -215,24 +220,24 @@ export default function AdminDashboardPage() {
             }
             actions={
               <Link
-                href="/admin/members"
+                href="/admin/streamers"
                 className="text-xs font-semibold text-[#f99e1a] dark:text-amber-400 hover:text-[#ea8c08] dark:hover:text-amber-300 hover:underline transition-colors"
               >
-                전체 관리 ({members.length}명) →
+                전체 관리 ({streamers.length}명) →
               </Link>
             }
           >
-            {members.length === 0 ? (
+            {streamers.length === 0 ? (
               <div className="text-center py-10 text-xs text-slate-400 dark:text-slate-500">
                 <span className="text-2xl block mb-1">👤</span>
                 등록된 스트리머가 없습니다.
               </div>
             ) : (
               <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/80">
-                {members.map((m) => (
+                {streamers.map((m) => (
                   <Link
                     key={m.id}
-                    href="/admin/members"
+                    href="/admin/streamers"
                     className="group flex items-center justify-between py-3 px-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                     title="클릭하여 상세 정보 조회 및 수정"
                   >

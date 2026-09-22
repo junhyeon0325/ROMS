@@ -2,8 +2,9 @@
 // Page/Component: MapListSection
 // Purpose: 맵 관리 페이지에서 등록 맵 검색·필터·선택 UI를 제공한다.
 
-import { useMemo, useState } from "react";
-import { CodeItem, MapItem } from "@/lib/types/admin";
+import { useMemo } from "react";
+import type { CodeItem } from "@/lib/types/codes";
+import type { MapItem } from "@/lib/types/maps";
 import AdminBadge from "@/components/admin/AdminBadge";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFilterPanel from "@/components/admin/AdminFilterPanel";
@@ -17,7 +18,15 @@ interface MapListSectionProps {
   modeNameByCode: Map<string, string>;
   selectedMapId: string | null;
   isLoading: boolean;
+  search: string;
+  modeFilter: string;
+  poolFilter: string;
+  isFilterActive: boolean;
   onSelectMap: (map: MapItem) => void;
+  onResetFilters: () => void;
+  setSearch: (value: string) => void;
+  setModeFilter: (value: string) => void;
+  setPoolFilter: (value: string) => void;
 }
 
 // 등록 맵 목록을 표시하고 목록 전용 필터 상태를 해당 영역 안에서 관리한다.
@@ -27,11 +36,16 @@ export default function MapListSection({
   modeNameByCode,
   selectedMapId,
   isLoading,
+  search,
+  modeFilter,
+  poolFilter,
+  isFilterActive,
   onSelectMap,
+  onResetFilters,
+  setSearch,
+  setModeFilter,
+  setPoolFilter,
 }: MapListSectionProps) {
-  const [search, setSearch] = useState("");
-  const [modeFilter, setModeFilter] = useState("ALL");
-  const [poolFilter, setPoolFilter] = useState("ALL");
 
   const modeTabs = useMemo(
     () => [
@@ -40,22 +54,6 @@ export default function MapListSection({
     ],
     [mapModes],
   );
-
-  const filteredMaps = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return maps.filter((map) => {
-      const matchesText =
-        !query ||
-        [map.nameKr, map.nameEn, map.location].some((value) =>
-          value.toLowerCase().includes(query),
-        );
-      const matchesMode = modeFilter === "ALL" || map.mode === modeFilter;
-      const matchesPool =
-        poolFilter === "ALL" ||
-        (poolFilter === "ACTIVE" ? map.isActive : !map.isActive);
-      return matchesText && matchesMode && matchesPool;
-    });
-  }, [maps, modeFilter, poolFilter, search]);
 
   const mapColumns: AdminTableColumn<MapItem>[] = useMemo(
     () => [
@@ -114,26 +112,18 @@ export default function MapListSection({
     [modeNameByCode],
   );
 
-  // 모든 목록 필터를 초기화해 전체 맵 목록으로 돌아간다.
-  const handleResetFilters = () => {
-    setSearch("");
-    setModeFilter("ALL");
-    setPoolFilter("ALL");
-  };
-
-  const isFilterActive = Boolean(search) || modeFilter !== "ALL" || poolFilter !== "ALL";
 
   return (
     <div className="xl:col-span-7 h-full min-h-0 flex flex-col">
       <AdminCard
         title="등록된 맵 조회"
-        countBadge={`총 ${filteredMaps.length}건`}
+        countBadge={`총 ${maps.length}건`}
         className="h-full"
         actions={
           <button
             type="button"
             disabled={!isFilterActive}
-            onClick={handleResetFilters}
+            onClick={onResetFilters}
             className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs hover:scale-[1.02] active:scale-[0.98]"
             title="검색 조건 초기화"
           >
@@ -183,7 +173,7 @@ export default function MapListSection({
         </AdminFilterPanel>
         <AdminTable
           columns={mapColumns}
-          data={filteredMaps}
+          data={maps}
           keyField="id"
           selectedId={selectedMapId}
           onRowClick={onSelectMap}

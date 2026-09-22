@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   if (authError) return authError;
   try {
     const payload = normalizeHeroPayload(await request.json());
-    const message = validateHeroPayload(payload);
+    const message = await validateHeroPayload(payload);
     if (message)
       return NextResponse.json({ success: false, message }, { status: 400 });
     return NextResponse.json({
@@ -79,7 +79,7 @@ export async function PUT(request: NextRequest) {
         { status: 400 },
       );
     const payload = normalizeHeroPayload(body);
-    const message = validateHeroPayload(payload);
+    const message = await validateHeroPayload(payload);
     if (message)
       return NextResponse.json({ success: false, message }, { status: 400 });
     return NextResponse.json({

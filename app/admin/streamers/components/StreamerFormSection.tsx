@@ -1,44 +1,48 @@
+// File: app/admin/streamers/components/StreamerFormSection.tsx
+// Page/Component: StreamerFormSection
+// Purpose: 스트리머 정보를 직접 입력하거나 채널 연동으로 편집하는 관리 영역이다.
 "use client";
 
 import React from "react";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
-import { MemberAvatar } from "@/components/admin/AdminAvatar";
+import AdminAvatar from "@/components/admin/AdminAvatar";
 import AdminFormField from "@/components/admin/AdminFormField";
 import AdminStatusRadio from "@/components/admin/AdminStatusRadio";
-import { MemberFormData } from "@/lib/types/admin";
+import type { StreamerFormData } from "@/lib/types/streamers";
 
-interface MemberFormSectionProps {
-  selectedMemberId: string | null;
-  form: MemberFormData;
-  setForm: React.Dispatch<React.SetStateAction<MemberFormData>>;
+interface StreamerFormSectionProps {
+  selectedStreamerId: string | null;
+  form: StreamerFormData;
+  setForm: React.Dispatch<React.SetStateAction<StreamerFormData>>;
   onSave: () => void;
   onNew: () => void;
   onOpenStreamerModal: () => void;
   isSaving: boolean;
 }
 
-export default function MemberFormSection({
-  selectedMemberId,
+// 선택한 스트리머의 입력값을 편집하고 저장 또는 신규 등록 동작을 연결한다.
+export default function StreamerFormSection({
+  selectedStreamerId,
   form,
   setForm,
   onSave,
   onNew,
   onOpenStreamerModal,
   isSaving,
-}: MemberFormSectionProps) {
+}: StreamerFormSectionProps) {
   const isChzzkType = form.isChzzk;
 
   return (
     <div className="xl:col-span-5 h-full min-h-0 flex flex-col">
       <AdminCard
-        title={selectedMemberId ? "스트리머 정보 수정" : "스트리머 신규 등록"}
+        title={selectedStreamerId ? "스트리머 정보 수정" : "스트리머 신규 등록"}
         className="h-full"
         actions={
           <AdminFormActions
             onSave={onSave}
             onNew={onNew}
-            isEditing={!!selectedMemberId}
+            isEditing={!!selectedStreamerId}
             saveDisabled={isSaving}
             saveLabel={isSaving ? "저장중..." : "저장"}
           />
@@ -169,7 +173,7 @@ export default function MemberFormSection({
               />
               {form.profileImg && (
                 <div className="shrink-0" title="프로필 이미지 미리보기">
-                  <MemberAvatar name={form.name || "미리보기"} profileImg={form.profileImg} />
+                  <AdminAvatar name={form.name || "미리보기"} profileImg={form.profileImg} />
                 </div>
               )}
             </div>
@@ -189,7 +193,7 @@ export default function MemberFormSection({
           {/* 6. 사용 여부 (공통 AdminStatusRadio 적용) */}
           <AdminStatusRadio
             label="사용 여부"
-            name="memberIsUse"
+            name="streamerIsUse"
             value={form.isUse}
             onChange={(nextVal) => setForm((p) => ({ ...p, isUse: nextVal }))}
             inactiveDescription="미사용 스트리머는 신규 대회 팀 배정 시 추천에서 제외되며, 과거 대회 전적 및 경기 기록은 안전하게 보존됩니다."

@@ -8,7 +8,7 @@ import AdminBadge from "@/components/admin/AdminBadge";
 import AdminModal from "@/components/admin/AdminModal";
 import AdminSearchInput from "@/components/admin/AdminSearchInput";
 import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
-import { ExternalMap } from "@/lib/types/admin";
+import type { ExternalMap } from "@/lib/types/maps";
 
 interface OverFastMapModalProps {
   isOpen: boolean;

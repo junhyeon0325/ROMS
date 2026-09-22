@@ -1,23 +1,26 @@
-// File: app/admin/members/components/ChzzkSearchModal.tsx
+// File: app/admin/streamers/components/ChzzkSearchModal.tsx
 // Page/Component: ChzzkSearchModal
 // Purpose: 치지직 채널을 검색하고 등록 상태를 확인한 뒤 하나의 채널만 스트리머 폼에 반영한다.
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import AdminBadge from "@/components/admin/AdminBadge";
-import { MemberAvatar } from "@/components/admin/AdminAvatar";
+import AdminAvatar from "@/components/admin/AdminAvatar";
 import AdminModal from "@/components/admin/AdminModal";
 import AdminSearchInput from "@/components/admin/AdminSearchInput";
 import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
-import { getChzzkChannelUrl } from "@/lib/constants/codes";
-import { ChzzkCandidate, MemberItem } from "@/lib/types/admin";
+import { getChzzkChannelUrl } from "@/lib/streamers/chzzk";
+import type {
+  ChzzkChannelCandidate as ChzzkCandidate,
+  StreamerItem,
+} from "@/lib/types/streamers";
 
 interface ChzzkSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (candidate: ChzzkCandidate) => void;
-  registeredByChannelId: Map<string, MemberItem>;
-  selectedMemberId: string | null;
+  registeredByChannelId: Map<string, StreamerItem>;
+  selectedStreamerId: string | null;
   showFeedback: (msg: string) => void;
 }
 
@@ -29,7 +32,7 @@ export default function ChzzkSearchModal({
   onClose,
   onSelect,
   registeredByChannelId,
-  selectedMemberId,
+  selectedStreamerId,
   showFeedback,
 }: ChzzkSearchModalProps) {
   const [query, setQuery] = useState("");
@@ -84,12 +87,12 @@ export default function ChzzkSearchModal({
 
   // 다른 스트리머에 연결된 채널은 중복 연결을 막고, 현재 편집 대상의 채널만 다시 선택할 수 있게 한다.
   const getChannelStatus = (candidate: ChzzkCandidate) => {
-    const registeredMember = registeredByChannelId.get(candidate.channelId);
-    const isCurrentMember = registeredMember?.id === selectedMemberId;
+    const registeredStreamer = registeredByChannelId.get(candidate.channelId);
+    const isCurrentStreamer = registeredStreamer?.id === selectedStreamerId;
     return {
-      registeredMember,
-      isCurrentMember,
-      isSelectable: !registeredMember || isCurrentMember,
+      registeredStreamer,
+      isCurrentStreamer,
+      isSelectable: !registeredStreamer || isCurrentStreamer,
     };
   };
 
@@ -138,7 +141,7 @@ export default function ChzzkSearchModal({
         width: "min-w-[240px]",
         render: (candidate) => (
           <div className="flex items-center gap-2.5">
-            <MemberAvatar
+            <AdminAvatar
               name={candidate.channelName}
               profileImg={candidate.channelImageUrl || undefined}
               size="w-9 h-9 text-xs"
@@ -186,17 +189,17 @@ export default function ChzzkSearchModal({
         header: "상태",
         width: "w-32",
         render: (candidate) => {
-          const { registeredMember, isCurrentMember } =
+          const { registeredStreamer, isCurrentStreamer } =
             getChannelStatus(candidate);
-          if (!registeredMember)
+          if (!registeredStreamer)
             return <AdminBadge variant="neutral">신규 등록 가능</AdminBadge>;
-          if (isCurrentMember)
+          if (isCurrentStreamer)
             return <AdminBadge variant="brand">현재 연동 채널</AdminBadge>;
           return <AdminBadge variant="success">이미 연동됨</AdminBadge>;
         },
       },
     ],
-    [registeredByChannelId, selectedChannelId, selectedMemberId],
+    [registeredByChannelId, selectedChannelId, selectedStreamerId],
   );
 
   // 검색 전·결과 없음·통신 오류를 동일한 표 영역에서 명확히 안내한다.

@@ -9,12 +9,12 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { useAdmin } from "@/lib/context/AdminContext";
+import { useAdminCodes } from "@/lib/context/AdminFeatureContexts";
 import CodeGroupSection from "./components/CodeGroupSection";
 import DetailCodeSection from "./components/DetailCodeSection";
 
 export default function AdminCodesPage() {
-  const { codeGroups } = useAdmin();
+  const { items: codeGroups } = useAdminCodes();
 
   // 1. 선택된 코드 그룹 상태 (초기값: 미선택)
   const [selectedGroupCode, setSelectedGroupCode] = useState<string>("");

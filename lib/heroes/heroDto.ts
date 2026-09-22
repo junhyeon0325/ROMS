@@ -1,6 +1,6 @@
 // 영웅 Prisma 모델을 관리자 화면에서 사용하는 DTO로 변환한다.
 import type { Hero as PrismaHero } from "@prisma/client";
-import type { HeroItem } from "@/lib/types/admin";
+import type { HeroItem } from "@/lib/types/heroes";
 
 // BigInt와 nullable 필드를 직렬화 가능한 영웅 DTO로 정규화한다.
 export function formatHeroDto(hero: PrismaHero): HeroItem {

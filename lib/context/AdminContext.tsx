@@ -6,12 +6,7 @@
 import { createContext, useContext, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import type { TournamentItem, TournamentParticipant } from "@/lib/types/admin";
 import {
-  AdminCodesProvider,
-  AdminFeedbackProvider,
-  AdminHeroesProvider,
-  AdminMapsProvider,
-  AdminStreamersProvider,
-  AdminUiProvider,
+  AdminFeatureProviders,
   useAdminFeedback,
   useAdminStreamers,
 } from "@/lib/context/AdminFeatureContexts";
@@ -54,21 +49,9 @@ function AdminTournamentProvider({ children }: { children: ReactNode }) {
 // 관리자 기능별 Provider를 조합해 기존 레이아웃의 진입점을 유지한다.
 export function AdminProvider({ children }: { children: ReactNode }) {
   return (
-    <AdminFeedbackProvider>
-      <AdminUiProvider>
-        <AdminStreamersProvider>
-          <AdminMapsProvider>
-            <AdminHeroesProvider>
-              <AdminCodesProvider>
-                <AdminTournamentProvider>
-                  {children}
-                </AdminTournamentProvider>
-              </AdminCodesProvider>
-            </AdminHeroesProvider>
-          </AdminMapsProvider>
-        </AdminStreamersProvider>
-      </AdminUiProvider>
-    </AdminFeedbackProvider>
+    <AdminFeatureProviders>
+      <AdminTournamentProvider>{children}</AdminTournamentProvider>
+    </AdminFeatureProviders>
   );
 }
 

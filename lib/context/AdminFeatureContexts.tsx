@@ -101,6 +101,19 @@ export const useAdminMaps = maps.useData;
 export const useAdminHeroes = heroes.useData;
 export const useAdminCodes = codeGroups.useData;
 
+// 실제 목록 데이터를 사용하는 네 도메인 Context만 조합해 data 책임을 한 곳에 모은다.
+export function AdminDataProvider({ children }: { children: ReactNode }) {
+  return (
+    <AdminStreamersProvider>
+      <AdminMapsProvider>
+        <AdminHeroesProvider>
+          <AdminCodesProvider>{children}</AdminCodesProvider>
+        </AdminHeroesProvider>
+      </AdminMapsProvider>
+    </AdminStreamersProvider>
+  );
+}
+
 interface FeedbackState {
   toastMessage: string | null;
   showFeedback: (message: string) => void;
@@ -172,4 +185,15 @@ export function useAdminUi() {
   if (!value)
     throw new Error("useAdminUi must be used within an AdminUiProvider");
   return value;
+}
+
+// 기존 개별 Provider export를 보존하면서 관리자 레이아웃용 책임별 조합 진입점을 제공한다.
+export function AdminFeatureProviders({ children }: { children: ReactNode }) {
+  return (
+    <AdminFeedbackProvider>
+      <AdminUiProvider>
+        <AdminDataProvider>{children}</AdminDataProvider>
+      </AdminUiProvider>
+    </AdminFeedbackProvider>
+  );
 }

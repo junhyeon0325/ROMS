@@ -102,6 +102,12 @@ export default function MapListSection({
         ),
       },
       {
+        key: "desc",
+        header: "설명",
+        width: "min-w-[180px]",
+        render: (map) => <span className="line-clamp-2 text-slate-500 dark:text-slate-400" title={map.desc || undefined}>{map.desc || "-"}</span>,
+      },
+      {
         key: "isActive",
         header: "사용 여부",
         width: "w-24",

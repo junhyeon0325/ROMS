@@ -28,20 +28,20 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
         icon: "dashboard",
     },
     {
-        id: "tournaments",
-        label: "대회 관리",
+        id: "seasons",
+        label: "대회 구성 관리",
         icon: "trophy",
         children: [
             {
-                id: "tournament-register",
+                id: "season-register",
                 label: "대회 등록",
-                href: "/admin/tournaments",
+                href: "/admin/seasons",
                 description: "시즌 및 정규 리그 대회 정보 등록 및 진행 상태 관리",
             },
             {
-                id: "tournament-structure",
-                label: "대회 구성 관리",
-                href: "/admin/tournaments/structure",
+                id: "season-structure",
+                label: "대회 선수 등록 및 역할 배정",
+                href: "/admin/seasons/structure",
                 description: "대회별 참가 인원 및 역할(팀장·선수·감독) 배정, 조 편성, 토너먼트 규정 구성 관리",
             },
         ],

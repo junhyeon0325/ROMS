@@ -3,7 +3,7 @@
 // Purpose: 치지직 채널을 검색하고 등록 상태를 확인한 뒤 하나의 채널만 스트리머 폼에 반영한다.
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminBadge from "@/components/admin/AdminBadge";
 import AdminAvatar from "@/components/admin/AdminAvatar";
 import AdminModal from "@/components/admin/AdminModal";
@@ -86,24 +86,30 @@ export default function ChzzkSearchModal({
   };
 
   // 다른 스트리머에 연결된 채널은 중복 연결을 막고, 현재 편집 대상의 채널만 다시 선택할 수 있게 한다.
-  const getChannelStatus = (candidate: ChzzkCandidate) => {
-    const registeredStreamer = registeredByChannelId.get(candidate.channelId);
-    const isCurrentStreamer = registeredStreamer?.id === selectedStreamerId;
-    return {
-      registeredStreamer,
-      isCurrentStreamer,
-      isSelectable: !registeredStreamer || isCurrentStreamer,
-    };
-  };
+  const getChannelStatus = useCallback(
+    (candidate: ChzzkCandidate) => {
+      const registeredStreamer = registeredByChannelId.get(candidate.channelId);
+      const isCurrentStreamer = registeredStreamer?.id === selectedStreamerId;
+      return {
+        registeredStreamer,
+        isCurrentStreamer,
+        isSelectable: !registeredStreamer || isCurrentStreamer,
+      };
+    },
+    [registeredByChannelId, selectedStreamerId],
+  );
 
   // 행 또는 라디오 버튼 클릭 시 등록 가능한 후보 하나만 선택한다.
-  const handleSelectCandidate = (candidate: ChzzkCandidate) => {
-    if (!getChannelStatus(candidate).isSelectable) {
-      showFeedback("이미 다른 스트리머에 연동된 치지직 채널입니다.");
-      return;
-    }
-    setSelectedChannelId(candidate.channelId);
-  };
+  const handleSelectCandidate = useCallback(
+    (candidate: ChzzkCandidate) => {
+      if (!getChannelStatus(candidate).isSelectable) {
+        showFeedback("이미 다른 스트리머에 연동된 치지직 채널입니다.");
+        return;
+      }
+      setSelectedChannelId(candidate.channelId);
+    },
+    [getChannelStatus, showFeedback],
+  );
 
   const selectedCandidate = useMemo(
     () =>
@@ -199,7 +205,7 @@ export default function ChzzkSearchModal({
         },
       },
     ],
-    [registeredByChannelId, selectedChannelId, selectedStreamerId],
+    [getChannelStatus, handleSelectCandidate, selectedChannelId],
   );
 
   // 검색 전·결과 없음·통신 오류를 동일한 표 영역에서 명확히 안내한다.
@@ -241,7 +247,7 @@ export default function ChzzkSearchModal({
       isOpen={isOpen}
       onClose={onClose}
       title="치지직 스트리머 조회"
-      description="검색 결과에서 하나의 채널을 선택해 스트리머 등록 폼에 반영합니다. 이미 다른 스트리머에 연동된 채널은 선택할 수 없습니다."
+      description="검색 결과에서 채널을 선택 반영하면 스트리머 정보를 DB에 바로 저장합니다. 이미 다른 스트리머에 연동된 채널은 선택할 수 없습니다."
       maxWidth="4xl"
       bodyClassName="p-5 overflow-y-auto flex-1 min-h-0 space-y-4"
       footer={
@@ -265,7 +271,7 @@ export default function ChzzkSearchModal({
               disabled={!selectedCandidate}
               className="rounded-lg bg-[#f99e1a] px-3.5 py-1.5 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              선택 반영
+              선택 후 DB 저장
             </button>
           </div>
         </div>

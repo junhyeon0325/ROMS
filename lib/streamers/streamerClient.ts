@@ -6,9 +6,20 @@ import type { StreamerFormData, StreamerItem } from "@/lib/types/streamers";
 type ApiResult<T> = { success: boolean; data?: T; message?: string };
 
 // 스트리머 목록 API를 호출한다.
-export async function fetchStreamers(): Promise<ApiResult<StreamerItem[]>> { return (await fetch("/api/streamers")).json(); }
+export async function fetchStreamers(): Promise<ApiResult<StreamerItem[]>> {
+  return (await fetch("/api/streamers")).json();
+}
 
 // 스트리머 생성 또는 수정 요청을 기존 API 형식으로 전송한다.
-export async function saveStreamer(form: StreamerFormData, id?: string | null): Promise<ApiResult<StreamerItem>> {
-  return (await fetch("/api/streamers", { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(id ? { ...form, id } : form) })).json();
+export async function saveStreamer(
+  form: StreamerFormData,
+  id?: string | null,
+): Promise<ApiResult<StreamerItem>> {
+  return (
+    await fetch("/api/streamers", {
+      method: id ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(id ? { ...form, id } : form),
+    })
+  ).json();
 }

@@ -59,7 +59,7 @@ function createDataContext<T>(
       } finally {
         setIsLoading(false);
       }
-    }, [loadItems]);
+    }, []);
     // 현재 페이지가 이 도메인 데이터를 필요로 할 때만 API 목록을 요청한다.
     useEffect(() => {
       if (shouldLoad(pathname)) void refresh();
@@ -82,7 +82,7 @@ const isDashboard = (pathname: string) => pathname === "/admin";
 const streamers = createDataContext<StreamerItem>(
   "streamers",
   fetchStreamers,
-  (pathname) => isDashboard(pathname) || pathname.startsWith("/admin/streamers") || pathname.startsWith("/admin/members") || pathname.startsWith("/admin/tournaments"),
+  (pathname) => isDashboard(pathname) || pathname.startsWith("/admin/streamers") || pathname.startsWith("/admin/members") || pathname.startsWith("/admin/seasons"),
 );
 const maps = createDataContext<MapItem>("maps", fetchMaps, (pathname) => isDashboard(pathname) || pathname.startsWith("/admin/maps"));
 const heroes = createDataContext<HeroItem>("heroes", fetchHeroes, (pathname) => isDashboard(pathname) || pathname.startsWith("/admin/heroes"));

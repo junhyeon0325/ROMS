@@ -176,7 +176,7 @@ export default function AdminSidebar() {
                     title={item.label}
                   >
                     <div className="flex items-center gap-2">
-                      {item.id === "tournaments" ? (
+                      {item.id === "seasons" ? (
                         <svg
                           className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0"
                           viewBox="0 0 24 24"

@@ -23,11 +23,25 @@ export function useStreamerManagement() {
   const registeredByChannelId = useMemo(() => new Map(streamers.filter((streamer) => streamer.channelId).map((streamer) => [streamer.channelId as string, streamer])), [streamers]);
   const handleSelectStreamer = (streamer: StreamerItem) => { setSelectedStreamerId(streamer.id); setForm({ isChzzk: Boolean(streamer.channelId), channelUrl: getChzzkChannelUrl(streamer.channelId), name: streamer.name, profileImg: streamer.profileImg || "", memo: streamer.memo || "", isUse: streamer.isUse !== false }); };
   const handleNewStreamer = () => { setSelectedStreamerId(null); setForm(INITIAL_STREAMER_FORM); showFeedback("신규 스트리머 등록 모드로 전환했습니다."); };
-  const handleSelectChzzkCandidate = (candidate: ChzzkChannelCandidate) => { setForm((current) => ({ ...current, isChzzk: true, channelUrl: `${CHZZK_BASE_URL}/${candidate.channelId}`, name: candidate.channelName, profileImg: candidate.channelImageUrl || current.profileImg, memo: current.memo || candidate.channelDescription || "" })); setIsChzzkModalOpen(false); showFeedback(`치지직 [${candidate.channelName}] 채널을 연동했습니다.`); };
-  const handleSaveStreamer = async () => {
-    if (!form.name.trim()) { showFeedback("이름 또는 채널명을 입력해 주세요."); return; }
-    if (form.isChzzk && !form.channelUrl.trim()) { showFeedback("[스트리머 조회] 버튼을 통해 연동할 스트리머를 검색하고 선택해 주세요."); return; }
-    await mutateStreamer(() => saveStreamer({ ...form, channelUrl: form.isChzzk ? form.channelUrl : "" }, selectedStreamerId), { successMessage: `[${form.name}] 스트리머 정보가 DB에 저장되었습니다.`, errorMessage: "저장에 실패했습니다.", onSuccess: (saved?: StreamerItem) => { if (!saved) return; setStreamers((current) => current.some((streamer) => streamer.id === saved.id) ? current.map((streamer) => streamer.id === saved.id ? saved : streamer) : [saved, ...current]); setSelectedStreamerId(saved.id); } });
+  // 입력값을 검증하고 DB 저장 결과를 관리 목록에 반영한다.
+  const persistStreamer = async (nextForm: StreamerFormData, id: string | null) => {
+    if (!nextForm.name.trim()) { showFeedback("이름 또는 채널명을 입력해 주세요."); return false; }
+    if (nextForm.isChzzk && !nextForm.channelUrl.trim()) { showFeedback("[스트리머 조회] 버튼을 통해 연동할 스트리머를 검색하고 선택해 주세요."); return false; }
+    let savedSuccessfully = false;
+    await mutateStreamer(() => saveStreamer({ ...nextForm, channelUrl: nextForm.isChzzk ? nextForm.channelUrl : "" }, id), { successMessage: `[${nextForm.name}] 스트리머 정보가 DB에 저장되었습니다.`, errorMessage: "저장에 실패했습니다.", onSuccess: (saved?: StreamerItem) => { if (!saved) return; setStreamers((current) => current.some((streamer) => streamer.id === saved.id) ? current.map((streamer) => streamer.id === saved.id ? saved : streamer) : [saved, ...current]); setSelectedStreamerId(saved.id); setForm({ isChzzk: Boolean(saved.channelId), channelUrl: getChzzkChannelUrl(saved.channelId), name: saved.name, profileImg: saved.profileImg || "", memo: saved.memo || "", isUse: saved.isUse !== false }); savedSuccessfully = true; } });
+    return savedSuccessfully;
   };
+  // 치지직 검색 결과를 기존 선택 상태에 반영하고 곧바로 DB에 저장한다.
+  const handleSelectChzzkCandidate = async (candidate: ChzzkChannelCandidate) => {
+    const nextForm = { ...form, isChzzk: true, channelUrl: `${CHZZK_BASE_URL}/${candidate.channelId}`, name: candidate.channelName, profileImg: candidate.channelImageUrl || form.profileImg, memo: form.memo || candidate.channelDescription || "" };
+    setForm(nextForm);
+    if (await persistStreamer(nextForm, selectedStreamerId)) {
+      setSelectedStreamerId(null);
+      setForm(INITIAL_STREAMER_FORM);
+      setIsChzzkModalOpen(false);
+      showFeedback(`[${candidate.channelName}] 저장 후 신규 스트리머 등록 화면으로 전환했습니다.`);
+    }
+  };
+  const handleSaveStreamer = async () => { await persistStreamer(form, selectedStreamerId); };
   return { form, handleNewStreamer, handleSaveStreamer, handleSelectChzzkCandidate, handleSelectStreamer, isChzzkModalOpen, isSaving, isStreamersLoading, registeredByChannelId, selectedStreamerId, setForm, setIsChzzkModalOpen, showFeedback, streamers };
 }

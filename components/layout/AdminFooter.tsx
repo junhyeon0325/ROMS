@@ -31,10 +31,10 @@ export default function AdminFooter() {
       }
     }
 
-    if (pathname.startsWith("/admin/tournaments/structure")) {
+    if (pathname.startsWith("/admin/seasons/structure")) {
       return "대회 구성 관리";
     }
-    if (pathname.startsWith("/admin/tournaments")) {
+    if (pathname.startsWith("/admin/seasons")) {
       return "대회 등록";
     }
 

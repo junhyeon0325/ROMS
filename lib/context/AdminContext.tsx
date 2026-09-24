@@ -1,10 +1,11 @@
 // File: lib/context/AdminContext.tsx
 // Page/Component: AdminProvider
-// Purpose: 분리된 관리자 기능 Provider를 조합하고 토너먼트 호환 상태를 제공한다.
+// Purpose: 분리된 관리자 기능 Provider를 조합하고 시즌 등록 상태를 제공한다.
 "use client";
 
-import { createContext, useContext, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
-import type { TournamentItem, TournamentParticipant } from "@/lib/types/admin";
+import { createContext, useContext, useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { fetchSeasons } from "@/lib/seasons/seasonClient";
+import type { SeasonItem, SeasonParticipant } from "@/lib/types/admin";
 import {
   AdminFeatureProviders,
   useAdminFeedback,
@@ -13,30 +14,39 @@ import {
 import type { StreamerItem } from "@/lib/types/streamers";
 
 interface AdminContextType {
-  /** 수정 범위 밖 토너먼트 화면의 기존 소비를 위한 호환 데이터다. */
+  /** 관리자 화면에서 사용하는 스트리머 데이터를 제공한다. */
   members: StreamerItem[];
   showFeedback: (message: string) => void;
-  tournaments: TournamentItem[];
-  setTournaments: Dispatch<SetStateAction<TournamentItem[]>>;
-  participants: TournamentParticipant[];
-  setParticipants: Dispatch<SetStateAction<TournamentParticipant[]>>;
+  seasons: SeasonItem[];
+  setSeasons: Dispatch<SetStateAction<SeasonItem[]>>;
+  participants: SeasonParticipant[];
+  setParticipants: Dispatch<SetStateAction<SeasonParticipant[]>>;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 // 기존 useAdmin 소비자를 유지하면서 분리된 상태를 하나의 호환 인터페이스로 제공한다.
-function AdminTournamentProvider({ children }: { children: ReactNode }) {
+function AdminSeasonProvider({ children }: { children: ReactNode }) {
   const { items: members } = useAdminStreamers();
   const { showFeedback } = useAdminFeedback();
-  const [tournaments, setTournaments] = useState<TournamentItem[]>([]);
-  const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
+  const [seasons, setSeasons] = useState<SeasonItem[]>([]);
+  const [participants, setParticipants] = useState<SeasonParticipant[]>([]);
+  // 관리자 화면들이 공유하는 대회 목록을 서버에서 한 번 불러온다.
+  useEffect(() => {
+    let active = true;
+    fetchSeasons().then((result) => {
+      if (active && result.success && result.data) setSeasons(result.data);
+      else if (active) showFeedback(result.message || "대회 목록을 불러오지 못했습니다.");
+    }).catch(() => { if (active) showFeedback("대회 목록을 불러오지 못했습니다."); });
+    return () => { active = false; };
+  }, [showFeedback]);
   return (
     <AdminContext.Provider
       value={{
         members,
         showFeedback,
-        tournaments,
-        setTournaments,
+        seasons,
+        setSeasons,
         participants,
         setParticipants,
       }}
@@ -50,7 +60,7 @@ function AdminTournamentProvider({ children }: { children: ReactNode }) {
 export function AdminProvider({ children }: { children: ReactNode }) {
   return (
     <AdminFeatureProviders>
-      <AdminTournamentProvider>{children}</AdminTournamentProvider>
+      <AdminSeasonProvider>{children}</AdminSeasonProvider>
     </AdminFeatureProviders>
   );
 }

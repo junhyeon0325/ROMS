@@ -52,13 +52,14 @@ export default function DetailCodeSection({
     INITIAL_CODE_ADD_FORM,
     INITIAL_CODE_EDIT_FORM,
   );
+  const { reset: resetCodeEdit } = codeEdit;
 
   // 상위 선택 그룹 변경 시 UI 선택·편집·검색 상태를 초기화한다.
   useEffect(() => {
     setSelectedDetailCode(null);
-    codeEdit.reset();
+    resetCodeEdit();
     setCodeSearch("");
-  }, [selectedGroupCode]);
+  }, [resetCodeEdit, selectedGroupCode]);
 
   // 상세 코드 조회 오류를 동일 Error 객체당 한 번만 기존 알림으로 전달한다.
   useEffect(() => {

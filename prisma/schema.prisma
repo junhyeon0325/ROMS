@@ -39,9 +39,11 @@ model User {
 model Season {
   id        BigInt    @id @default(autoincrement())
   name      String
-  logoUrl   String?   @map("logo_url")
   startDate DateTime? @map("start_date") @db.Date
   endDate   DateTime? @map("end_date") @db.Date
+  status    String    @default("개최 예정")
+  prize     String    @default("")
+  prizeAmount Decimal? @map("prize_amount") @db.Decimal(18, 0)
 
   createdBy String?   @map("created_by")
   createdAt DateTime  @default(now()) @map("created_at")
@@ -51,8 +53,35 @@ model Season {
 
   seasonTeams SeasonTeam[]
   matches     Match[]
+  schedules   SeasonSchedule[]
+  rankPrizes  SeasonRankPrize[]
+  participants SeasonParticipant[]
 
   @@map("seasons")
+}
+
+model SeasonSchedule {
+  id           BigInt   @id @default(autoincrement())
+  seasonId     BigInt   @map("season_id")
+  name         String
+  startAt      DateTime? @map("start_at")
+  endAt        DateTime? @map("end_at")
+  sortOrder    Int      @map("sort_order")
+  season       Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@index([seasonId, sortOrder])
+  @@map("season_schedules")
+}
+
+model SeasonRankPrize {
+  id           BigInt   @id @default(autoincrement())
+  seasonId     BigInt   @map("season_id")
+  rank         Int
+  amount       Decimal  @db.Decimal(18, 0)
+  season       Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, rank])
+  @@map("season_rank_prizes")
 }
 
 model Team {
@@ -86,6 +115,7 @@ model Streamer {
   remarks   String?  @map("remarks")
 
   teamMembers    SeasonTeamMember[]
+  seasonParticipants SeasonParticipant[]
   playerSetStats PlayerSetStat[]
 
   @@index([name])
@@ -128,6 +158,22 @@ model SeasonTeamMember {
   streamer   Streamer   @relation(fields: [streamerId], references: [id], onDelete: Cascade)
 
   @@map("season_team_members")
+}
+
+model SeasonParticipant {
+  id         BigInt   @id @default(autoincrement())
+  seasonId   BigInt   @map("season_id")
+  streamerId BigInt   @map("streamer_id")
+  roles      String[]
+  position   String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  season   Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  streamer Streamer @relation(fields: [streamerId], references: [id], onDelete: Restrict)
+
+  @@unique([seasonId, streamerId])
+  @@map("season_participants")
 }
 
 model Match {

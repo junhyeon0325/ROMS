@@ -44,11 +44,11 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
     }
 
     // 기본 fallback 매핑
-    if (pathname.startsWith("/admin/tournaments/structure")) {
-      return ["대회 관리", "대회 구성 관리"];
+    if (pathname.startsWith("/admin/seasons/structure")) {
+      return ["대회 구성 관리", "대회 선수 등록 및 역할 배정"];
     }
-    if (pathname.startsWith("/admin/tournaments")) {
-      return ["대회 관리", "대회 등록"];
+    if (pathname.startsWith("/admin/seasons")) {
+      return ["대회 구성 관리", "대회 등록"];
     }
     return ["ROMS 시스템 관리", "관리자 화면"];
   };
@@ -82,13 +82,13 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
       }
     }
 
-    if (pathname.startsWith("/admin/tournaments/structure")) {
+    if (pathname.startsWith("/admin/seasons/structure")) {
       return {
-        title: "대회 구성 관리",
+        title: "대회 선수 등록 및 역할 배정",
         description: "대회별 참가 스트리머의 역할(팀장·선수·감독)을 배정하고, 조 편성(Group Stage), 세트 및 대진 규칙을 구성합니다.",
       };
     }
-    if (pathname.startsWith("/admin/tournaments")) {
+    if (pathname.startsWith("/admin/seasons")) {
       return {
         title: "대회 등록",
         description: "시즌 및 정규 리그 대회 정보를 등록하고 진행 상태와 상금 규모를 관리할 수 있습니다.",

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import type { Session } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
+import { setAuditActor } from "@/lib/audit-context";
 
 type SessionUser = Session["user"];
 
@@ -33,6 +34,7 @@ export async function requireAdmin(): Promise<SessionUser> {
   if (user.role !== "ADMIN" && user.role !== "DEV") {
     throw new AuthorizationError(403, "관리자 권한이 필요합니다.");
   }
+  setAuditActor(user.id);
   return user;
 }
 
@@ -42,6 +44,7 @@ export async function requireDeveloper(): Promise<SessionUser> {
   if (user.role !== "DEV") {
     throw new AuthorizationError(403, "개발자 권한이 필요합니다.");
   }
+  setAuditActor(user.id);
   return user;
 }
 

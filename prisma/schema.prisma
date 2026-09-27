@@ -21,64 +21,73 @@ enum Position {
 }
 
 model User {
-  id           BigInt   @id @default(autoincrement())
-  email        String   @unique
-  passwordHash String   @map("password_hash")
+  id           BigInt  @id @default(autoincrement())
+  email        String  @unique
+  passwordHash String  @map("password_hash")
   name         String?
-  role         Role     @default(USER)
+  role         Role    @default(USER)
 
-  createdBy    String?  @map("created_by")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedBy    String?  @map("updated_by")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  remarks      String?  @map("remarks")
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
 
   @@map("users")
 }
 
 model Season {
-  id        BigInt    @id @default(autoincrement())
-  name      String
-  startDate DateTime? @map("start_date") @db.Date
-  endDate   DateTime? @map("end_date") @db.Date
-  status    String    @default("개최 예정")
-  prize     String    @default("")
-  prizeAmount Decimal? @map("prize_amount") @db.Decimal(18, 0)
+  id          BigInt    @id @default(autoincrement())
+  name        String
+  startDate   DateTime? @map("start_date") @db.Date
+  endDate     DateTime? @map("end_date") @db.Date
+  status      String    @default("개최 예정")
+  prize       String    @default("")
+  prizeAmount Decimal?  @map("prize_amount") @db.Decimal(18, 0)
 
-  createdBy String?   @map("created_by")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedBy String?   @map("updated_by")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  remarks   String?   @map("remarks")
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
 
-  seasonTeams SeasonTeam[]
-  matches     Match[]
-  schedules   SeasonSchedule[]
-  rankPrizes  SeasonRankPrize[]
+  seasonTeams  SeasonTeam[]
+  matches      Match[]
+  schedules    SeasonSchedule[]
+  rankPrizes   SeasonRankPrize[]
   participants SeasonParticipant[]
+  mapPool      SeasonMap[]
 
   @@map("seasons")
 }
 
 model SeasonSchedule {
-  id           BigInt   @id @default(autoincrement())
-  seasonId     BigInt   @map("season_id")
-  name         String
-  startAt      DateTime? @map("start_at")
-  endAt        DateTime? @map("end_at")
-  sortOrder    Int      @map("sort_order")
-  season       Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  id        BigInt    @id @default(autoincrement())
+  seasonId  BigInt    @map("season_id")
+  name      String
+  startAt   DateTime? @map("start_at")
+  endAt     DateTime? @map("end_at")
+  sortOrder Int       @map("sort_order")
+  createdBy String?   @map("created_by")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedBy String?   @map("updated_by")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  season    Season    @relation(fields: [seasonId], references: [id], onDelete: Cascade)
 
   @@index([seasonId, sortOrder])
   @@map("season_schedules")
 }
 
 model SeasonRankPrize {
-  id           BigInt   @id @default(autoincrement())
-  seasonId     BigInt   @map("season_id")
-  rank         Int
-  amount       Decimal  @db.Decimal(18, 0)
-  season       Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  id        BigInt   @id @default(autoincrement())
+  seasonId  BigInt   @map("season_id")
+  rank      Int
+  amount    Decimal  @db.Decimal(18, 0)
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  season    Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
 
   @@unique([seasonId, rank])
   @@map("season_rank_prizes")
@@ -102,11 +111,11 @@ model Team {
 }
 
 model Streamer {
-  id              BigInt   @id @default(autoincrement())
+  id              BigInt  @id @default(autoincrement())
   name            String
-  profileImageUrl String?  @map("profile_image_url")
-  chzzkChannelId  String?  @unique @map("chzzk_channel_id")
-  isUse           Boolean  @default(true) @map("is_use")
+  profileImageUrl String? @map("profile_image_url")
+  chzzkChannelId  String? @unique @map("chzzk_channel_id")
+  isUse           Boolean @default(true) @map("is_use")
 
   createdBy String?  @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
@@ -114,9 +123,9 @@ model Streamer {
   updatedAt DateTime @updatedAt @map("updated_at")
   remarks   String?  @map("remarks")
 
-  teamMembers    SeasonTeamMember[]
+  teamMembers        SeasonTeamMember[]
   seasonParticipants SeasonParticipant[]
-  playerSetStats PlayerSetStat[]
+  playerSetStats     PlayerSetStat[]
 
   @@index([name])
   @@index([createdAt(sort: Desc)])
@@ -166,7 +175,9 @@ model SeasonParticipant {
   streamerId BigInt   @map("streamer_id")
   roles      String[]
   position   String?
+  createdBy  String?  @map("created_by")
   createdAt  DateTime @default(now()) @map("created_at")
+  updatedBy  String?  @map("updated_by")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   season   Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
@@ -215,9 +226,27 @@ model MapItem {
   updatedAt DateTime @updatedAt @map("updated_at")
   remarks   String?  @map("remarks")
 
-  matchSets MatchSet[]
+  matchSets   MatchSet[]
+  seasonPools SeasonMap[]
 
   @@map("maps")
+}
+
+model SeasonMap {
+  id        BigInt   @id @default(autoincrement())
+  seasonId  BigInt   @map("season_id")
+  mapId     BigInt   @map("map_id")
+  sortOrder Int      @map("sort_order")
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  season    Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  map       MapItem  @relation(fields: [mapId], references: [id], onDelete: Restrict)
+
+  @@unique([seasonId, mapId])
+  @@unique([seasonId, sortOrder])
+  @@map("season_maps")
 }
 
 model MatchSet {
@@ -312,17 +341,17 @@ model HeroBan {
 }
 
 model CommonCodeGroup {
-  id          BigInt   @id @default(autoincrement())
-  groupCode   String   @unique @map("group_code")
-  groupName   String   @map("group_name")
-  sortOrder   Int      @default(0) @map("sort_order")
-  isUse       Boolean  @default(true) @map("is_use")
+  id        BigInt  @id @default(autoincrement())
+  groupCode String  @unique @map("group_code")
+  groupName String  @map("group_name")
+  sortOrder Int     @default(0) @map("sort_order")
+  isUse     Boolean @default(true) @map("is_use")
 
-  createdBy   String?  @map("created_by")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedBy   String?  @map("updated_by")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  remarks     String?  @map("remarks")
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
 
   codes CommonCode[]
 

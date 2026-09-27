@@ -9,6 +9,7 @@ import AdminBadge from "@/components/admin/AdminBadge";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFilterPanel from "@/components/admin/AdminFilterPanel";
 import AdminFilterTabs from "@/components/admin/AdminFilterTabs";
+import AdminMultiFilterTabs from "@/components/admin/AdminMultiFilterTabs";
 import AdminSearchInput from "@/components/admin/AdminSearchInput";
 import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
 
@@ -19,13 +20,13 @@ interface MapListSectionProps {
   selectedMapId: string | null;
   isLoading: boolean;
   search: string;
-  modeFilter: string;
+  modeFilter: string[];
   poolFilter: string;
   isFilterActive: boolean;
   onSelectMap: (map: MapItem) => void;
   onResetFilters: () => void;
   setSearch: (value: string) => void;
-  setModeFilter: (value: string) => void;
+  setModeFilter: (value: string[]) => void;
   setPoolFilter: (value: string) => void;
 }
 
@@ -169,10 +170,10 @@ export default function MapListSection({
               onChange={setPoolFilter}
               containerClassName="lg:col-span-3"
             />
-            <AdminFilterTabs
+            <AdminMultiFilterTabs
               label="맵 모드"
               tabs={modeTabs}
-              activeTab={modeFilter}
+              selectedCodes={modeFilter}
               onChange={setModeFilter}
               containerClassName="lg:col-span-6"
             />

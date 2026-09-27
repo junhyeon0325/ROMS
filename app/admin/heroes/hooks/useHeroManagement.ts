@@ -27,7 +27,7 @@ export function useHeroManagement() {
   const { execute: mutateHero, isPending: isSaving } = useAdminMutation();
   const { codes: heroRoles, isLoading: isHeroRolesLoading, error: heroRolesError } = useCommonCodes(HERO_ROLE_GROUP_CODE);
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"ALL" | HeroRole>("ALL");
+  const [roleFilter, setRoleFilter] = useState<HeroRole[]>([]);
   const [usageFilter, setUsageFilter] = useState("ALL");
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(null);
   const [form, setForm] = useState<HeroFormData>(EMPTY_HERO_FORM);
@@ -39,11 +39,12 @@ export function useHeroManagement() {
   const heroRoleNameByCode = useMemo(() => new Map(heroRoles.map((role) => [role.code, role.name])), [heroRoles]);
   const registeredBySourceKey = useMemo(() => new Map(heroes.filter((hero) => hero.sourceKey).map((hero) => [hero.sourceKey!, hero])), [heroes]);
   const registeredByNameEn = useMemo(() => new Set(heroes.map((hero) => hero.nameEn)), [heroes]);
+  // 선택한 역할군들을 합집합으로 조회하고 검색어 및 사용 여부와 함께 적용한다.
   const filteredHeroes = useMemo(() => {
     const query = search.trim().toLowerCase();
     return heroes.filter((hero) => {
       const matchesSearch = !query || [hero.nameKr, hero.nameEn].some((value) => value.toLowerCase().includes(query));
-      const matchesRole = roleFilter === "ALL" || hero.role === roleFilter;
+      const matchesRole = roleFilter.length === 0 || roleFilter.includes(hero.role);
       const matchesUsage = usageFilter === "ALL" || (usageFilter === "USE" ? hero.isPickable : !hero.isPickable);
       return matchesSearch && matchesRole && matchesUsage;
     });
@@ -62,7 +63,8 @@ export function useHeroManagement() {
     setSelectedHeroId(hero.id);
     setForm({ nameKr: hero.nameKr, nameEn: hero.nameEn, role: hero.role, isPickable: hero.isPickable, imageUrl: hero.imageUrl || "", desc: hero.desc });
   };
-  const handleResetFilters = () => { setSearch(""); setRoleFilter("ALL"); setUsageFilter("ALL"); };
+  // 검색어, 역할군, 사용 여부를 기본 조회 조건으로 되돌린다.
+  const handleResetFilters = () => { setSearch(""); setRoleFilter([]); setUsageFilter("ALL"); };
   const handleNew = () => {
     setSelectedHeroId(null);
     setForm({ ...EMPTY_HERO_FORM, role: heroRoles[0]?.code || "" });
@@ -118,5 +120,5 @@ export function useHeroManagement() {
     });
   };
 
-  return { externalHeroes, filteredHeroes, form, handleNew, handleOpenOverFastModal, handleResetFilters, handleSave, handleSaveExternalHeroes, handleSelectAllExternalHeroes, handleSelectExternalHero, handleSelectHero, heroRoleNameByCode, heroRoles, isExternalLoading, isFilterActive: Boolean(search) || roleFilter !== "ALL" || usageFilter !== "ALL", isHeroRolesLoading, isHeroesLoading, isOverFastModalOpen, isSaving, registeredByNameEn, registeredBySourceKey, roleFilter, search, selectedExternalKeys, selectedHeroId, setForm, setIsOverFastModalOpen, setRoleFilter, setSearch, setUsageFilter, usageFilter };
+  return { externalHeroes, filteredHeroes, form, handleNew, handleOpenOverFastModal, handleResetFilters, handleSave, handleSaveExternalHeroes, handleSelectAllExternalHeroes, handleSelectExternalHero, handleSelectHero, heroRoleNameByCode, heroRoles, isExternalLoading, isFilterActive: Boolean(search) || roleFilter.length > 0 || usageFilter !== "ALL", isHeroRolesLoading, isHeroesLoading, isOverFastModalOpen, isSaving, registeredByNameEn, registeredBySourceKey, roleFilter, search, selectedExternalKeys, selectedHeroId, setForm, setIsOverFastModalOpen, setRoleFilter, setSearch, setUsageFilter, usageFilter };
 }

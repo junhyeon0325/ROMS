@@ -8,6 +8,7 @@ import AdminBadge from "@/components/admin/AdminBadge";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminFilterPanel from "@/components/admin/AdminFilterPanel";
 import AdminFilterTabs from "@/components/admin/AdminFilterTabs";
+import AdminMultiFilterTabs from "@/components/admin/AdminMultiFilterTabs";
 import AdminSearchInput from "@/components/admin/AdminSearchInput";
 import AdminTable, {
   type AdminTableColumn,
@@ -21,13 +22,13 @@ interface HeroListSectionProps {
   heroRoleNameByCode: Map<string, string>;
   isFilterActive: boolean;
   isLoading: boolean;
-  roleFilter: "ALL" | HeroRole;
+  roleFilter: HeroRole[];
   search: string;
   selectedHeroId: string | null;
   usageFilter: string;
   onResetFilters: () => void;
   onSelectHero: (hero: HeroItem) => void;
-  setRoleFilter: (value: "ALL" | HeroRole) => void;
+  setRoleFilter: (value: HeroRole[]) => void;
   setSearch: (value: string) => void;
   setUsageFilter: (value: string) => void;
 }
@@ -145,11 +146,11 @@ export default function HeroListSection({
             onChange={setUsageFilter}
             containerClassName="lg:col-span-3"
           />
-          <AdminFilterTabs
+          <AdminMultiFilterTabs
             label="역할군"
             tabs={[{ code: "ALL", name: "전체" }, ...heroRoles]}
-            activeTab={roleFilter}
-            onChange={(value) => setRoleFilter(value as "ALL" | HeroRole)}
+            selectedCodes={roleFilter}
+            onChange={setRoleFilter}
             containerClassName="lg:col-span-6"
           />
         </AdminFilterPanel>

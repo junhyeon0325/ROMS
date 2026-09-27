@@ -44,6 +44,12 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
                 href: "/admin/seasons/structure",
                 description: "대회별 참가 인원 및 역할(팀장·선수·감독) 배정, 조 편성, 토너먼트 규정 구성 관리",
             },
+            {
+                id: "season-maps",
+                label: "대회 맵 구성",
+                href: "/admin/seasons/maps",
+                description: "대회별 사용할 기존 맵을 선택하고 순서를 관리합니다.",
+            },
         ],
     },
     {

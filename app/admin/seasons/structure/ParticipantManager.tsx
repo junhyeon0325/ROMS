@@ -7,6 +7,8 @@ import { useEffect, useMemo, useState } from "react";
 import AdminModal from "@/components/admin/AdminModal";
 import AdminAvatar from "@/components/admin/AdminAvatar";
 import AdminBadge from "@/components/admin/AdminBadge";
+import AdminFilterPanel from "@/components/admin/AdminFilterPanel";
+import AdminMultiFilterTabs from "@/components/admin/AdminMultiFilterTabs";
 import AdminSearchInput from "@/components/admin/AdminSearchInput";
 import AdminTable, { type AdminTableColumn } from "@/components/admin/AdminTable";
 import { PARTICIPANT_ROLE_GROUP_CODE, PLAYER_POSITION_GROUP_CODE } from "@/lib/constants/commonCodes";
@@ -99,10 +101,6 @@ export default function ParticipantManager({ seasonId, isAddOpen, onAddOpenChang
       : [...new Set([...current, ...visibleParticipantIds])]);
   };
 
-  // 역할 또는 포지션 필터 코드를 개별적으로 켜고 끈다.
-  const toggleFilterCode = (selected: string[], code: string, update: (next: string[]) => void) => {
-    update(selected.includes(code) ? selected.filter((value) => value !== code) : [...selected, code]);
-  };
   // 이름과 역할·포지션 필터를 현재 조회 화면에서 초기화한다.
   const resetParticipantFilters = () => {
     setParticipantQuery(""); setPositionFilters([]); setRoleFilters([]);
@@ -223,12 +221,19 @@ export default function ParticipantManager({ seasonId, isAddOpen, onAddOpenChang
   ];
 
   return <div className="col-span-full flex h-full min-h-[360px] min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#111726] md:p-5">
-    <div className="grid shrink-0 grid-cols-1 gap-3 border-b border-slate-100 pb-3 dark:border-slate-800 xl:grid-cols-[minmax(180px,1fr)_minmax(220px,1fr)_minmax(220px,1fr)_auto] xl:items-end">
-      <AdminSearchInput label="선수 이름 필터" value={participantQuery} onChange={setParticipantQuery} placeholder="선수 이름 검색..." />
-      <fieldset className="min-w-0"><legend className="mb-1 text-xs font-semibold text-slate-600 dark:text-slate-300">포지션 필터 (복수 선택)</legend><div className="flex flex-wrap gap-1.5">{positions.map((position) => <label key={position.code} className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs ${positionFilters.includes(position.code) ? "border-amber-400 bg-amber-50 dark:bg-amber-950/30" : "border-slate-200 dark:border-slate-700"}`}><input type="checkbox" checked={positionFilters.includes(position.code)} onChange={() => toggleFilterCode(positionFilters, position.code, setPositionFilters)} className="accent-[#f99e1a]" />{position.name}</label>)}</div></fieldset>
-      <fieldset className="min-w-0"><legend className="mb-1 text-xs font-semibold text-slate-600 dark:text-slate-300">역할 필터 (복수 선택)</legend><div className="flex flex-wrap gap-1.5">{roles.map((role) => <label key={role.code} className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs ${roleFilters.includes(role.code) ? "border-amber-400 bg-amber-50 dark:bg-amber-950/30" : "border-slate-200 dark:border-slate-700"}`}><input type="checkbox" checked={roleFilters.includes(role.code)} onChange={() => toggleFilterCode(roleFilters, role.code, setRoleFilters)} className="accent-[#f99e1a]" />{role.name}</label>)}</div></fieldset>
-      <div className="flex flex-wrap items-center justify-between gap-2 xl:justify-end"><span className="whitespace-nowrap text-xs text-slate-500">{visibleParticipants.length} / {participants.length}명 조회 · {selectedParticipantIds.length}명 선택</span><button type="button" disabled={!participantQuery && !positionFilters.length && !roleFilters.length} onClick={resetParticipantFilters} className="rounded-lg border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300">필터 초기화</button><button type="button" disabled={!selectedParticipantIds.length || !!busyId} onClick={() => void removeSelectedParticipants()} className="rounded-lg border border-rose-200 px-3 py-2.5 text-xs font-semibold text-rose-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-rose-900 dark:text-rose-400">{busyId === "removing" ? "제외 중..." : "선택 선수 제외"}</button><button type="button" disabled={!dirtyParticipants.length || !!busyId} onClick={() => void saveAll()} className="rounded-lg bg-[#f99e1a] px-4 py-2.5 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{busyId === "saving-all" ? "저장 중..." : `변경 사항 저장 (${dirtyParticipants.length})`}</button></div>
+    <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 dark:border-slate-800">
+      <span className="text-xs text-slate-500">{visibleParticipants.length} / {participants.length}명 조회 · {selectedParticipantIds.length}명 선택</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" disabled={!participantQuery && !positionFilters.length && !roleFilters.length} onClick={resetParticipantFilters} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300">조건 초기화</button>
+        <button type="button" disabled={!selectedParticipantIds.length || !!busyId} onClick={() => void removeSelectedParticipants()} className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-rose-900 dark:text-rose-400">{busyId === "removing" ? "제외 중..." : "선택 선수 제외"}</button>
+        <button type="button" disabled={!dirtyParticipants.length || !!busyId} onClick={() => void saveAll()} className="rounded-lg bg-[#f99e1a] px-4 py-2 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{busyId === "saving-all" ? "저장 중..." : `변경 사항 저장 (${dirtyParticipants.length})`}</button>
+      </div>
     </div>
+    <AdminFilterPanel>
+      <AdminSearchInput label="선수 이름" value={participantQuery} onChange={setParticipantQuery} placeholder="선수 이름 검색..." containerClassName="lg:col-span-3" />
+      <AdminMultiFilterTabs label="포지션" tabs={[{ code: "ALL", name: "전체" }, ...positions]} selectedCodes={positionFilters} onChange={setPositionFilters} containerClassName="lg:col-span-3" />
+      <AdminMultiFilterTabs label="역할" tabs={[{ code: "ALL", name: "전체" }, ...roles]} selectedCodes={roleFilters} onChange={setRoleFilters} containerClassName="lg:col-span-6" />
+    </AdminFilterPanel>
     <div className="flex-1 min-h-0 flex flex-col">
       <AdminTable columns={participantColumns} data={visibleParticipants} keyField="streamerId" onRowClick={(item) => toggleParticipantSelection(item.streamerId)} rowClassName={(item) => selectedParticipantIds.includes(item.streamerId) ? "bg-amber-500/10 dark:bg-amber-500/15" : ""} isLoading={loading} containerClassName="min-h-[260px]" emptyTitle="선수가 없습니다." emptyDescription="필터 조건을 확인하거나 상단에서 선수를 추가하세요." />
     </div>

@@ -19,7 +19,7 @@ export function useMapManagement() {
   const { execute: mutateMap, isPending: isSaving } = useAdminMutation();
   const { codes: mapModes, isLoading: isModesLoading, error: mapModesError } = useCommonCodes(MAP_MODE_GROUP_CODE);
   const [search, setSearch] = useState("");
-  const [modeFilter, setModeFilter] = useState("ALL");
+  const [modeFilter, setModeFilter] = useState<string[]>([]);
   const [poolFilter, setPoolFilter] = useState("ALL");
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
   const [form, setForm] = useState<MapFormData>(EMPTY_MAP_FORM);
@@ -30,11 +30,12 @@ export function useMapManagement() {
 
   const modeNameByCode = useMemo(() => new Map(mapModes.map((mode) => [mode.code, mode.name])), [mapModes]);
   const registeredBySourceKey = useMemo(() => new Map(maps.filter((map) => map.sourceKey).map((map) => [map.sourceKey!, map])), [maps]);
+  // 선택한 맵 모드들을 합집합으로 조회하고 다른 검색 조건과 함께 적용한다.
   const filteredMaps = useMemo(() => {
     const query = search.trim().toLowerCase();
     return maps.filter((map) => {
       const matchesText = !query || [map.nameKr, map.nameEn, map.location].some((value) => value.toLowerCase().includes(query));
-      const matchesMode = modeFilter === "ALL" || map.mode === modeFilter;
+      const matchesMode = modeFilter.length === 0 || modeFilter.includes(map.mode);
       const matchesPool = poolFilter === "ALL" || (poolFilter === "ACTIVE" ? map.isActive : !map.isActive);
       return matchesText && matchesMode && matchesPool;
     });
@@ -42,8 +43,8 @@ export function useMapManagement() {
 
   useEffect(() => { if (mapModesError) showFeedback("MAP_MODE 공통코드를 불러오지 못했습니다."); }, [mapModesError, showFeedback]);
 
-  // 목록 검색과 필터를 초기 상태로 되돌린다.
-  const handleResetFilters = () => { setSearch(""); setModeFilter("ALL"); setPoolFilter("ALL"); };
+  // 목록 검색과 다중 맵 모드 필터를 초기 상태로 되돌린다.
+  const handleResetFilters = () => { setSearch(""); setModeFilter([]); setPoolFilter("ALL"); };
   const handleSelectMap = (map: MapItem) => { setSelectedMapId(map.id); setForm(toMapForm(map)); };
   const handleNew = () => { setSelectedMapId(null); setForm(EMPTY_MAP_FORM); showFeedback("신규 맵 등록 모드로 전환했습니다."); };
   const applySavedMap = (saved: MapItem) => {
@@ -86,5 +87,5 @@ export function useMapManagement() {
     });
   };
 
-  return { externalMaps, filteredMaps, form, handleNew, handleOpenOverFastModal, handleResetFilters, handleSave, handleSaveExternalMaps, handleSelectExternalMap, handleSelectMap, isExternalLoading, isFilterActive: Boolean(search) || modeFilter !== "ALL" || poolFilter !== "ALL", isMapsLoading, isModesLoading, isOverFastModalOpen, isSaving, mapModes, modeFilter, modeNameByCode, poolFilter, registeredBySourceKey, search, selectedExternalKeys, selectedMapId, setForm, setIsOverFastModalOpen, setModeFilter, setPoolFilter, setSearch };
+  return { externalMaps, filteredMaps, form, handleNew, handleOpenOverFastModal, handleResetFilters, handleSave, handleSaveExternalMaps, handleSelectExternalMap, handleSelectMap, isExternalLoading, isFilterActive: Boolean(search) || modeFilter.length > 0 || poolFilter !== "ALL", isMapsLoading, isModesLoading, isOverFastModalOpen, isSaving, mapModes, modeFilter, modeNameByCode, poolFilter, registeredBySourceKey, search, selectedExternalKeys, selectedMapId, setForm, setIsOverFastModalOpen, setModeFilter, setPoolFilter, setSearch };
 }

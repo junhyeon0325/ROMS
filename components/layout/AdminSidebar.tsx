@@ -243,6 +243,7 @@ export default function AdminSidebar() {
                           <Link
                             key={sub.id}
                             href={sub.href || "/admin"}
+                            onMouseEnter={() => { if (sub.href) router.prefetch(sub.href); }}
                             className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs border transition-colors ${
                               isActive
                                 ? "bg-amber-500/10 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold border-amber-500/30 shadow-xs"
@@ -279,6 +280,7 @@ export default function AdminSidebar() {
               <Link
                 key={item.id}
                 href={item.href || "/admin"}
+                onMouseEnter={() => { if (item.href) router.prefetch(item.href); }}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                   isActive
                     ? "bg-[#f99e1a] text-slate-950 font-bold shadow-sm"

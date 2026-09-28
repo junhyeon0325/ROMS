@@ -1,0 +1,11 @@
+-- 기존 일정·상금 행을 보존하며 Prisma 모델에 필요한 생성·수정 시각을 복구한다.
+ALTER TABLE "season_schedules"
+  ADD COLUMN "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE "season_rank_prizes"
+  ADD COLUMN "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE "season_schedules" ALTER COLUMN "updated_at" DROP DEFAULT;
+ALTER TABLE "season_rank_prizes" ALTER COLUMN "updated_at" DROP DEFAULT;

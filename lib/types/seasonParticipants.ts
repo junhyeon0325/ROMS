@@ -8,5 +8,6 @@ export interface SeasonParticipantRecord {
   channelId: string;
   roles: string[];
   position: string | null;
+  draftOrder: number | null;
   registeredDate: string;
 }

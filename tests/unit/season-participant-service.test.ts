@@ -63,6 +63,13 @@ describe("대회 참가자 서비스", () => {
     await expect(addParticipants(BigInt(7), [BigInt(2)], ["COACH"], { "2": "TANK" })).rejects.toMatchObject({ status: 400 });
   });
 
+  it("선수 등록 시 포지션 없이 기본 역할로 저장한다", async () => {
+    mocks.tx.streamer.findMany.mockResolvedValue([{ id: BigInt(1) }]);
+    mocks.tx.seasonParticipant.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([{ ...stored(BigInt(1)), position: null }]);
+    await addParticipants(BigInt(7), [BigInt(1)], ["PLAYER"], { "1": null });
+    expect(mocks.tx.seasonParticipant.createMany).toHaveBeenCalledWith({ data: [{ seasonId: BigInt(7), streamerId: BigInt(1), roles: ["PLAYER"], position: null }] });
+  });
+
   it("선택한 대회의 참가자 포지션과 역할을 수정한다", async () => {
     mocks.prisma.seasonParticipant.findUnique.mockResolvedValue({ id: BigInt(9) });
     mocks.prisma.seasonParticipant.update.mockResolvedValue(stored(BigInt(1), ["CAPTAIN"]));
@@ -85,7 +92,7 @@ describe("대회 참가자 서비스", () => {
     expect(mocks.prisma.seasonParticipant.update).toHaveBeenCalledWith(expect.objectContaining({ data: { roles: ["COACH"], position: null } }));
     await expect(updateParticipantRoles(BigInt(7), BigInt(1), ["COACH"], "TANK")).rejects.toMatchObject({ status: 400 });
     mocks.prisma.seasonParticipant.findUnique.mockResolvedValue({ id: BigInt(9), position: null });
-    await expect(updateParticipantRoles(BigInt(7), BigInt(1), ["PLAYER"])).rejects.toMatchObject({ status: 400 });
+    await expect(updateParticipantRoles(BigInt(7), BigInt(1), ["PLAYER"])).resolves.toBeDefined();
   });
 
   it("여러 참가자를 한 트랜잭션으로 저장하고 같은 값은 한 번에 갱신한다", async () => {
@@ -104,5 +111,12 @@ describe("대회 참가자 서비스", () => {
     expect(mocks.tx.commonCode.findMany).toHaveBeenCalledTimes(2);
     expect(mocks.tx.seasonParticipant.updateMany).toHaveBeenNthCalledWith(1, { where: { seasonId: BigInt(7), streamerId: { in: [BigInt(1), BigInt(2)] } }, data: { roles: ["PLAYER"], position: "TANK" } });
     expect(mocks.tx.seasonParticipant.updateMany).toHaveBeenNthCalledWith(2, { where: { seasonId: BigInt(7), streamerId: { in: [BigInt(3)] } }, data: { roles: ["CAPTAIN"], position: "DAMAGE" } });
+  });
+
+  it("포지션 미지정 참가자의 역할을 목록에서 변경할 수 있다", async () => {
+    mocks.tx.seasonParticipant.findMany.mockResolvedValueOnce([{ id: BigInt(11), streamerId: BigInt(1), position: null }]).mockResolvedValueOnce([{ ...stored(BigInt(1), ["CAPTAIN"]), position: null }]);
+    mocks.tx.seasonParticipant.updateMany.mockResolvedValue({ count: 1 });
+    await updateParticipants(BigInt(7), [{ streamerId: BigInt(1), roles: ["CAPTAIN"] }]);
+    expect(mocks.tx.seasonParticipant.updateMany).toHaveBeenCalledWith({ where: { seasonId: BigInt(7), streamerId: { in: [BigInt(1)] } }, data: { roles: ["CAPTAIN"], position: null } });
   });
 });

@@ -8,6 +8,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type Dispatch,
   type ReactNode,
@@ -43,13 +44,18 @@ function createDataContext<T>(
     const [items, setItems] = useState<T[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
+    const loadedOnce = useRef(false);
+    const requestRunning = useRef(false);
     const refresh = useCallback(async () => {
+      if (requestRunning.current) return;
+      requestRunning.current = true;
       try {
         setError(null);
         setIsLoading(true);
         const json = await loadItems();
         if (json.success && Array.isArray(json.data)) {
           setItems(json.data);
+          loadedOnce.current = true;
         } else {
           setError(new Error(json.message || `${name}을(를) 불러오지 못했습니다.`));
         }
@@ -57,12 +63,13 @@ function createDataContext<T>(
         console.error(`Failed to load ${name}:`, cause);
         setError(cause instanceof Error ? cause : new Error(`${name}을(를) 불러오지 못했습니다.`));
       } finally {
+        requestRunning.current = false;
         setIsLoading(false);
       }
     }, []);
-    // 현재 페이지가 이 도메인 데이터를 필요로 할 때만 API 목록을 요청한다.
+    // 필요한 메뉴의 첫 진입에만 목록을 요청하고 같은 관리자 세션에서는 보관된 목록을 재사용한다.
     useEffect(() => {
-      if (shouldLoad(pathname)) void refresh();
+      if (shouldLoad(pathname) && !loadedOnce.current && !requestRunning.current) void refresh();
     }, [pathname, refresh]);
     return (
       <Context.Provider value={{ items, setItems, refresh, isLoading, error }}>
@@ -82,7 +89,7 @@ const isDashboard = (pathname: string) => pathname === "/admin";
 const streamers = createDataContext<StreamerItem>(
   "streamers",
   fetchStreamers,
-  (pathname) => isDashboard(pathname) || pathname.startsWith("/admin/streamers") || pathname.startsWith("/admin/members") || pathname.startsWith("/admin/seasons"),
+  (pathname) => isDashboard(pathname) || pathname.startsWith("/admin/streamers") || pathname.startsWith("/admin/members") || pathname.startsWith("/admin/seasons/structure"),
 );
 const maps = createDataContext<MapItem>("maps", fetchMaps, (pathname) => isDashboard(pathname) || pathname.startsWith("/admin/maps"));
 const heroes = createDataContext<HeroItem>("heroes", fetchHeroes, (pathname) => isDashboard(pathname) || pathname.startsWith("/admin/heroes"));

@@ -50,6 +50,12 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
                 href: "/admin/seasons/maps",
                 description: "대회별 사용할 기존 맵을 선택하고 순서를 관리합니다.",
             },
+            {
+                id: "season-draft",
+                label: "팀 구성 및 드래프트",
+                href: "/admin/seasons/draft",
+                description: "대회별 팀, 감독·선수 배정 및 단일 지명 순서를 관리합니다.",
+            },
         ],
     },
     {

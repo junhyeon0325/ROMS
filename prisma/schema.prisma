@@ -93,23 +93,6 @@ model SeasonRankPrize {
   @@map("season_rank_prizes")
 }
 
-model Team {
-  id        BigInt  @id @default(autoincrement())
-  name      String
-  emblemUrl String? @map("emblem_url")
-
-  createdBy String?  @map("created_by")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedBy String?  @map("updated_by")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  remarks   String?  @map("remarks")
-
-  seasonTeams SeasonTeam[]
-  heroBans    HeroBan[]
-
-  @@map("teams")
-}
-
 model Streamer {
   id              BigInt  @id @default(autoincrement())
   name            String
@@ -133,9 +116,11 @@ model Streamer {
 }
 
 model SeasonTeam {
-  id       BigInt @id @default(autoincrement())
-  seasonId BigInt @map("season_id")
-  teamId   BigInt @map("team_id")
+  id        BigInt  @id @default(autoincrement())
+  seasonId  BigInt  @map("season_id")
+  name      String
+  emblemUrl String? @map("emblem_url")
+  sortOrder Int?    @map("sort_order")
 
   createdBy String?  @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
@@ -143,19 +128,24 @@ model SeasonTeam {
   updatedAt DateTime @updatedAt @map("updated_at")
   remarks   String?  @map("remarks")
 
-  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  season      Season             @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  members     SeasonTeamMember[]
+  teamAMatches Match[]            @relation("MatchTeamA")
+  teamBMatches Match[]            @relation("MatchTeamB")
+  wonMatches   Match[]            @relation("MatchWinnerTeam")
+  wonSets      MatchSet[]         @relation("MatchSetWinnerTeam")
+  heroBans     HeroBan[]
 
-  members SeasonTeamMember[]
-
+  @@unique([seasonId, sortOrder])
   @@map("season_teams")
 }
 
 model SeasonTeamMember {
   id           BigInt   @id @default(autoincrement())
+  seasonId     BigInt   @map("season_id")
   seasonTeamId BigInt   @map("season_team_id")
   streamerId   BigInt   @map("streamer_id")
-  position     Position
+  position     String?
 
   createdBy String?  @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
@@ -166,6 +156,7 @@ model SeasonTeamMember {
   seasonTeam SeasonTeam @relation(fields: [seasonTeamId], references: [id], onDelete: Cascade)
   streamer   Streamer   @relation(fields: [streamerId], references: [id], onDelete: Cascade)
 
+  @@unique([seasonId, streamerId])
   @@map("season_team_members")
 }
 
@@ -175,6 +166,7 @@ model SeasonParticipant {
   streamerId BigInt   @map("streamer_id")
   roles      String[]
   position   String?
+  draftOrder Int?     @map("draft_order")
   createdBy  String?  @map("created_by")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedBy  String?  @map("updated_by")
@@ -184,6 +176,7 @@ model SeasonParticipant {
   streamer Streamer @relation(fields: [streamerId], references: [id], onDelete: Restrict)
 
   @@unique([seasonId, streamerId])
+  @@unique([seasonId, draftOrder])
   @@map("season_participants")
 }
 
@@ -204,6 +197,9 @@ model Match {
 
   season Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   sets   MatchSet[]
+  teamA  SeasonTeam @relation("MatchTeamA", fields: [teamAId], references: [id], onDelete: Cascade)
+  teamB  SeasonTeam @relation("MatchTeamB", fields: [teamBId], references: [id], onDelete: Cascade)
+  winnerTeam SeasonTeam? @relation("MatchWinnerTeam", fields: [winnerTeamId], references: [id], onDelete: Cascade)
 
   @@map("matches")
 }
@@ -266,6 +262,7 @@ model MatchSet {
 
   match Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
   map   MapItem @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  winnerTeam SeasonTeam @relation("MatchSetWinnerTeam", fields: [winnerTeamId], references: [id], onDelete: Cascade)
 
   playerStats PlayerSetStat[]
   heroBans    HeroBan[]
@@ -334,7 +331,7 @@ model HeroBan {
   remarks   String?  @map("remarks")
 
   matchSet MatchSet @relation(fields: [matchSetId], references: [id], onDelete: Cascade)
-  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team     SeasonTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
   hero     Hero     @relation(fields: [heroId], references: [id], onDelete: Restrict)
 
   @@map("hero_bans")

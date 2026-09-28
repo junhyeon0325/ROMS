@@ -50,8 +50,6 @@ export default function ParticipantManager({ seasonId, isAddOpen, onAddOpenChang
   const [busyId, setBusyId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [newRoles, setNewRoles] = useState<string[]>([]);
-  const [newPositions, setNewPositions] = useState<Record<string, string>>({});
   const [participantQuery, setParticipantQuery] = useState("");
   const [positionFilters, setPositionFilters] = useState<string[]>([]);
   const [roleFilters, setRoleFilters] = useState<string[]>([]);
@@ -130,25 +128,19 @@ export default function ParticipantManager({ seasonId, isAddOpen, onAddOpenChang
   const columns: AdminTableColumn<StreamerItem>[] = [
     { key: "select", header: <input type="checkbox" checked={allVisibleSelected} disabled={!selectableVisibleIds.length} onChange={toggleVisible} ref={(input) => { if (input) input.indeterminate = partlyVisibleSelected; }} aria-label="검색 결과 전체 선택" className="h-4 w-4 accent-[#f99e1a] disabled:cursor-not-allowed disabled:opacity-40" />, width: "w-16", align: "center", render: (member) => <input type="checkbox" checked={selectedIds.includes(member.id)} disabled={existingIds.has(member.id)} onClick={(event) => event.stopPropagation()} onChange={() => toggleStreamer(member)} aria-label={`${member.name} 선택`} className="h-4 w-4 accent-[#f99e1a] disabled:cursor-not-allowed disabled:opacity-40" /> },
     { key: "name", header: "스트리머 / 채널", width: "min-w-[240px]", render: (member) => <div className="flex items-center gap-2.5"><AdminAvatar name={member.name} profileImg={member.profileImg} size="w-9 h-9 text-xs" /><div className="min-w-0"><p className="truncate font-bold text-slate-900 dark:text-slate-100">{member.name}</p>{member.channelId ? <a href={getChzzkChannelUrl(member.channelId)} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} className="mt-0.5 inline-flex rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-600 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400">치지직 바로가기 ↗</a> : <span className="text-[11px] text-slate-500">일반 등록</span>}</div></div> },
-    { key: "position", header: "포지션", width: "min-w-[220px]", render: (member) => <PositionSelector label={`${member.name} 포지션`} options={positions} value={newRoles.includes("COACH") ? "" : newPositions[member.id] || ""} disabled={!!busyId || newRoles.includes("COACH")} onChange={(value) => setNewPositions((current) => ({ ...current, [member.id]: value }))} /> },
     { key: "type", header: "구분", width: "w-28", render: (member) => <span className="text-[11px] text-slate-500">{member.type}</span> },
     { key: "status", header: "상태", width: "w-28", render: (member) => existingIds.has(member.id) ? <AdminBadge variant="success">이미 참가</AdminBadge> : <AdminBadge variant="neutral">등록 가능</AdminBadge> },
   ];
 
-  // 선택 모달을 열 때 현재 공통코드의 선수 역할을 기본값으로 넣는다.
-  const openAdd = () => {
-    setQuery(""); setSelectedIds([]); setNewPositions({});
-    setNewRoles(roles.some((role) => role.code === "PLAYER") ? ["PLAYER"] : roles[0] ? [roles[0].code] : []);
-    onAddOpenChange(true);
-  };
+  // 새 등록 모달을 열 때 이전 검색과 선택을 초기화한다.
+  useEffect(() => { if (isAddOpen) { setQuery(""); setSelectedIds([]); } }, [isAddOpen]);
 
-  // 선택한 스트리머별 포지션과 공통 역할을 한 요청으로 저장하고 목록을 갱신한다.
+  // 선택한 스트리머를 기본 선수 역할과 미지정 포지션으로 등록한다.
   const addSelected = async () => {
-    const isCoach = newRoles.includes("COACH");
-    if (!selectedIds.length || !newRoles.length || (!isCoach && selectedIds.some((id) => !newPositions[id])) || busyId) return;
+    if (!selectedIds.length || busyId) return;
     setBusyId("adding");
     try {
-      const result = await addSeasonParticipants(seasonId, selectedIds, newRoles, Object.fromEntries(selectedIds.map((id) => [id, isCoach ? null : newPositions[id]])));
+      const result = await addSeasonParticipants(seasonId, selectedIds, ["PLAYER"], Object.fromEntries(selectedIds.map((id) => [id, null])));
       if (!result.success || !result.data) { showFeedback(result.message || "참가자 등록에 실패했습니다."); return; }
       setParticipants((current) => [...current, ...result.data!.filter((item) => !current.some((saved) => saved.streamerId === item.streamerId))]);
       onAddOpenChange(false); showFeedback(`${result.data.length}명의 참가자를 등록했습니다.`);
@@ -231,17 +223,16 @@ export default function ParticipantManager({ seasonId, isAddOpen, onAddOpenChang
     </div>
     <AdminFilterPanel>
       <AdminSearchInput label="선수 이름" value={participantQuery} onChange={setParticipantQuery} placeholder="선수 이름 검색..." containerClassName="lg:col-span-3" />
-      <AdminMultiFilterTabs label="포지션" tabs={[{ code: "ALL", name: "전체" }, ...positions]} selectedCodes={positionFilters} onChange={setPositionFilters} containerClassName="lg:col-span-3" />
+      <AdminMultiFilterTabs label="포지션" tabs={[{ code: "ALL", name: "전체" }, ...positions.filter((position) => position.code !== "TANK")]} selectedCodes={positionFilters} onChange={setPositionFilters} containerClassName="lg:col-span-3" />
       <AdminMultiFilterTabs label="역할" tabs={[{ code: "ALL", name: "전체" }, ...roles]} selectedCodes={roleFilters} onChange={setRoleFilters} containerClassName="lg:col-span-6" />
     </AdminFilterPanel>
     <div className="flex-1 min-h-0 flex flex-col">
       <AdminTable columns={participantColumns} data={visibleParticipants} keyField="streamerId" onRowClick={(item) => toggleParticipantSelection(item.streamerId)} rowClassName={(item) => selectedParticipantIds.includes(item.streamerId) ? "bg-amber-500/10 dark:bg-amber-500/15" : ""} isLoading={loading} containerClassName="min-h-[260px]" emptyTitle="선수가 없습니다." emptyDescription="필터 조건을 확인하거나 상단에서 선수를 추가하세요." />
     </div>
-    <AdminModal isOpen={isAddOpen} onClose={() => { if (!busyId) onAddOpenChange(false); }} title="선수 추가" description="스트리머를 선택하고 각 선수의 포지션을 지정하세요." maxWidth="4xl" bodyClassName="p-5 overflow-y-auto flex-1 min-h-0 space-y-4" footer={<div className="flex items-center justify-between gap-3"><span className="text-[11px] text-slate-500">{selectedIds.length}명 선택됨 · {newRoles.includes("COACH") ? "감독 역할은 포지션을 지정하지 않습니다." : `포지션 미지정 ${selectedIds.filter((id) => !newPositions[id]).length}명`}</span><div className="flex gap-2"><button type="button" disabled={!!busyId} onClick={() => onAddOpenChange(false)} className="rounded-lg border px-3 py-2 text-xs disabled:opacity-50 dark:border-slate-700">취소</button><button type="button" disabled={!selectedIds.length || (!newRoles.includes("COACH") && selectedIds.some((id) => !newPositions[id])) || !newRoles.length || !!busyId} onClick={() => void addSelected()} className="rounded-lg bg-[#f99e1a] px-4 py-2 text-xs font-bold text-slate-950 disabled:opacity-50">{selectedIds.length}명 등록</button></div></div>}>
+    <AdminModal isOpen={isAddOpen} onClose={() => { if (!busyId) onAddOpenChange(false); }} title="선수 추가" description="대회에 등록할 스트리머를 선택하세요. 역할과 포지션은 등록 후 지정할 수 있습니다." maxWidth="4xl" bodyClassName="p-5 overflow-y-auto flex-1 min-h-0 space-y-4" footer={<div className="flex items-center justify-between gap-3"><span className="text-[11px] text-slate-500">{selectedIds.length}명 선택됨</span><div className="flex gap-2"><button type="button" disabled={!!busyId} onClick={() => onAddOpenChange(false)} className="rounded-lg border px-3 py-2 text-xs disabled:opacity-50 dark:border-slate-700">취소</button><button type="button" disabled={!selectedIds.length || !!busyId} onClick={() => void addSelected()} className="rounded-lg bg-[#f99e1a] px-4 py-2 text-xs font-bold text-slate-950 disabled:opacity-50">{selectedIds.length}명 등록</button></div></div>}>
       <AdminSearchInput label="등록된 스트리머 검색" value={query} onChange={setQuery} placeholder="스트리머 이름 또는 채널 ID를 입력하세요..." />
       <div className="text-xs text-slate-500">검색 결과 {candidates.length}명</div>
       <div className="flex h-[380px] min-h-0 shrink-0 flex-col"><AdminTable columns={columns} data={candidates} keyField="id" onRowClick={toggleStreamer} rowClassName={(member) => existingIds.has(member.id) ? "cursor-not-allowed opacity-60" : selectedIds.includes(member.id) ? "bg-amber-500/10 dark:bg-amber-500/15" : ""} emptyIcon="🔎" emptyTitle="검색 결과가 없습니다." emptyDescription="스트리머 이름 또는 채널 ID를 확인해주세요." /></div>
-      <div><div className="text-xs font-semibold">등록 시 역할</div><div className="mt-2 flex flex-wrap gap-2">{roles.map((role) => <label key={role.code} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs dark:border-slate-700"><input type="checkbox" checked={newRoles.includes(role.code)} onChange={() => setNewRoles((current) => toggleRole(current, role.code))} />{role.name}</label>)}</div></div>
     </AdminModal>
   </div>;
 }

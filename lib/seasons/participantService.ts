@@ -15,8 +15,8 @@ export interface ParticipantRoleUpdate {
 const includeStreamer = { streamer: true } as const;
 
 // DB 참가 관계를 화면에서 사용할 문자열 ID와 역할 코드로 변환한다.
-function toDto(item: { id: bigint; seasonId: bigint; streamerId: bigint; roles: string[]; position: string | null; createdAt: Date; streamer: { name: string; profileImageUrl: string | null; chzzkChannelId: string | null } }) {
-  return { id: item.id.toString(), seasonId: item.seasonId.toString(), streamerId: item.streamerId.toString(), name: item.streamer.name, profileImg: item.streamer.profileImageUrl || "", channelId: item.streamer.chzzkChannelId || "", roles: item.roles, position: item.position, registeredDate: item.createdAt.toISOString().slice(0, 10) };
+function toDto(item: { id: bigint; seasonId: bigint; streamerId: bigint; roles: string[]; position: string | null; draftOrder: number | null; createdAt: Date; streamer: { name: string; profileImageUrl: string | null; chzzkChannelId: string | null } }) {
+  return { id: item.id.toString(), seasonId: item.seasonId.toString(), streamerId: item.streamerId.toString(), name: item.streamer.name, profileImg: item.streamer.profileImageUrl || "", channelId: item.streamer.chzzkChannelId || "", roles: item.roles, position: item.position, draftOrder: item.draftOrder, registeredDate: item.createdAt.toISOString().slice(0, 10) };
 }
 
 // 선택한 대회의 참가자를 등록 순서로 조회한다.
@@ -41,7 +41,7 @@ async function assertPositions(positions: string[]) {
   if (positions.some((position) => !allowed.has(position))) throw new ParticipantError("사용할 수 없는 선수 포지션이 포함되어 있습니다.", 400);
 }
 
-// 대회·스트리머·역할을 검증하고 한 대회에 동일 스트리머를 한 번만 등록한다.
+// 대회·스트리머·역할을 검증하고 포지션 미지정 선수도 중복 없이 등록한다.
 export async function addParticipants(seasonId: bigint, streamerIds: bigint[], roles: string[], positions: Record<string, string | null>) {
   if (!streamerIds.length || new Set(streamerIds.map(String)).size !== streamerIds.length) throw new ParticipantError("스트리머를 중복 없이 선택해주세요.", 400);
   await assertRoles(roles);
@@ -49,8 +49,8 @@ export async function addParticipants(seasonId: bigint, streamerIds: bigint[], r
   if (Object.keys(positions).length !== streamerIds.length || streamerIds.some((streamerId) => !Object.prototype.hasOwnProperty.call(positions, streamerId.toString()))) throw new ParticipantError("선수별 포지션을 모두 지정해주세요.", 400);
   if (roles.includes("COACH")) {
     if (participantPositions.some((position) => position !== null)) throw new ParticipantError("감독 역할 선수에게 포지션을 지정할 수 없습니다.", 400);
-  } else {
-    await assertPositions(participantPositions.map((position) => position || ""));
+  } else if (participantPositions.some((position) => position !== null)) {
+    await assertPositions(participantPositions.filter((position): position is string => position !== null));
   }
   return prisma.$transaction(async (tx) => {
     const season = await tx.season.findUnique({ where: { id: seasonId }, select: { id: true } });
@@ -76,7 +76,7 @@ export async function updateParticipantRoles(seasonId: bigint, streamerId: bigin
   if (!existing) throw new ParticipantError("참가자를 찾을 수 없습니다.", 404);
   const nextPosition = roles.includes("COACH") ? null : position === undefined ? existing.position : position;
   if (roles.includes("COACH")) position = null;
-  else await assertPositions([nextPosition || ""]);
+  else if (nextPosition !== null) await assertPositions([nextPosition]);
   return toDto(await prisma.seasonParticipant.update({ where: { id: existing.id }, data: { roles, ...(position !== undefined ? { position } : {}) }, include: includeStreamer }));
 }
 
@@ -102,9 +102,8 @@ export async function updateParticipants(seasonId: bigint, updates: ParticipantR
       }
       return { ...item, position: item.position === undefined ? current.position : item.position };
     });
-    const positions = normalized.filter((item) => !item.roles.includes("COACH")).map((item) => item.position || "");
+    const positions = normalized.filter((item) => !item.roles.includes("COACH") && item.position !== null).map((item) => item.position!);
     if (positions.length) {
-      if (positions.some((position) => !position)) throw new ParticipantError("선수 포지션을 선택해주세요.", 400);
       const positionCodes = await tx.commonCode.findMany({ where: { groupCode: PLAYER_POSITION_GROUP_CODE, isUse: true }, select: { code: true } });
       const allowedPositions = new Set(positionCodes.map((item) => item.code));
       if (positions.some((position) => !allowedPositions.has(position))) throw new ParticipantError("사용할 수 없는 선수 포지션이 포함되어 있습니다.", 400);

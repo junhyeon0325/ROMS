@@ -9,7 +9,6 @@ import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
 import SeasonInlineSelect from "@/components/admin/SeasonInlineSelect";
 import ParticipantManager from "./ParticipantManager";
-import Link from "next/link";
 
 interface GroupTeam {
   id: string;
@@ -25,7 +24,7 @@ interface Group {
 
 // 선택한 대회의 참가자 관리와 기존 구성 탭을 함께 표시한다.
 export default function AdminSeasonStructurePage() {
-  const { seasons, seasonsStatus, reloadSeasons, showFeedback } = useAdmin();
+  const { seasons, showFeedback } = useAdmin();
   const [selectedSeasonId, setSelectedSeasonId] = useState("");
   const [activeTab, setActiveTab] = useState<"participants" | "groups" | "bracket" | "rules">("participants");
   const [groups, setGroups] = useState<Group[]>([]);
@@ -67,8 +66,7 @@ export default function AdminSeasonStructurePage() {
   return (
     <section className="h-full min-h-0 flex flex-col gap-4">
       {/* 1) 대회 기본 정보 요약 바 & 탭 네비게이션 */}
-      {selectedSeason ? (
-        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-slate-800/10 border border-amber-500/20 dark:border-amber-500/20 rounded-2xl p-4 md:p-5 flex flex-wrap items-center justify-between gap-4 shrink-0">
+      <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-slate-800/10 border border-amber-500/20 dark:border-amber-500/20 rounded-2xl p-4 md:p-5 flex flex-wrap items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
             <span className="w-9 h-9 rounded-xl bg-[#f99e1a] text-slate-950 flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
               🏆
@@ -76,9 +74,9 @@ export default function AdminSeasonStructurePage() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-white">
-                  {selectedSeason.name}
+                  {selectedSeason?.name || "대회 선수 등록 및 역할 배정"}
                 </h2>
-                <span
+                {selectedSeason && <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                     selectedSeason.status === "진행중"
                       ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400"
@@ -88,35 +86,23 @@ export default function AdminSeasonStructurePage() {
                   }`}
                 >
                   {selectedSeason.status}
-                </span>
+                </span>}
               </div>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">총 상금: {selectedSeason.prize}</p>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{selectedSeason ? `총 상금: ${selectedSeason.prize}` : "대회를 선택해 참가자와 역할을 관리하세요."}</p>
             </div>
           </div>
 
           {/* 시즌 선택과 참가자 추가를 상단 시즌 정보에 배치한다. */}
           <div className="flex flex-wrap items-center gap-2">
             <SeasonInlineSelect seasons={seasons} value={selectedSeasonId} onChange={selectSeason} />
-            <button type="button" onClick={() => setParticipantModalOpen(true)} className="rounded-lg bg-[#f99e1a] px-4 py-2 text-xs font-bold text-slate-950">
+            <button type="button" onClick={() => setParticipantModalOpen(true)} disabled={!selectedSeason} className="rounded-lg bg-[#f99e1a] px-4 py-2 text-xs font-bold text-slate-950 disabled:opacity-50">
               + 선수 추가
             </button>
           </div>
         </div>
-      ) : (
-        <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center text-xs text-slate-500 dark:text-slate-400 shrink-0">
-          <span className="text-3xl block mb-2">🏆</span>
-          <p className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">
-            {seasonsStatus === "loading" ? "대회 목록을 불러오는 중..." : seasonsStatus === "error" ? "대회 목록을 불러오지 못했습니다." : seasons.length ? "대회를 선택해주세요." : "등록된 대회가 없습니다."}
-          </p>
-          <p className="text-slate-400 dark:text-slate-500 mb-4">
-            {seasonsStatus === "loading" ? "잠시만 기다려주세요." : seasonsStatus === "error" ? "다시 시도해 주세요." : seasons.length ? "참가자를 조회하고 편집할 대회를 선택하세요." : "대회 구성을 설정하려면 먼저 대회를 생성해 주세요."}
-          </p>
-          {seasonsStatus === "error" ? <button type="button" onClick={reloadSeasons} className="inline-flex items-center rounded-lg bg-[#f99e1a] px-3.5 py-2 text-xs font-bold text-slate-950">다시 시도</button> : seasonsStatus === "ready" && (seasons.length ? <SeasonInlineSelect seasons={seasons} value={selectedSeasonId} onChange={selectSeason} prominent /> : <Link href="/admin/seasons" className="inline-flex items-center rounded-lg bg-[#f99e1a] px-3.5 py-2 text-xs font-bold text-slate-950">+ 새 대회 등록하기</Link>)}
-        </div>
-      )}
 
       {/* 3) 2단 분할 레이아웃 */}
-      {selectedSeason && <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 min-h-0">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 min-h-0">
         {/* ========================================================= */}
         {/* 탭 1: 참가 인원 및 역할 관리 */}
         {/* ========================================================= */}
@@ -423,7 +409,7 @@ export default function AdminSeasonStructurePage() {
             </div>
           </>
         )}
-      </div>}
+      </div>
     </section>
   );
 }

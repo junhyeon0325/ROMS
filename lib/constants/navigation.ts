@@ -39,16 +39,16 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
                 description: "시즌 및 정규 리그 대회 정보 등록 및 진행 상태 관리",
             },
             {
-                id: "season-structure",
-                label: "대회 선수 등록 및 역할 배정",
-                href: "/admin/seasons/structure",
-                description: "대회별 참가 인원 및 역할(팀장·선수·감독) 배정, 조 편성, 토너먼트 규정 구성 관리",
-            },
-            {
                 id: "season-maps",
                 label: "대회 맵 구성",
                 href: "/admin/seasons/maps",
                 description: "대회별 사용할 기존 맵을 선택하고 순서를 관리합니다.",
+            },
+            {
+                id: "season-structure",
+                label: "대회 선수 등록 및 역할 배정",
+                href: "/admin/seasons/structure",
+                description: "대회별 참가 인원 및 역할(팀장·선수·감독) 배정, 조 편성, 토너먼트 규정 구성 관리",
             },
             {
                 id: "season-draft",

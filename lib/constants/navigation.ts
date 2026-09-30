@@ -56,6 +56,25 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
                 href: "/admin/seasons/draft",
                 description: "대회별 팀, 감독·선수 배정 및 단일 지명 순서를 관리합니다.",
             },
+            {
+                id: "season-team-names",
+                label: "팀명 지정하기",
+                href: "/admin/seasons/team-names",
+                description: "대회별 팀의 이름을 확인하고 지정합니다.",
+            },
+        ],
+    },
+    {
+        id: "season-operations",
+        label: "대회 운영 관리",
+        icon: "trophy",
+        children: [
+            {
+                id: "match-records",
+                label: "경기 기록 관리",
+                href: "/admin/matches",
+                description: "상단에서 경기를 등록하고 하단에서 선택 경기의 세트 기록을 관리합니다.",
+            },
         ],
     },
     {

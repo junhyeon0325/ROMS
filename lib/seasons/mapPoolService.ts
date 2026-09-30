@@ -7,13 +7,14 @@ import { prisma } from "@/lib/prisma";
 export async function findSeasonMaps(seasonId: bigint) {
   const rows = await prisma.seasonMap.findMany({
     where: { seasonId },
-    include: { map: true },
+    include: { map: { include: { subareas: { orderBy: [{ sortOrder: "asc" }, { id: "asc" }] } } } },
     orderBy: { sortOrder: "asc" },
   });
   return rows.map(({ map, sortOrder }) => ({
     id: map.id.toString(), nameKr: map.name, nameEn: map.nameEn,
     mode: map.mapType, location: map.location, imageUrl: map.imageUrl,
     isActive: map.isActive, sortOrder,
+    subareas: map.subareas.map((area) => ({ id: String(area.id), mapId: String(area.mapId), name: area.name, nameEn: area.nameEn ?? "", sortOrder: area.sortOrder })),
   }));
 }
 
@@ -24,6 +25,9 @@ export async function saveSeasonMaps(seasonId: bigint, mapIds: bigint[]) {
     if (!season) throw new Error("대회를 찾을 수 없습니다.");
     const maps = await tx.mapItem.findMany({ where: { id: { in: mapIds }, isActive: true }, select: { id: true } });
     if (maps.length !== mapIds.length) throw new Error("선택한 맵 중 사용할 수 없는 맵이 있습니다.");
+    const current = await tx.seasonMap.findMany({ where: { seasonId }, select: { mapId: true } });
+    const removed = current.map((item) => item.mapId).filter((id) => !mapIds.includes(id));
+    if (removed.length && await tx.matchSet.count({ where: { mapId: { in: removed }, match: { seasonId } } })) throw new Error("경기 세트에 사용된 맵은 대회 맵 구성에서 제외할 수 없습니다.");
     await tx.seasonMap.deleteMany({ where: { seasonId } });
     if (mapIds.length) await tx.seasonMap.createMany({ data: mapIds.map((mapId, sortOrder) => ({ seasonId, mapId, sortOrder })) });
     return findSeasonMapsInTransaction(tx, seasonId);
@@ -32,6 +36,6 @@ export async function saveSeasonMaps(seasonId: bigint, mapIds: bigint[]) {
 
 // 같은 트랜잭션 안에서 저장한 맵 구성을 순서대로 반환한다.
 async function findSeasonMapsInTransaction(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], seasonId: bigint) {
-  const rows = await tx.seasonMap.findMany({ where: { seasonId }, include: { map: true }, orderBy: { sortOrder: "asc" } });
-  return rows.map(({ map, sortOrder }) => ({ id: map.id.toString(), nameKr: map.name, nameEn: map.nameEn, mode: map.mapType, location: map.location, imageUrl: map.imageUrl, isActive: map.isActive, sortOrder }));
+  const rows = await tx.seasonMap.findMany({ where: { seasonId }, include: { map: { include: { subareas: { orderBy: [{ sortOrder: "asc" }, { id: "asc" }] } } } }, orderBy: { sortOrder: "asc" } });
+  return rows.map(({ map, sortOrder }) => ({ id: map.id.toString(), nameKr: map.name, nameEn: map.nameEn, mode: map.mapType, location: map.location, imageUrl: map.imageUrl, isActive: map.isActive, sortOrder, subareas: map.subareas.map((area) => ({ id: String(area.id), mapId: String(area.mapId), name: area.name, nameEn: area.nameEn ?? "", sortOrder: area.sortOrder })) }));
 }

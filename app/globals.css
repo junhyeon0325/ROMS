@@ -40,6 +40,17 @@ select:focus-visible {
   outline: none !important;
 }
 
+.match-score-input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.match-score-input::-webkit-inner-spin-button,
+.match-score-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 
 body {
   background: var(--bg);
@@ -80,4 +91,4 @@ html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
 }
 html.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.45);
-}
+}

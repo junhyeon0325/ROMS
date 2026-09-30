@@ -43,7 +43,7 @@ function AdminSeasonProvider({ children }: { children: ReactNode }) {
   const reloadSeasons = () => { if (!seasonRequestRunning.current) setReloadToken((current) => current + 1); };
   // 대회 데이터가 필요한 메뉴에 처음 들어갈 때만 목록을 요청하고 메뉴 전환에는 캐시를 사용한다.
   useEffect(() => {
-    if (seasonsLoaded.current || seasonRequestRunning.current || (pathname !== "/admin" && !pathname.startsWith("/admin/seasons"))) return;
+    if (seasonsLoaded.current || seasonRequestRunning.current || (pathname !== "/admin" && !pathname.startsWith("/admin/seasons") && !pathname.startsWith("/admin/matches"))) return;
     seasonRequestRunning.current = true;
     setSeasonsStatus("loading");
     fetchSeasons().then((result) => {

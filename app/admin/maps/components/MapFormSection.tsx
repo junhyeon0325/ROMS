@@ -9,6 +9,7 @@ import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
 import AdminFormField from "@/components/admin/AdminFormField";
 import AdminStatusRadio from "@/components/admin/AdminStatusRadio";
+import MapSubareaEditor from "./MapSubareaEditor";
 
 interface MapFormSectionProps {
   selectedMapId: string | null;
@@ -187,6 +188,7 @@ export default function MapFormSection({
               className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-[#f99e1a] focus:outline-none dark:border-slate-700 dark:bg-slate-800"
             />
           </AdminFormField>
+          <MapSubareaEditor mapId={selectedMapId} disabled={isSaving} />
         </div>
       </AdminCard>
     </div>

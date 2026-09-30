@@ -4,6 +4,14 @@
 
 import type { ContentSource } from "@/lib/types/content";
 
+export interface MapSubareaItem {
+  id: string;
+  mapId: string;
+  name: string;
+  nameEn: string;
+  sortOrder: number;
+}
+
 export interface MapItem {
   id: string;
   nameKr: string;
@@ -16,6 +24,7 @@ export interface MapItem {
   source?: ContentSource;
   sourceKey?: string;
   desc?: string;
+  subareas?: MapSubareaItem[];
 }
 
 export interface ExternalMap {

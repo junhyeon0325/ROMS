@@ -9,6 +9,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { ADMIN_NAV_ITEMS } from "@/lib/constants/navigation";
 import { useAdminUi } from "@/lib/context/AdminFeatureContexts";
 
@@ -16,6 +17,19 @@ export default function AdminSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { menuSearchQuery, setMenuSearchQuery, isDarkMode, toggleDarkMode } = useAdminUi();
+  const [isSidebarHidden, setIsSidebarHidden] = useState(false);
+
+  // 사용자가 선택한 사이드바 표시 상태를 브라우저 저장소에서 복원한다.
+  useEffect(() => {
+    setIsSidebarHidden(localStorage.getItem("roms_admin_sidebar_hidden") === "true");
+  }, []);
+
+  // 사이드바를 접거나 펼치고 다음 방문을 위해 선택을 저장한다.
+  const toggleSidebar = () => {
+    const next = !isSidebarHidden;
+    setIsSidebarHidden(next);
+    localStorage.setItem("roms_admin_sidebar_hidden", String(next));
+  };
 
   // 메뉴 활성화(선택) 여부 판정
   const isItemActive = (href?: string) => {
@@ -110,13 +124,14 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white dark:bg-[#111726] border-r border-slate-200 dark:border-slate-800 flex flex-col p-5 md:p-6 sticky top-0 h-screen shrink-0 z-30 justify-between">
+    <>
+    {!isSidebarHidden ? <aside className="w-64 bg-white dark:bg-[#111726] border-r border-slate-200 dark:border-slate-800 flex flex-col p-5 md:p-6 sticky top-0 h-screen shrink-0 z-30 justify-between">
       {/* 1) 브랜드 로고 & 메뉴 검색 & 네비게이션 메뉴 */}
-      <div className="flex flex-col flex-1 min-h-0 mb-3">
+      <div className="relative flex flex-col flex-1 min-h-0 mb-3">
         {/* 로고 */}
         <Link
           href="/admin"
-          className="font-black text-xl tracking-tight mb-4 pb-3 border-b border-slate-200/80 dark:border-slate-800 flex items-center gap-1 text-slate-900 dark:text-white shrink-0"
+          className="font-black text-xl tracking-tight mb-4 pb-3 pr-8 border-b border-slate-200/80 dark:border-slate-800 flex items-center gap-1 text-slate-900 dark:text-white shrink-0"
           title="관리자 대시보드로 이동"
         >
           RO<span className="text-[#f99e1a]">MS</span>{" "}
@@ -124,6 +139,9 @@ export default function AdminSidebar() {
             ADMIN
           </span>
         </Link>
+        <button type="button" onClick={toggleSidebar} aria-label="왼쪽 메뉴 숨기기" title="왼쪽 메뉴 숨기기" className="absolute right-0 top-0 rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white">
+          <PanelLeftClose size={17} />
+        </button>
 
         {/* 좌측 메뉴 검색 입력창 */}
         <div className="relative mb-3 shrink-0">
@@ -176,7 +194,7 @@ export default function AdminSidebar() {
                     title={item.label}
                   >
                     <div className="flex items-center gap-2">
-                      {item.id === "seasons" ? (
+                      {item.id === "seasons" || item.id === "season-operations" ? (
                         <svg
                           className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0"
                           viewBox="0 0 24 24"
@@ -345,6 +363,9 @@ export default function AdminSidebar() {
           ← 사용자 대시보드
         </Link>
       </div>
-    </aside>
+    </aside> : <div className="flex h-screen w-12 shrink-0 items-start justify-center border-r border-slate-200 bg-white pt-3 dark:border-slate-800 dark:bg-[#111726]"><button type="button" onClick={toggleSidebar} aria-label="왼쪽 메뉴 펼치기" title="왼쪽 메뉴 펼치기" className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-md transition hover:bg-slate-100 dark:border-slate-700 dark:bg-[#111726] dark:text-slate-300 dark:hover:bg-slate-800">
+      <PanelLeftOpen size={18} />
+    </button></div>}
+    </>
   );
 }

@@ -9,7 +9,6 @@ import AdminCard from "@/components/admin/AdminCard";
 import AdminFormActions from "@/components/admin/AdminFormActions";
 import SeasonInlineSelect from "@/components/admin/SeasonInlineSelect";
 import ParticipantManager from "./ParticipantManager";
-import Link from "next/link";
 
 interface GroupTeam {
   id: string;
@@ -25,9 +24,11 @@ interface Group {
 
 // 선택한 대회의 참가자 관리와 기존 구성 탭을 함께 표시한다.
 export default function AdminSeasonStructurePage() {
-  const { seasons, seasonsStatus, reloadSeasons, showFeedback } = useAdmin();
+  const { seasons, showFeedback } = useAdmin();
   const [selectedSeasonId, setSelectedSeasonId] = useState("");
-  const [activeTab, setActiveTab] = useState<"participants" | "groups" | "bracket" | "rules">("participants");
+  const [activeTab, setActiveTab] = useState<
+    "participants" | "groups" | "bracket" | "rules"
+  >("participants");
   const [groups, setGroups] = useState<Group[]>([]);
 
   // 경기 규칙 폼 상태
@@ -43,7 +44,8 @@ export default function AdminSeasonStructurePage() {
     overtimeRule: "공식 오버워치 타이브레이커 쟁탈 1선승",
   });
 
-  const selectedSeason = seasons.find((item) => item.id === selectedSeasonId) ?? null;
+  const selectedSeason =
+    seasons.find((item) => item.id === selectedSeasonId) ?? null;
   const [participantModalOpen, setParticipantModalOpen] = useState(false);
 
   // 대회를 선택하면 참가자 탭에서 해당 시즌의 등록 정보를 바로 조회한다.
@@ -57,7 +59,9 @@ export default function AdminSeasonStructurePage() {
       showFeedback("대회가 존재하지 않아 저장할 수 없습니다.");
       return;
     }
-    showFeedback(`[${selectedSeason.name}] 대회 구성 및 규정이 저장되었습니다.`);
+    showFeedback(
+      `[${selectedSeason.name}] 대회 구성 및 규정이 저장되었습니다.`,
+    );
   };
 
   const handleResetStructure = () => {
@@ -67,60 +71,69 @@ export default function AdminSeasonStructurePage() {
   return (
     <section className="h-full min-h-0 flex flex-col gap-4">
       {/* 1) 대회 기본 정보 요약 바 & 탭 네비게이션 */}
-      {selectedSeason ? (
-        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-slate-800/10 border border-amber-500/20 dark:border-amber-500/20 rounded-2xl p-4 md:p-5 flex flex-wrap items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="w-9 h-9 rounded-xl bg-[#f99e1a] text-slate-950 flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
-              🏆
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-white">
-                  {selectedSeason.name}
-                </h2>
+      <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-slate-800/10 border border-amber-500/20 dark:border-amber-500/20 rounded-2xl p-4 md:p-5 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="w-9 h-9 rounded-xl bg-[#f99e1a] text-slate-950 flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
+            🏆
+          </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-white">
+                {selectedSeason?.name || "대회 선수 등록 및 역할 배정"}
+              </h2>
+              {selectedSeason && (
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                     selectedSeason.status === "진행중"
                       ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400"
                       : selectedSeason.status === "개최 예정"
-                      ? "bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                        ? "bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-500"
                   }`}
                 >
                   {selectedSeason.status}
                 </span>
-              </div>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">총 상금: {selectedSeason.prize}</p>
+              )}
             </div>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              {selectedSeason
+                ? `총 상금: ${selectedSeason.prize}`
+                : "대회를 선택해 참가자와 역할을 관리하세요."}
+            </p>
           </div>
+        </div>
 
-          {/* 시즌 선택과 참가자 추가를 상단 시즌 정보에 배치한다. */}
-          <div className="flex flex-wrap items-center gap-2">
-            <SeasonInlineSelect seasons={seasons} value={selectedSeasonId} onChange={selectSeason} />
-            <button type="button" onClick={() => setParticipantModalOpen(true)} className="rounded-lg bg-[#f99e1a] px-4 py-2 text-xs font-bold text-slate-950">
-              + 선수 추가
-            </button>
-          </div>
+        {/* 시즌 선택과 참가자 추가를 상단 시즌 정보에 배치한다. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <SeasonInlineSelect
+            seasons={seasons}
+            value={selectedSeasonId}
+            onChange={selectSeason}
+          />
+          <button
+            type="button"
+            onClick={() => setParticipantModalOpen(true)}
+            disabled={!selectedSeason}
+            className="rounded-lg bg-[#f99e1a] px-4 py-2 text-xs font-bold text-slate-950 disabled:opacity-50"
+          >
+            + 선수 추가
+          </button>
         </div>
-      ) : (
-        <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center text-xs text-slate-500 dark:text-slate-400 shrink-0">
-          <span className="text-3xl block mb-2">🏆</span>
-          <p className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">
-            {seasonsStatus === "loading" ? "대회 목록을 불러오는 중..." : seasonsStatus === "error" ? "대회 목록을 불러오지 못했습니다." : seasons.length ? "대회를 선택해주세요." : "등록된 대회가 없습니다."}
-          </p>
-          <p className="text-slate-400 dark:text-slate-500 mb-4">
-            {seasonsStatus === "loading" ? "잠시만 기다려주세요." : seasonsStatus === "error" ? "다시 시도해 주세요." : seasons.length ? "참가자를 조회하고 편집할 대회를 선택하세요." : "대회 구성을 설정하려면 먼저 대회를 생성해 주세요."}
-          </p>
-          {seasonsStatus === "error" ? <button type="button" onClick={reloadSeasons} className="inline-flex items-center rounded-lg bg-[#f99e1a] px-3.5 py-2 text-xs font-bold text-slate-950">다시 시도</button> : seasonsStatus === "ready" && (seasons.length ? <SeasonInlineSelect seasons={seasons} value={selectedSeasonId} onChange={selectSeason} prominent /> : <Link href="/admin/seasons" className="inline-flex items-center rounded-lg bg-[#f99e1a] px-3.5 py-2 text-xs font-bold text-slate-950">+ 새 대회 등록하기</Link>)}
-        </div>
-      )}
+      </div>
 
       {/* 3) 2단 분할 레이아웃 */}
-      {selectedSeason && <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 min-h-0">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 min-h-0">
         {/* ========================================================= */}
         {/* 탭 1: 참가 인원 및 역할 관리 */}
         {/* ========================================================= */}
-        {activeTab === "participants" && <ParticipantManager key={selectedSeason?.id || "empty"} seasonId={selectedSeason?.id || ""} isAddOpen={participantModalOpen} onAddOpenChange={setParticipantModalOpen} />}
+        {activeTab === "participants" && (
+          <ParticipantManager
+            key={selectedSeason?.id || "empty"}
+            seasonId={selectedSeason?.id || ""}
+            isAddOpen={participantModalOpen}
+            onAddOpenChange={setParticipantModalOpen}
+          />
+        )}
 
         {activeTab === "groups" && (
           <div className="xl:col-span-12 h-full min-h-0 flex flex-col">
@@ -133,7 +146,9 @@ export default function AdminSeasonStructurePage() {
                   type="button"
                   onClick={() => {
                     if (groups.length === 0) {
-                      showFeedback("편성된 조가 없어 셔플을 진행할 수 없습니다.");
+                      showFeedback(
+                        "편성된 조가 없어 셔플을 진행할 수 없습니다.",
+                      );
                       return;
                     }
                     showFeedback("조 무작위 셔플 추첨이 완료되었습니다.");
@@ -151,7 +166,8 @@ export default function AdminSeasonStructurePage() {
                     편성된 조별 예선 그룹이 없습니다.
                   </p>
                   <p className="text-[11px] text-slate-400 mb-4">
-                    먼저 [참가 인원 및 역할] 탭에서 팀장 및 참가자를 구성한 후 조 편성을 진행해주세요.
+                    먼저 [참가 인원 및 역할] 탭에서 팀장 및 참가자를 구성한 후
+                    조 편성을 진행해주세요.
                   </p>
                   <button
                     type="button"
@@ -200,7 +216,9 @@ export default function AdminSeasonStructurePage() {
                             <div className="flex items-center gap-1.5">
                               <button
                                 type="button"
-                                onClick={() => showFeedback(`[${team.name}] 팀 정보 수정`)}
+                                onClick={() =>
+                                  showFeedback(`[${team.name}] 팀 정보 수정`)
+                                }
                                 className="text-[11px] px-2 py-1 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-500"
                               >
                                 시드 조정
@@ -233,7 +251,8 @@ export default function AdminSeasonStructurePage() {
                   생성된 본선 대진표가 없습니다.
                 </p>
                 <p className="text-[11px] text-slate-400">
-                  조별 풀리그 순위가 확정된 후 본선 토너먼트 대진 브래킷이 자동 생성됩니다.
+                  조별 풀리그 순위가 확정된 후 본선 토너먼트 대진 브래킷이 자동
+                  생성됩니다.
                 </p>
               </div>
             </AdminCard>
@@ -246,38 +265,66 @@ export default function AdminSeasonStructurePage() {
         {activeTab === "rules" && (
           <>
             <div className="xl:col-span-7 h-full min-h-0 flex flex-col">
-              <AdminCard title="세트별 진행 맵 및 룰 구성" countBadge="표준 OW2 규정" className="h-full">
+              <AdminCard
+                title="세트별 진행 맵 및 룰 구성"
+                countBadge="표준 OW2 규정"
+                className="h-full"
+              >
                 <div className="flex-1 min-h-0 overflow-y-auto space-y-3 text-xs pr-1.5 custom-scrollbar">
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
                     <div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">1세트: 쟁탈 (Control)</div>
-                      <div className="text-slate-500 text-[11px]">고정 맵풀: 네팔, 일리오스, 오아시스</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">
+                        1세트: 쟁탈 (Control)
+                      </div>
+                      <div className="text-slate-500 text-[11px]">
+                        고정 맵풀: 네팔, 일리오스, 오아시스
+                      </div>
                     </div>
-                    <span className="font-mono text-amber-500 dark:text-amber-400 font-bold">Bo3 필수</span>
+                    <span className="font-mono text-amber-500 dark:text-amber-400 font-bold">
+                      Bo3 필수
+                    </span>
                   </div>
 
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
                     <div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">2세트: 혼합 (Hybrid)</div>
-                      <div className="text-slate-500 text-[11px]">고정 맵풀: 왕의 길, 눔바니, 미드타운</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">
+                        2세트: 혼합 (Hybrid)
+                      </div>
+                      <div className="text-slate-500 text-[11px]">
+                        고정 맵풀: 왕의 길, 눔바니, 미드타운
+                      </div>
                     </div>
-                    <span className="font-mono text-amber-500 dark:text-amber-400 font-bold">Bo3 필수</span>
+                    <span className="font-mono text-amber-500 dark:text-amber-400 font-bold">
+                      Bo3 필수
+                    </span>
                   </div>
 
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
                     <div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">3세트: 플래시포인트 / 밀기</div>
-                      <div className="text-slate-500 text-[11px]">고정 맵풀: 수라바사, 뉴 정크 시티, 이스페란사</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">
+                        3세트: 플래시포인트 / 밀기
+                      </div>
+                      <div className="text-slate-500 text-[11px]">
+                        고정 맵풀: 수라바사, 뉴 정크 시티, 이스페란사
+                      </div>
                     </div>
-                    <span className="font-mono text-amber-500 dark:text-amber-400 font-bold">Bo3 결정세트</span>
+                    <span className="font-mono text-amber-500 dark:text-amber-400 font-bold">
+                      Bo3 결정세트
+                    </span>
                   </div>
 
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
                     <div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">4세트: 호위 (Escort)</div>
-                      <div className="text-slate-500 text-[11px]">고정 맵풀: 서킷 로얄, 지브롤터 감시기지</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">
+                        4세트: 호위 (Escort)
+                      </div>
+                      <div className="text-slate-500 text-[11px]">
+                        고정 맵풀: 서킷 로얄, 지브롤터 감시기지
+                      </div>
                     </div>
-                    <span className="font-mono text-purple-600 dark:text-purple-400 font-bold">Bo5 연장세트</span>
+                    <span className="font-mono text-purple-600 dark:text-purple-400 font-bold">
+                      Bo5 연장세트
+                    </span>
                   </div>
                 </div>
               </AdminCard>
@@ -303,7 +350,12 @@ export default function AdminSeasonStructurePage() {
                     </label>
                     <select
                       value={ruleConfig.groupFormat}
-                      onChange={(e) => setRuleConfig({ ...ruleConfig, groupFormat: e.target.value })}
+                      onChange={(e) =>
+                        setRuleConfig({
+                          ...ruleConfig,
+                          groupFormat: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                     >
                       <option value="Bo1">단판제 (Bo1)</option>
@@ -318,7 +370,12 @@ export default function AdminSeasonStructurePage() {
                     </label>
                     <select
                       value={ruleConfig.playoffFormat}
-                      onChange={(e) => setRuleConfig({ ...ruleConfig, playoffFormat: e.target.value })}
+                      onChange={(e) =>
+                        setRuleConfig({
+                          ...ruleConfig,
+                          playoffFormat: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                     >
                       <option value="Bo3">3판 2선승제 (Bo3)</option>
@@ -333,7 +390,12 @@ export default function AdminSeasonStructurePage() {
                     </label>
                     <select
                       value={ruleConfig.finalFormat}
-                      onChange={(e) => setRuleConfig({ ...ruleConfig, finalFormat: e.target.value })}
+                      onChange={(e) =>
+                        setRuleConfig({
+                          ...ruleConfig,
+                          finalFormat: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                     >
                       <option value="Bo5">5판 3선승제 (Bo5)</option>
@@ -350,7 +412,10 @@ export default function AdminSeasonStructurePage() {
                         type="number"
                         value={ruleConfig.teamsPerGroup}
                         onChange={(e) =>
-                          setRuleConfig({ ...ruleConfig, teamsPerGroup: Number(e.target.value) })
+                          setRuleConfig({
+                            ...ruleConfig,
+                            teamsPerGroup: Number(e.target.value),
+                          })
                         }
                         className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                       />
@@ -363,7 +428,10 @@ export default function AdminSeasonStructurePage() {
                         type="number"
                         value={ruleConfig.qualifiersPerGroup}
                         onChange={(e) =>
-                          setRuleConfig({ ...ruleConfig, qualifiersPerGroup: Number(e.target.value) })
+                          setRuleConfig({
+                            ...ruleConfig,
+                            qualifiersPerGroup: Number(e.target.value),
+                          })
                         }
                         className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                       />
@@ -384,7 +452,10 @@ export default function AdminSeasonStructurePage() {
                         type="checkbox"
                         checked={ruleConfig.heroBanEnabled}
                         onChange={(e) =>
-                          setRuleConfig({ ...ruleConfig, heroBanEnabled: e.target.checked })
+                          setRuleConfig({
+                            ...ruleConfig,
+                            heroBanEnabled: e.target.checked,
+                          })
                         }
                         className="w-4 h-4 rounded text-[#f99e1a] focus:ring-[#f99e1a] accent-[#f99e1a]"
                       />
@@ -398,7 +469,10 @@ export default function AdminSeasonStructurePage() {
                         type="text"
                         value={ruleConfig.mapPickRule}
                         onChange={(e) =>
-                          setRuleConfig({ ...ruleConfig, mapPickRule: e.target.value })
+                          setRuleConfig({
+                            ...ruleConfig,
+                            mapPickRule: e.target.value,
+                          })
                         }
                         className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                       />
@@ -412,7 +486,10 @@ export default function AdminSeasonStructurePage() {
                         type="text"
                         value={ruleConfig.overtimeRule}
                         onChange={(e) =>
-                          setRuleConfig({ ...ruleConfig, overtimeRule: e.target.value })
+                          setRuleConfig({
+                            ...ruleConfig,
+                            overtimeRule: e.target.value,
+                          })
                         }
                         className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                       />
@@ -423,7 +500,7 @@ export default function AdminSeasonStructurePage() {
             </div>
           </>
         )}
-      </div>}
+      </div>
     </section>
   );
 }

@@ -4,4 +4,6 @@
 import { redirect } from "next/navigation";
 
 // 기존 URL 접근을 새 스트리머 관리 경로로 이동한다.
-export default function AdminMembersCompatibilityPage() { redirect("/admin/streamers"); }
+export default function AdminMembersCompatibilityPage() {
+  redirect("/admin/streamers");
+}

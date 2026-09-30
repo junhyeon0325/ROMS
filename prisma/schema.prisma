@@ -184,7 +184,8 @@ model Match {
   id              BigInt    @id @default(autoincrement())
   seasonId        BigInt    @map("season_id")
   tournamentStage String    @map("tournament_stage")
-  matchDate       DateTime? @map("match_date")
+  bestOf          Int?      @map("best_of")
+  matchDate       DateTime? @db.Date @map("match_date")
   teamAId         BigInt    @map("team_a_id")
   teamBId         BigInt    @map("team_b_id")
   winnerTeamId    BigInt?   @map("winner_team_id")
@@ -224,8 +225,29 @@ model MapItem {
 
   matchSets   MatchSet[]
   seasonPools SeasonMap[]
+  subareas    MapSubarea[]
 
   @@map("maps")
+}
+
+model MapSubarea {
+  id        BigInt  @id @default(autoincrement())
+  mapId     BigInt  @map("map_id")
+  name      String
+  nameEn    String? @map("name_en")
+  sortOrder Int     @default(1) @map("sort_order")
+
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  remarks   String?  @map("remarks")
+
+  map       MapItem   @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  matchSets MatchSet[]
+
+  @@index([mapId, sortOrder])
+  @@map("map_subareas")
 }
 
 model SeasonMap {
@@ -249,8 +271,15 @@ model MatchSet {
   id                  BigInt  @id @default(autoincrement())
   matchId             BigInt  @map("match_id")
   setNumber           Int     @map("set_number")
-  mapId               BigInt  @map("map_id")
-  winnerTeamId        BigInt  @map("winner_team_id")
+  mapId               BigInt? @map("map_id")
+  mapSubareaId        BigInt? @map("map_subarea_id")
+  mapSubareaResults   String? @map("map_subarea_results")
+  teamAColor          String  @default("BLUE") @map("team_a_color")
+  hybridFirstAttackTeamId BigInt? @map("hybrid_first_attack_team_id")
+  hybridTurnResults String? @map("hybrid_turn_results")
+  teamAPushDistanceMeters Float? @map("team_a_push_distance_meters")
+  teamBPushDistanceMeters Float? @map("team_b_push_distance_meters")
+  winnerTeamId        BigInt? @map("winner_team_id")
   gameDurationSeconds Int?    @map("game_duration_seconds")
   vodUrl              String? @map("vod_url")
 
@@ -261,8 +290,9 @@ model MatchSet {
   remarks   String?  @map("remarks")
 
   match Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  map   MapItem @relation(fields: [mapId], references: [id], onDelete: Cascade)
-  winnerTeam SeasonTeam @relation("MatchSetWinnerTeam", fields: [winnerTeamId], references: [id], onDelete: Cascade)
+  map   MapItem? @relation(fields: [mapId], references: [id], onDelete: SetNull)
+  mapSubarea MapSubarea? @relation(fields: [mapSubareaId], references: [id], onDelete: Restrict)
+  winnerTeam SeasonTeam? @relation("MatchSetWinnerTeam", fields: [winnerTeamId], references: [id], onDelete: SetNull)
 
   playerStats PlayerSetStat[]
   heroBans    HeroBan[]
@@ -280,8 +310,11 @@ model PlayerSetStat {
   damage          Int     @default(0)
   healing         Int     @default(0)
   mitigatedDamage Int     @default(0) @map("mitigated_damage")
-  mainHeroIds     String? @map("main_hero_ids")
-  isMvp           Boolean @default(false) @map("is_mvp")
+  usedHeroIds     String? @map("used_hero_ids")
+  usedHeroSubareas String? @map("used_hero_subareas")
+  usedHeroTurns     String? @map("used_hero_turns")
+  lineupOrder     Int?    @map("lineup_order")
+  isPotg          Boolean @default(false) @map("is_potg")
 
   createdBy String?  @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
@@ -323,6 +356,7 @@ model HeroBan {
   matchSetId BigInt @map("match_set_id")
   teamId     BigInt @map("team_id")
   heroId     BigInt @map("hero_id")
+  sortOrder  Int    @default(1) @map("sort_order")
 
   createdBy String?  @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
@@ -334,6 +368,7 @@ model HeroBan {
   team     SeasonTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
   hero     Hero     @relation(fields: [heroId], references: [id], onDelete: Restrict)
 
+  @@index([matchSetId, sortOrder])
   @@map("hero_bans")
 }
 

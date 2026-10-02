@@ -62,6 +62,14 @@ function emptySet(setNumber: number): MatchSetInput {
     winnerTeamId: null,
     gameDurationSeconds: null,
     vodUrl: "",
+    teamAPushDistanceMeters: null,
+    teamBPushDistanceMeters: null,
+    escortFirstAttackTeamId: null,
+    escortTurnResults: {},
+    teamAEscortDistanceMeters: null,
+    teamBEscortDistanceMeters: null,
+    teamAEscortScore: null,
+    teamBEscortScore: null,
     bans: [],
     stats: [],
   };
@@ -667,6 +675,22 @@ export default function MatchManagement() {
                     : set.stats.map((stat) => ({ ...stat, usedHeroTurns: {} })),
                 mapSubareaId:
                   mapId === set.mapId ? (set.mapSubareaId ?? null) : null,
+                teamAPushDistanceMeters:
+                  mapId === set.mapId ? (set.teamAPushDistanceMeters ?? null) : null,
+                teamBPushDistanceMeters:
+                  mapId === set.mapId ? (set.teamBPushDistanceMeters ?? null) : null,
+                escortFirstAttackTeamId:
+                  mapId === set.mapId ? (set.escortFirstAttackTeamId ?? null) : null,
+                escortTurnResults:
+                  mapId === set.mapId ? (set.escortTurnResults ?? {}) : {},
+                teamAEscortDistanceMeters:
+                  mapId === set.mapId ? (set.teamAEscortDistanceMeters ?? null) : null,
+                teamBEscortDistanceMeters:
+                  mapId === set.mapId ? (set.teamBEscortDistanceMeters ?? null) : null,
+                teamAEscortScore:
+                  mapId === set.mapId ? (set.teamAEscortScore ?? null) : null,
+                teamBEscortScore:
+                  mapId === set.mapId ? (set.teamBEscortScore ?? null) : null,
                 winnerTeamId: mapId ? set.winnerTeamId : null,
               });
             }}

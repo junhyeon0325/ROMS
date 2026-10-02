@@ -1,3 +1,6 @@
+// File: app/page.tsx
+// Page/Component: 사용자 메인 대시보드
+// Purpose: 주요 시즌 정보로 이동하는 사용자 첫 화면을 제공한다.
 // app/page.tsx
 /**
  * [사용자 메인 대시보드 페이지 컴포넌트]
@@ -7,6 +10,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import UserHeader from "@/components/layout/UserHeader";
 import UserFooter from "@/components/layout/UserFooter";
 
@@ -76,12 +80,14 @@ export default function UserDashboard() {
           <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-xl leading-relaxed">
             현재 등록된 경기 결과 및 선수 전적 데이터가 없습니다. 관리자 콘솔에서 대회와 참가 스트리머를 등록하면 실시간 순위와 매치 결과가 이곳에 표시됩니다.
           </p>
-          <a
-            href="/admin"
-            className="inline-flex items-center gap-2 bg-[#f99e1a] hover:bg-[#ea8c08] text-slate-950 font-bold text-xs px-5 py-3 rounded-xl transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
-          >
-            관리자 콘솔 바로가기 →
-          </a>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/season" className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-5 py-3 text-xs font-bold text-slate-700 transition-colors hover:border-amber-500 hover:text-amber-700 dark:border-slate-700 dark:text-slate-200">
+              시즌 아카이브 보기 →
+            </Link>
+            <a href="/admin" className="inline-flex items-center gap-2 bg-[#f99e1a] hover:bg-[#ea8c08] text-slate-950 font-bold text-xs px-5 py-3 rounded-xl transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]">
+              관리자 콘솔 바로가기 →
+            </a>
+          </div>
         </div>
       </div>
 

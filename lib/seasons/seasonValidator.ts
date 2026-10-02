@@ -4,6 +4,7 @@ import { isValidMoneyAmount } from "@/lib/seasons/money";
 import { SEASON_STATUSES } from "@/lib/seasons/seasonStatus";
 
 export type SeasonPayload = Pick<SeasonItem, "name" | "status" | "startDate" | "endDate" | "remarks"> & {
+  mvpStreamerId: string | null;
   prizeAmount: string;
   schedules: { id?: string; name: string; startDate: string | null; endDate: string | null }[];
   rankPrizes: SeasonRankPrize[];
@@ -22,6 +23,7 @@ export function normalizeSeasonPayload(body: Record<string, unknown>): SeasonPay
   const rankPrizes = Array.isArray(body.rankPrizes) ? body.rankPrizes : [];
   return {
     name: typeof body.name === "string" ? body.name.trim() : "",
+    mvpStreamerId: typeof body.mvpStreamerId === "string" && body.mvpStreamerId ? body.mvpStreamerId : null,
     status: typeof body.status === "string" ? body.status as SeasonPayload["status"] : "개최 예정",
     startDate: typeof body.startDate === "string" ? body.startDate : "",
     endDate: typeof body.endDate === "string" ? body.endDate : "",
@@ -46,6 +48,7 @@ export function normalizeSeasonPayload(body: Record<string, unknown>): SeasonPay
 // 등록·수정 요청 모두 허용된 세 가지 진행 상태로 제한한다.
 export function validateSeasonPayload(payload: SeasonPayload): string | null {
   if (!payload.name) return "대회명을 입력해주세요.";
+  if (payload.mvpStreamerId !== null && !/^[1-9]\d*$/.test(payload.mvpStreamerId)) return "시즌 MVP 선수를 다시 선택해주세요.";
   if (!(SEASON_STATUSES as readonly string[]).includes(payload.status)) return "진행 상태가 올바르지 않습니다.";
   if (!isValidDate(payload.startDate) || !isValidDate(payload.endDate)) return "진행 기간의 시작일과 종료일을 선택해주세요.";
   if (payload.endDate < payload.startDate) return "진행 기간의 종료일은 시작일보다 빠를 수 없습니다.";

@@ -20,6 +20,7 @@ export function formatSeasonDto(
     schedules: DbSchedule[];
     rankPrizes: DbRankPrize[];
     _count: { seasonTeams: number };
+    mvpStreamer?: { id: bigint; name: string; profileImageUrl: string | null } | null;
   },
 ): SeasonItem {
   const startDate = item.startDate?.toISOString().slice(0, 10) ?? "";
@@ -29,6 +30,9 @@ export function formatSeasonDto(
   return {
     id: item.id.toString(),
     name: item.name,
+    mvpStreamerId: item.mvpStreamerId?.toString() ?? null,
+    mvpName: item.mvpStreamer?.name ?? null,
+    mvpProfileImg: item.mvpStreamer?.profileImageUrl ?? null,
     status: item.status as SeasonItem["status"],
     startDate,
     endDate,

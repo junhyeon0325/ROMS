@@ -23,6 +23,12 @@ export interface MapSubareaResultInput {
   winnerTeamId: string | null;
 }
 
+export interface EscortTurnResultInput {
+  attackTeamId?: string;
+  points: number | null;
+  payloadDistanceMeters: number | null;
+}
+
 export interface MatchSetInput {
   id?: string;
   setNumber: number;
@@ -35,6 +41,12 @@ export interface MatchSetInput {
   hybridTurnResults?: Record<string, { points: number | null; progressPercent: number | null; captureProgressPercent?: number | null; payloadDistanceMeters?: number | null; attackTeamId?: string }>;
   teamAPushDistanceMeters?: number | null;
   teamBPushDistanceMeters?: number | null;
+  escortFirstAttackTeamId?: string | null;
+  escortTurnResults?: Record<string, EscortTurnResultInput>;
+  teamAEscortDistanceMeters?: number | null;
+  teamBEscortDistanceMeters?: number | null;
+  teamAEscortScore?: number | null;
+  teamBEscortScore?: number | null;
   winnerTeamId: string | null;
   gameDurationSeconds: number | null;
   vodUrl: string;

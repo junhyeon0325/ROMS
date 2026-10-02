@@ -102,7 +102,6 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   };
 
   const pageInfo = getPageInfo();
-
   return (
     <>
       <header className="h-16 px-6 md:px-8 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#111726]/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between gap-4">

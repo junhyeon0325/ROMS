@@ -3,7 +3,7 @@
 // Purpose: 대회 목록과 선택 대회의 일정·상금을 조회하고 등록·수정 모달을 제공한다.
 "use client";
 
-import { useState, type MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { useAdmin } from "@/lib/context/AdminContext";
 import type { SeasonItem } from "@/lib/types/seasons";
 import AdminCard from "@/components/admin/AdminCard";
@@ -12,6 +12,8 @@ import AdminSearchInput from "@/components/admin/AdminSearchInput";
 import AdminModal from "@/components/admin/AdminModal";
 import AdminFormActions from "@/components/admin/AdminFormActions";
 import { removeSeason, saveSeason } from "@/lib/seasons/seasonClient";
+import { fetchParticipants } from "@/lib/seasons/participantClient";
+import type { SeasonParticipantRecord } from "@/lib/types/seasonParticipants";
 import { validateSeasonPayload } from "@/lib/seasons/seasonValidator";
 import { formatMoneyInput } from "@/lib/seasons/money";
 import { SEASON_STATUSES } from "@/lib/seasons/seasonStatus";
@@ -23,6 +25,7 @@ import {
 
 type SeasonForm = {
   name: string;
+  mvpStreamerId: string;
   status: SeasonItem["status"];
   startDate: string;
   endDate: string;
@@ -47,6 +50,7 @@ const cellClass = "px-3 py-2 text-xs text-slate-700 dark:text-slate-200";
 function emptyForm(): SeasonForm {
   return {
     name: "",
+    mvpStreamerId: "",
     status: "개최 예정",
     startDate: "",
     endDate: "",
@@ -61,6 +65,7 @@ function emptyForm(): SeasonForm {
 function formFromSeason(item: SeasonItem): SeasonForm {
   return {
     name: item.name,
+    mvpStreamerId: item.mvpStreamerId ?? "",
     status: item.status,
     startDate: item.startDate,
     endDate: item.endDate,
@@ -97,6 +102,8 @@ export default function AdminSeasonsPage() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [isSaving, setSaving] = useState(false);
   const [form, setForm] = useState<SeasonForm>(emptyForm);
+  const [mvpCandidates, setMvpCandidates] = useState<SeasonParticipantRecord[]>([]);
+  const [isLoadingMvpCandidates, setLoadingMvpCandidates] = useState(false);
   const filtered = seasons.filter((item) =>
     matchesSeasonFilters(item, filters),
   );
@@ -104,6 +111,29 @@ export default function AdminSeasonsPage() {
   const isFilterActive = Object.entries(filters).some(([key, value]) =>
     key === "status" ? value !== "ALL" : Boolean(value),
   );
+
+  // 편집 중인 대회의 선수 참가자만 MVP 후보로 불러온다.
+  useEffect(() => {
+    if (!isModalOpen || !editingId) {
+      setMvpCandidates([]);
+      return;
+    }
+    let active = true;
+    setLoadingMvpCandidates(true);
+    fetchParticipants(editingId)
+      .then((result) => {
+        if (active && result.success && result.data) {
+          setMvpCandidates(result.data.filter((participant) => participant.roles.includes("PLAYER")));
+        }
+      })
+      .catch(() => {
+        if (active) showFeedback("MVP 후보 참가자를 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (active) setLoadingMvpCandidates(false);
+      });
+    return () => { active = false; };
+  }, [isModalOpen, editingId, showFeedback]);
 
   // 그리드 컬럼별 입력값을 유지하면서 지정한 검색 조건 하나만 갱신한다.
   const setFilter = (key: keyof SeasonFilters, value: string) =>
@@ -128,6 +158,7 @@ export default function AdminSeasonsPage() {
   const handleSave = async () => {
     const payload = {
       ...form,
+      mvpStreamerId: form.mvpStreamerId || null,
       schedules: form.schedules.map((schedule) => ({
         ...schedule,
         startDate: schedule.startDate || null,
@@ -602,6 +633,25 @@ export default function AdminSeasonsPage() {
               />
             </label>
           </div>
+
+          <section className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-900/60 dark:bg-amber-950/20">
+            <h3 className="text-xs font-bold text-slate-800 dark:text-slate-100">시즌 MVP</h3>
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">대회에서 선정된 MVP를 해당 시즌의 선수 참가자 중에서 지정합니다.</p>
+            <select
+              aria-label="시즌 MVP 선수"
+              className={`${inputClass} mt-3 max-w-md`}
+              value={form.mvpStreamerId}
+              disabled={!editingId || isLoadingMvpCandidates || mvpCandidates.length === 0}
+              onChange={(event) => setForm((current) => ({ ...current, mvpStreamerId: event.target.value }))}
+            >
+              <option value="">시즌 MVP 미지정</option>
+              {mvpCandidates.map((participant) => (
+                <option key={participant.streamerId} value={participant.streamerId}>{participant.name}</option>
+              ))}
+            </select>
+            {!editingId && <p className="mt-1 text-[11px] text-slate-500">대회 등록 후 참가자를 등록하면 수정 화면에서 MVP를 지정할 수 있습니다.</p>}
+            {editingId && !isLoadingMvpCandidates && mvpCandidates.length === 0 && <p className="mt-1 text-[11px] text-slate-500">등록된 선수 참가자가 없습니다. 대회 선수 등록 후 MVP를 지정할 수 있습니다.</p>}
+          </section>
 
           <div>
             <div className="mb-2 flex items-center justify-between">

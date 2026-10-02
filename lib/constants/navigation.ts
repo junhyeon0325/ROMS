@@ -75,6 +75,36 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
                 href: "/admin/matches",
                 description: "상단에서 경기를 등록하고 하단에서 선택 경기의 세트 기록을 관리합니다.",
             },
+            {
+                id: "match-record-browser",
+                label: "경기 데이터 조회",
+                href: "/admin/match-records",
+                description: "저장된 경기·세트·맵·팀·선수 기록을 조회합니다.",
+            },
+            {
+                id: "match-statistics",
+                label: "경기 통계 조회",
+                href: "/admin/match-statistics",
+                description: "선수·맵·영웅별 저장 경기 기록을 집계해 조회합니다.",
+            },
+            {
+                id: "player-map-hero-statistics",
+                label: "선수별 맵·영웅 통계",
+                href: "/admin/player-map-hero-statistics",
+                description: "선수·맵·영웅 조합별 저장된 사용 기록을 조회합니다.",
+            },
+            {
+                id: "player-map-statistics",
+                label: "선수별 맵 통계",
+                href: "/admin/player-map-statistics",
+                description: "선수와 맵 조합별 저장된 세트 기록을 조회합니다.",
+            },
+            {
+                id: "player-hero-statistics",
+                label: "선수별 영웅 통계",
+                href: "/admin/player-hero-statistics",
+                description: "선수와 영웅 조합별 저장된 사용 기록을 조회합니다.",
+            },
         ],
     },
     {

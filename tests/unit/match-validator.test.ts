@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeMatchWinner, parseMatchInput } from "@/lib/matches/matchValidator";
 import type { MatchInput } from "@/lib/types/matches";
+import { getEscortAttackTeamId, getEscortTurnIds } from "@/lib/matches/escortTurns";
 
 const input: MatchInput = { seasonId: "1", tournamentStage: "결승", matchDate: "", teamAId: "10", teamBId: "20", bestOf: 3, remarks: "", sets: [] };
 // 테스트에서 완료·미완료 세트를 같은 형식으로 만든다.
@@ -58,5 +59,26 @@ describe("경기 입력 검증과 결과 계산", () => {
     expect(parseMatchInput({ ...input, sets: [pushSet] }).sets[0]).toMatchObject({ teamAPushDistanceMeters: 95.06, teamBPushDistanceMeters: 12345.678 });
     expect(() => parseMatchInput({ ...input, sets: [{ ...pushSet, teamAPushDistanceMeters: -0.01 }] })).toThrow();
     expect(() => parseMatchInput({ ...input, sets: [{ ...pushSet, teamBPushDistanceMeters: Number.POSITIVE_INFINITY }] })).toThrow();
+  });
+
+  // 호위 선공 팀과 양 팀의 공격 점수·화물 거리를 검증한다.
+  it("호위 맵의 선공 팀과 화물 결과를 허용하고 잘못된 값을 거절한다", () => {
+    const escortSet = { ...set(1, null), mapId: "100", escortFirstAttackTeamId: "20", teamAEscortScore: 3, teamBEscortScore: 2, teamAEscortDistanceMeters: 95.06, teamBEscortDistanceMeters: 135.99 };
+    expect(parseMatchInput({ ...input, sets: [escortSet] }).sets[0]).toMatchObject(escortSet);
+    expect(() => parseMatchInput({ ...input, sets: [{ ...escortSet, escortFirstAttackTeamId: "30" }] })).toThrow();
+    expect(() => parseMatchInput({ ...input, sets: [{ ...escortSet, teamAEscortScore: 1.5 }] })).toThrow();
+    expect(() => parseMatchInput({ ...input, sets: [{ ...escortSet, teamBEscortDistanceMeters: -1 }] })).toThrow();
+  });
+
+  // 호위는 기본 두 턴 뒤에도 공격 팀이 바뀌는 추가 턴과 선수별 영웅 기록을 허용한다.
+  it("호위 맵의 연속된 추가 턴과 턴별 사용 영웅을 검증한다", () => {
+    const stat = { streamerId: "7", kills: 0, deaths: 0, assists: 0, damage: 0, healing: 0, mitigatedDamage: 0, isPotg: false, usedHeroIds: ["2000"], usedHeroTurns: { "turn-3": ["2000"] } };
+    const escortSet = { ...set(1, null), mapId: "100", escortFirstAttackTeamId: "20", escortTurnResults: { "20": { points: 3, payloadDistanceMeters: 135.99 }, "10": { points: 2, payloadDistanceMeters: 95.06 }, "turn-3": { attackTeamId: "20", points: 4, payloadDistanceMeters: 151.2 } }, stats: [stat] };
+    expect(parseMatchInput({ ...input, sets: [escortSet] }).sets[0].escortTurnResults).toEqual(escortSet.escortTurnResults);
+    expect(() => parseMatchInput({ ...input, sets: [{ ...escortSet, escortTurnResults: { ...escortSet.escortTurnResults, "turn-5": { attackTeamId: "10", points: 5, payloadDistanceMeters: 160 } } }] })).toThrow();
+    expect(() => parseMatchInput({ ...input, sets: [{ ...escortSet, escortTurnResults: { ...escortSet.escortTurnResults, "turn-3": { attackTeamId: "30", points: 4, payloadDistanceMeters: 151.2 } } }] })).toThrow();
+    expect(() => parseMatchInput({ ...input, sets: [{ ...escortSet, escortFirstAttackTeamId: null }] })).toThrow();
+    expect(getEscortTurnIds(escortSet, input.teamAId, input.teamBId)).toEqual(["20", "10", "turn-3"]);
+    expect(getEscortAttackTeamId(escortSet, "turn-3")).toBe("20");
   });
 });

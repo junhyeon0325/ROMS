@@ -10,6 +10,7 @@ import React from "react";
 import { usePathname } from "next/navigation";
 import { ADMIN_NAV_ITEMS } from "@/lib/constants/navigation";
 
+// 통계 조회 화면에서는 본문 공간 확보를 위해 하단 상태 바를 렌더링하지 않는다.
 export default function AdminFooter() {
   const pathname = usePathname();
 
@@ -42,6 +43,8 @@ export default function AdminFooter() {
   };
 
   const pageLabel = getCurrentPageLabel();
+
+  if (pathname === "/admin/match-statistics") return null;
 
   return (
     <footer className="sticky bottom-0 z-20 w-full bg-white/90 dark:bg-[#111726]/90 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 py-3 px-6 md:px-8 text-xs text-slate-500 dark:text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0 select-none transition-colors">

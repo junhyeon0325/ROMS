@@ -31,6 +31,10 @@ function makeMatchRow() {
       mapSubareaResults: null as string | null, mapSubarea: null,
       hybridFirstAttackTeamId: null as bigint | null, hybridTurnResults: null as string | null,
       teamAPushDistanceMeters: null as number | null, teamBPushDistanceMeters: null as number | null,
+      escortFirstAttackTeamId: null as bigint | null,
+      escortTurnResults: null as string | null,
+      teamAEscortDistanceMeters: null as number | null, teamBEscortDistanceMeters: null as number | null,
+      teamAEscortScore: null as number | null, teamBEscortScore: null as number | null,
       teamAColor: "BLUE", winnerTeamId: null, gameDurationSeconds: null, vodUrl: null,
       heroBans: [],
       playerStats: [{
@@ -60,26 +64,29 @@ describe("구역 결과 저장과 재조회", () => {
     mocks.tx.playerSetStat.findMany.mockResolvedValue([{ id: BigInt(70), streamerId: BigInt(7) }]);
   });
 
-  it("구역 승리 팀·양 팀 점유율·점수를 저장하고 다시 조회해도 유지한다", async () => {
+  it("구역 승리 팀·양 팀 점유율·점수와 색상 배정을 저장하고 다시 조회해도 유지한다", async () => {
     const row = makeMatchRow();
     mocks.tx.match.findUnique.mockResolvedValue(row);
     mocks.prisma.match.findFirstOrThrow.mockImplementation(async () => row);
     mocks.prisma.match.findFirst.mockImplementation(async () => row);
-    mocks.tx.matchSet.update.mockImplementation(async ({ data }: { data: { mapSubareaResults: string } }) => {
+    mocks.tx.matchSet.update.mockImplementation(async ({ data }: { data: { mapSubareaResults: string; teamAColor: string } }) => {
       row.sets[0].mapSubareaResults = data.mapSubareaResults;
+      row.sets[0].teamAColor = data.teamAColor;
       return { id: BigInt(60) };
     });
 
     const current = await findMatch(BigInt(1), BigInt(50));
     expect(current).not.toBeNull();
     const result = { order: 0, teamAScore: 1, teamBScore: 0, teamAProgress: 76, teamBProgress: 99, winnerTeamId: "10" };
-    const sets = [{ ...current!.sets[0], mapSubareaResults: { "1000": result } }];
-    const saved = await updateMatchSection(BigInt(50), "sets", { sets }, "7");
+    const set = { ...current!.sets[0], teamAColor: "RED" as const, mapSubareaResults: { "1000": result } };
+    const saved = await updateMatchSection(BigInt(50), "setDetail", { set }, "7");
     const reopened = await findMatch(BigInt(1), BigInt(50));
 
     expect(JSON.parse(row.sets[0].mapSubareaResults!)).toEqual({ "1000": result });
     expect(saved.sets[0].mapSubareaResults).toEqual({ "1000": result });
     expect(reopened?.sets[0].mapSubareaResults).toEqual({ "1000": result });
+    expect(saved.sets[0].teamAColor).toBe("RED");
+    expect(reopened?.sets[0].teamAColor).toBe("RED");
     expect(reopened?.sets[0].stats[0].usedHeroIds).toEqual(["2000"]);
     expect(reopened?.sets[0].stats[0].usedHeroSubareas).toEqual({ "2000": ["1000"] });
     expect(mocks.tx.playerSetStat.update).toHaveBeenCalledWith({
@@ -143,5 +150,40 @@ describe("구역 결과 저장과 재조회", () => {
 
     expect(saved.sets[0]).toMatchObject({ teamAPushDistanceMeters: 95.06, teamBPushDistanceMeters: 135.99 });
     expect(reopened?.sets[0]).toMatchObject({ teamAPushDistanceMeters: 95.06, teamBPushDistanceMeters: 135.99 });
+  });
+
+  // 호위 세트의 추가 공격 턴과 선수 영웅이 DB 저장 뒤에도 분리되어 복원되는지 확인한다.
+  it("호위 맵의 세 공격 턴과 턴별 영웅을 저장하고 다시 조회한다", async () => {
+    const row = makeMatchRow();
+    row.sets[0].playerStats[0].usedHeroSubareas = "{}";
+    mocks.tx.seasonMap.findMany.mockResolvedValue([{ mapId: BigInt(100), map: { mapType: "ESCORT" } }]);
+    mocks.tx.mapSubarea.findMany.mockResolvedValue([]);
+    mocks.tx.match.findUnique.mockResolvedValue(row);
+    mocks.prisma.match.findFirstOrThrow.mockImplementation(async () => row);
+    mocks.prisma.match.findFirst.mockImplementation(async () => row);
+    mocks.tx.matchSet.update.mockImplementation(async ({ data }: { data: { escortFirstAttackTeamId: bigint | null; escortTurnResults: string; teamAEscortScore: number | null; teamBEscortScore: number | null; teamAEscortDistanceMeters: number | null; teamBEscortDistanceMeters: number | null } }) => {
+      row.sets[0].escortFirstAttackTeamId = data.escortFirstAttackTeamId;
+      row.sets[0].escortTurnResults = data.escortTurnResults;
+      row.sets[0].teamAEscortScore = data.teamAEscortScore;
+      row.sets[0].teamBEscortScore = data.teamBEscortScore;
+      row.sets[0].teamAEscortDistanceMeters = data.teamAEscortDistanceMeters;
+      row.sets[0].teamBEscortDistanceMeters = data.teamBEscortDistanceMeters;
+      return { id: BigInt(60) };
+    });
+    mocks.tx.playerSetStat.update.mockImplementation(async ({ data }: { data: { usedHeroTurns: string } }) => {
+      row.sets[0].playerStats[0].usedHeroTurns = data.usedHeroTurns;
+      return { id: BigInt(70) };
+    });
+
+    const current = await findMatch(BigInt(1), BigInt(50));
+    const escortTurnResults = { "20": { points: 3, payloadDistanceMeters: 135.99 }, "10": { points: 2, payloadDistanceMeters: 95.06 }, "turn-3": { attackTeamId: "20", points: 4, payloadDistanceMeters: 151.2 } };
+    const set = { ...current!.sets[0], escortFirstAttackTeamId: "20", escortTurnResults, stats: current!.sets[0].stats.map((stat) => ({ ...stat, usedHeroTurns: { "20": ["2000"], "10": ["2000"], "turn-3": ["2000"] } })) };
+    const saved = await updateMatchSection(BigInt(50), "setDetail", { set }, "7");
+    const reopened = await findMatch(BigInt(1), BigInt(50));
+
+    expect(saved.sets[0].escortTurnResults).toEqual(escortTurnResults);
+    expect(reopened?.sets[0].escortTurnResults).toEqual(escortTurnResults);
+    expect(reopened?.sets[0].stats[0].usedHeroTurns).toEqual({ "20": ["2000"], "10": ["2000"], "turn-3": ["2000"] });
+    expect(reopened?.sets[0]).toMatchObject({ teamAEscortScore: 2, teamBEscortScore: 4, teamAEscortDistanceMeters: 95.06, teamBEscortDistanceMeters: 151.2 });
   });
 });

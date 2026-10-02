@@ -39,6 +39,7 @@ model User {
 model Season {
   id          BigInt    @id @default(autoincrement())
   name        String
+  mvpStreamerId BigInt?  @map("mvp_streamer_id")
   startDate   DateTime? @map("start_date") @db.Date
   endDate     DateTime? @map("end_date") @db.Date
   status      String    @default("개최 예정")
@@ -52,6 +53,7 @@ model Season {
   remarks   String?  @map("remarks")
 
   seasonTeams  SeasonTeam[]
+  mvpStreamer  Streamer? @relation("SeasonMvp", fields: [mvpStreamerId], references: [id], onDelete: SetNull)
   matches      Match[]
   schedules    SeasonSchedule[]
   rankPrizes   SeasonRankPrize[]
@@ -109,6 +111,7 @@ model Streamer {
   teamMembers        SeasonTeamMember[]
   seasonParticipants SeasonParticipant[]
   playerSetStats     PlayerSetStat[]
+  seasonMvpFor       Season[] @relation("SeasonMvp")
 
   @@index([name])
   @@index([createdAt(sort: Desc)])
@@ -279,6 +282,12 @@ model MatchSet {
   hybridTurnResults String? @map("hybrid_turn_results")
   teamAPushDistanceMeters Float? @map("team_a_push_distance_meters")
   teamBPushDistanceMeters Float? @map("team_b_push_distance_meters")
+  escortFirstAttackTeamId BigInt? @map("escort_first_attack_team_id")
+  escortTurnResults String? @map("escort_turn_results")
+  teamAEscortDistanceMeters Float? @map("team_a_escort_distance_meters")
+  teamBEscortDistanceMeters Float? @map("team_b_escort_distance_meters")
+  teamAEscortScore         Int?    @map("team_a_escort_score")
+  teamBEscortScore         Int?    @map("team_b_escort_score")
   winnerTeamId        BigInt? @map("winner_team_id")
   gameDurationSeconds Int?    @map("game_duration_seconds")
   vodUrl              String? @map("vod_url")

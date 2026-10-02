@@ -77,7 +77,9 @@ export async function updateParticipantRoles(seasonId: bigint, streamerId: bigin
   const nextPosition = roles.includes("COACH") ? null : position === undefined ? existing.position : position;
   if (roles.includes("COACH")) position = null;
   else if (nextPosition !== null) await assertPositions([nextPosition]);
-  return toDto(await prisma.seasonParticipant.update({ where: { id: existing.id }, data: { roles, ...(position !== undefined ? { position } : {}) }, include: includeStreamer }));
+  const saved = await prisma.seasonParticipant.update({ where: { id: existing.id }, data: { roles, ...(position !== undefined ? { position } : {}) }, include: includeStreamer });
+  if (!roles.includes("PLAYER")) await prisma.season.updateMany({ where: { id: seasonId, mvpStreamerId: streamerId }, data: { mvpStreamerId: null } });
+  return toDto(saved);
 }
 
 // 참가자 변경을 한 요청·트랜잭션으로 검증하고 역할·포지션이 같은 행을 묶어 갱신한다.
@@ -120,6 +122,8 @@ export async function updateParticipants(seasonId: bigint, updates: ParticipantR
       const result = await tx.seasonParticipant.updateMany({ where: { seasonId, streamerId: { in: group.streamerIds } }, data: { roles: group.roles, position: group.position } });
       if (result.count !== group.streamerIds.length) throw new ParticipantError("참가자 변경 중 일부 선수를 찾을 수 없습니다.", 404);
     }
+    const noLongerPlayers = normalized.filter((item) => !item.roles.includes("PLAYER")).map((item) => item.streamerId);
+    if (noLongerPlayers.length) await tx.season.updateMany({ where: { id: seasonId, mvpStreamerId: { in: noLongerPlayers } }, data: { mvpStreamerId: null } });
     const saved = await tx.seasonParticipant.findMany({ where: { seasonId, streamerId: { in: streamerIds } }, include: includeStreamer, orderBy: { createdAt: "asc" } });
     return saved.map(toDto);
   });
@@ -127,6 +131,9 @@ export async function updateParticipants(seasonId: bigint, updates: ParticipantR
 
 // 선택한 대회에서 지정 스트리머의 참가 관계만 삭제한다.
 export async function removeParticipant(seasonId: bigint, streamerId: bigint) {
-  const deleted = await prisma.seasonParticipant.deleteMany({ where: { seasonId, streamerId } });
-  if (!deleted.count) throw new ParticipantError("참가자를 찾을 수 없습니다.", 404);
+  await prisma.$transaction(async (tx) => {
+    const deleted = await tx.seasonParticipant.deleteMany({ where: { seasonId, streamerId } });
+    if (!deleted.count) throw new ParticipantError("참가자를 찾을 수 없습니다.", 404);
+    await tx.season.updateMany({ where: { id: seasonId, mvpStreamerId: streamerId }, data: { mvpStreamerId: null } });
+  });
 }

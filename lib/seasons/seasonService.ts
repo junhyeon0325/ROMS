@@ -5,12 +5,13 @@ import { formatMoneyInput } from "@/lib/seasons/money";
 import { formatSeasonDto, toKstDate } from "@/lib/seasons/seasonDto";
 import type { SeasonPayload } from "@/lib/seasons/seasonValidator";
 
-const includeDetails = { schedules: { orderBy: { sortOrder: "asc" as const } }, rankPrizes: { orderBy: { rank: "asc" as const } }, _count: { select: { seasonTeams: true } } };
+const includeDetails = { schedules: { orderBy: { sortOrder: "asc" as const } }, rankPrizes: { orderBy: { rank: "asc" as const } }, mvpStreamer: { select: { id: true, name: true, profileImageUrl: true } }, _count: { select: { seasonTeams: true } } };
 
 // 대회 기본 필드를 만들고 소개·메모를 공통 비고 컬럼에 저장한다.
 function toData(payload: SeasonPayload) {
   return {
     name: payload.name, status: payload.status,
+    mvpStreamerId: payload.mvpStreamerId ? BigInt(payload.mvpStreamerId) : null,
     startDate: new Date(`${payload.startDate}T00:00:00.000Z`),
     endDate: new Date(`${payload.endDate}T00:00:00.000Z`),
     prize: `${formatMoneyInput(payload.prizeAmount)}원`,
@@ -44,6 +45,10 @@ export async function updateSeason(id: bigint, payload: SeasonPayload) {
   return prisma.$transaction(async (tx) => {
     const existing = await tx.season.findUnique({ where: { id }, include: { schedules: true } });
     if (!existing) throw new Error("대회를 찾을 수 없습니다.");
+    if (payload.mvpStreamerId) {
+      const participant = await tx.seasonParticipant.findFirst({ where: { seasonId: id, streamerId: BigInt(payload.mvpStreamerId), roles: { has: "PLAYER" } }, select: { id: true } });
+      if (!participant) throw new Error("시즌 MVP는 해당 대회의 선수 참가자 중에서 선택해주세요.");
+    }
     const existingById = new Map(existing.schedules.map((schedule) => [schedule.id.toString(), schedule]));
     const existingIds = new Set(existingById.keys());
     const retainedIds = payload.schedules.filter((schedule) => schedule.id).map((schedule) => schedule.id!);

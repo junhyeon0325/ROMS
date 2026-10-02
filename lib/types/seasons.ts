@@ -18,6 +18,9 @@ export interface SeasonParticipant {
 export interface SeasonItem {
   id: string;
   name: string;
+  mvpStreamerId?: string | null;
+  mvpName?: string | null;
+  mvpProfileImg?: string | null;
   status: "개최 예정" | "진행중" | "종료";
   period: string;
   startDate: string;
